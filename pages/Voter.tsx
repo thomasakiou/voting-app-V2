@@ -74,7 +74,7 @@ export const VoterDashboard: React.FC = () => {
 
                 <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2">Welcome, {user?.full_name ? user.full_name.split(' ')[0] : user?.username}</h1>
+                        <h1 className="text-3xl font-bold mb-2">Welcome, {user?.full_name || user?.username}</h1>
                         <p className="text-indigo-100 text-lg max-w-xl">
                             {votingStatus === 'active'
                                 ? "The 2024 General Election is currently live. Your voice matters—cast your secure digital ballot today."

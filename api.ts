@@ -12,6 +12,9 @@ export interface LoginRequest {
 export interface TokenResponse {
   access_token: string;
   token_type: string;
+  fullname?: string;  // Backend returns "fullname" not "full_name"
+  role?: string;
+  username?: string;
 }
 
 export interface UserCreate {

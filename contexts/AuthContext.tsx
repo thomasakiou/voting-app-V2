@@ -77,9 +77,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const login = async (username: string, password: string) => {
         setIsLoading(true);
         try {
-            await authAPI.login(username, password);
+            const loginResponse = await authAPI.login(username, password);
+            console.log('Login response:', loginResponse); // Debug: see what backend returns
+
             // Store username for later retrieval
             localStorage.setItem('voting_username', username);
+
+            // Extract fullname from login response if available
+            if (loginResponse.fullname) {
+                console.log('Storing fullname from login response:', loginResponse.fullname);
+                localStorage.setItem('voting_fullname', loginResponse.fullname);
+            } else {
+                console.warn('No fullname in login response');
+            }
 
             try {
                 // Try to fetch user data
@@ -93,15 +103,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 // If fetching user fails (likely 403 for voters), construct a minimal user object
                 console.warn('Failed to fetch user details, assuming voter role:', error);
 
-                // Try to get full_name from localStorage (if previously stored)
-                const storedFullName = localStorage.getItem('voting_fullname');
+                // Use fullname from login response or localStorage
+                const storedFullName = loginResponse.fullname || localStorage.getItem('voting_fullname');
 
                 // We assume if they logged in but can't read users, they are a voter
                 const fallbackUser: UserOut = {
                     id: 0, // Unknown ID
                     username: username,
-                    full_name: storedFullName || username, // Use stored full_name or fallback to username
-                    role: 'voter',
+                    full_name: storedFullName || username, // Use login response full_name or fallback to username
+                    role: (loginResponse.role as 'voter' | 'admin' | 'super-admin') || 'voter',
                     is_active: true
                 };
                 setUser(fallbackUser);
