@@ -176,13 +176,13 @@ export const Login: React.FC = () => {
 
           <p className="text-center text-sm text-slate-500 dark:text-slate-400">
             By signing in, you agree to our{' '}
-            <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+            <Link to="/terms" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
               Terms of Service
-            </a>{' '}
+            </Link>{' '}
             and{' '}
-            <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+            <Link to="/privacy" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
               Privacy Policy
-            </a>
+            </Link>
             .
           </p>
         </div>

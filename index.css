@@ -116,21 +116,7 @@
   html.dark .modal-content {
     background: linear-gradient(to bottom, rgb(30, 41, 59), rgb(15, 23, 42)) !important;
     border-color: rgba(71, 85, 105, 0.5);
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.05),
-      0 20px 25px -5px rgba(0, 0, 0, 0.5),
-      0 10px 10px -5px rgba(0, 0, 0, 0.3),
-      0 0 60px -15px rgba(99, 102, 241, 0.4);
-  }
-}
-
-@layer utilities {
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400;
-  }
-
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-out forwards;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
 
   .animate-slide-up {
@@ -140,78 +126,145 @@
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out forwards;
   }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes modalOverlayFadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes modalContentSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 dark:bg-slate-600 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-500;
+  }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+/* Print Styles for PDF Export */
+@media print {
+  @page {
+    margin: 1cm;
+    size: landscape;
   }
 
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+  body {
+    background: white;
+    color: black;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
+  /* Hide non-printable elements */
+  nav,
+  aside,
+  button,
+  .no-print,
+  .fixed,
+  header {
+    display: none !important;
   }
 
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes modalOverlayFadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes modalContentSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
+  /* Reset layout for print */
+  main,
+  .print-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    background: white !important;
+    overflow: visible !important;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+  /* Ensure tables print correctly */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
   }
-}
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
 
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
+  thead {
+    display: table-header-group;
+  }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-600 rounded-full;
-}
+  tfoot {
+    display: table-footer-group;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-400 dark:bg-slate-500;
+  th,
+  td {
+    border: 1px solid #ddd !important;
+    padding: 8px !important;
+    color: black !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
 }

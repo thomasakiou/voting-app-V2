@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthLayout, AdminLayout, VoterLayout } from './components/Layouts';
 import { Login, ResetPassword, ChangePassword, FirstTimePasswordChange } from './pages/Auth';
+import { PrivacyPolicy, TermsOfService } from './pages/Legal';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { UserList, CreateUser, BulkUpload, BulkActions } from './pages/AdminUsers';
 import { OfficeManagement, CreateOffice } from './pages/AdminOffices';
@@ -25,6 +26,8 @@ const App: React.FC = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/first-time-password" element={<FirstTimePasswordChange />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
           </Route>
 
           {/* Admin Routes */}

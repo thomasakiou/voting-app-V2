@@ -48,11 +48,14 @@ export const ElectionResults: React.FC = () => {
         loadResults(officeCode);
     };
 
+    // Sort results by vote count descending
+    const sortedResults = results?.results ? [...results.results].sort((a: any, b: any) => b.vote_count - a.vote_count) : [];
+
     // Calculate total votes and percentages client-side
-    const totalVotes = results?.results?.reduce((sum: number, r: any) => sum + r.vote_count, 0) || 0;
+    const totalVotes = sortedResults.reduce((sum: number, r: any) => sum + r.vote_count, 0) || 0;
 
     // Transform results for charts
-    const chartData = results?.results?.map((r: any, index: number) => {
+    const chartData = sortedResults.map((r: any, index: number) => {
         const percentage = totalVotes > 0 ? ((r.vote_count / totalVotes) * 100).toFixed(1) : '0.0';
         return {
             name: r.candidate_name,
@@ -60,18 +63,27 @@ export const ElectionResults: React.FC = () => {
             percentage: parseFloat(percentage),
             fill: COLORS[index % COLORS.length],
         };
-    }) || [];
+    });
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Election Results</h1>
-                <p className="text-slate-500 dark:text-slate-400">View voting results by office.</p>
+            <div className="flex flex-wrap items-center justify-between gap-4 no-print">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Election Results</h1>
+                    <p className="text-slate-500 dark:text-slate-400">View voting results by office.</p>
+                </div>
+                <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                >
+                    <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                    Download Results PDF
+                </button>
             </div>
 
             {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
 
-            <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+            <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-slate-200 dark:border-slate-800 p-6 no-print">
                 <div className="mb-6">
                     <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Select Office</label>
                     <select
@@ -96,19 +108,19 @@ export const ElectionResults: React.FC = () => {
                             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
                                 <div className="text-sm text-slate-500 dark:text-slate-400">Total Votes</div>
                                 <div className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
-                                    {results.total_votes || 0}
+                                    {totalVotes}
                                 </div>
                             </div>
                             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
                                 <div className="text-sm text-slate-500 dark:text-slate-400">Candidates</div>
                                 <div className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
-                                    {results.results?.length || 0}
+                                    {sortedResults.length}
                                 </div>
                             </div>
                             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
                                 <div className="text-sm text-slate-500 dark:text-slate-400">Leading Candidate</div>
                                 <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-                                    {results.results?.[0]?.candidate_name || 'N/A'}
+                                    {sortedResults[0]?.candidate_name || 'N/A'}
                                 </div>
                             </div>
                         </div>
@@ -172,7 +184,7 @@ export const ElectionResults: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-900">
-                                        {results.results?.map((result: any, index: number) => {
+                                        {sortedResults.map((result: any, index: number) => {
                                             const percentage = totalVotes > 0 ? ((result.vote_count / totalVotes) * 100).toFixed(1) : '0.0';
                                             return (
                                                 <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
@@ -205,6 +217,61 @@ export const ElectionResults: React.FC = () => {
                         Select an office to view results
                     </div>
                 )}
+            </div>
+
+            {/* Print View */}
+            <div className="print-only">
+                <div className="mb-8">
+                    <h1 className="text-2xl font-bold mb-2">Official Election Results</h1>
+                    <h2 className="text-xl text-slate-700 mb-1">
+                        Office: {offices.find(o => o.office_code === selectedOffice)?.description || selectedOffice}
+                    </h2>
+                    <p className="text-sm text-slate-500">Generated on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</p>
+                </div>
+
+                {results && (
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                            <div className="p-4 border border-slate-300 rounded">
+                                <div className="text-sm text-slate-500">Total Votes Cast</div>
+                                <div className="text-2xl font-bold">{totalVotes}</div>
+                            </div>
+                            <div className="p-4 border border-slate-300 rounded">
+                                <div className="text-sm text-slate-500">Winner</div>
+                                <div className="text-2xl font-bold text-indigo-700">
+                                    {sortedResults[0]?.candidate_name || 'N/A'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <table className="w-full text-left text-sm border-collapse border border-slate-300">
+                            <thead>
+                                <tr className="bg-slate-100">
+                                    <th className="border border-slate-300 px-4 py-2">Rank</th>
+                                    <th className="border border-slate-300 px-4 py-2">Candidate</th>
+                                    <th className="border border-slate-300 px-4 py-2">Votes</th>
+                                    <th className="border border-slate-300 px-4 py-2">Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sortedResults.map((result: any, index: number) => {
+                                    const percentage = totalVotes > 0 ? ((result.vote_count / totalVotes) * 100).toFixed(1) : '0.0';
+                                    return (
+                                        <tr key={index}>
+                                            <td className="border border-slate-300 px-4 py-2 font-bold">{index + 1}</td>
+                                            <td className="border border-slate-300 px-4 py-2">{result.candidate_name}</td>
+                                            <td className="border border-slate-300 px-4 py-2">{result.vote_count}</td>
+                                            <td className="border border-slate-300 px-4 py-2">{percentage}%</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+                <div className="mt-12 text-xs text-slate-400 text-center border-t border-slate-200 pt-4">
+                    SecureVote System - Official Audit Record
+                </div>
             </div>
         </div>
     );
