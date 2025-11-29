@@ -68,14 +68,14 @@ export const VoterDashboard: React.FC = () => {
     return (
         <div className="space-y-8">
             {/* Welcome Section */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 to-violet-600 p-8 text-white shadow-xl shadow-indigo-500/20">
+            <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 md:p-8 text-white shadow-xl shadow-indigo-500/20">
                 <div className="absolute top-0 right-0 -mt-10 -mr-10 size-64 rounded-full bg-white/10 blur-3xl"></div>
                 <div className="absolute bottom-0 left-0 -mb-10 -ml-10 size-64 rounded-full bg-black/10 blur-3xl"></div>
 
-                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2">Welcome, {user?.full_name || user?.username}</h1>
-                        <p className="text-indigo-100 text-lg max-w-xl">
+                        <h1 className="text-2xl md:text-3xl font-bold mb-2">Welcome, {user?.full_name || user?.username}</h1>
+                        <p className="text-indigo-100 text-sm md:text-lg max-w-xl">
                             {votingStatus === 'active'
                                 ? "The 2024 General Election is currently live. Your voice matters—cast your secure digital ballot today."
                                 : votingStatus === 'not_started'
@@ -86,30 +86,31 @@ export const VoterDashboard: React.FC = () => {
                     {votingStatus === 'active' ? (
                         <Link
                             to="/voter/ballot"
-                            className="px-8 py-4 bg-white text-indigo-600 font-bold rounded-xl shadow-lg hover:shadow-xl hover:bg-indigo-50 transform hover:-translate-y-1 transition-all duration-200 flex items-center gap-2"
+                            className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-white text-indigo-600 font-bold rounded-xl shadow-lg hover:shadow-xl hover:bg-indigo-50 transform hover:-translate-y-1 transition-all duration-200 flex items-center justify-center gap-2 text-sm md:text-base"
                         >
                             <span className="material-symbols-outlined">how_to_vote</span>
                             Start Voting
                         </Link>
                     ) : (
-                        <div className="px-8 py-4 bg-white/10 text-white font-bold rounded-xl border border-white/20 flex items-center gap-2 cursor-not-allowed">
+                        <div className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-white/10 text-white font-bold rounded-xl border border-white/20 flex items-center justify-center gap-2 cursor-not-allowed text-sm md:text-base">
                             <span className="material-symbols-outlined">block</span>
-                            {votingStatus === 'not_started' ? 'Voting Not Started' : 'Voting Closed'}
+                            <span className="hidden sm:inline">{votingStatus === 'not_started' ? 'Voting Not Started' : 'Voting Closed'}</span>
+                            <span className="sm:hidden">{votingStatus === 'not_started' ? 'Not Started' : 'Closed'}</span>
                         </div>
                     )}
                 </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-3 gap-4 md:gap-6">
                 {/* Election Status Card */}
-                <div className="md:col-span-2 card p-6">
-                    <div className="flex justify-between items-start mb-6">
+                <div className="md:col-span-2 card p-4 md:p-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6">
                         <div>
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Election Status</h2>
-                            <p className="text-slate-500 dark:text-slate-400">Real-time updates</p>
+                            <h2 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">Election Status</h2>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Real-time updates</p>
                         </div>
                         {votingStatus === 'active' && (
-                            <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-bold flex items-center gap-2 border border-green-200 dark:border-green-800">
+                            <span className="px-2.5 md:px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 border border-green-200 dark:border-green-800">
                                 <span className="relative flex size-2.5">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full size-2.5 bg-green-500"></span>
@@ -118,31 +119,31 @@ export const VoterDashboard: React.FC = () => {
                             </span>
                         )}
                         {votingStatus === 'not_started' && (
-                            <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-sm font-bold flex items-center gap-2 border border-yellow-200 dark:border-yellow-800">
+                            <span className="px-2.5 md:px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 border border-yellow-200 dark:border-yellow-800">
                                 <span className="material-symbols-outlined text-sm">schedule</span>
                                 Polls Closed
                             </span>
                         )}
                         {votingStatus === 'ended' && (
-                            <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-sm font-bold flex items-center gap-2 border border-red-200 dark:border-red-800">
+                            <span className="px-2.5 md:px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 border border-red-200 dark:border-red-800">
                                 <span className="material-symbols-outlined text-sm">lock</span>
                                 Election Ended
                             </span>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Offices on Ballot</p>
-                            <p className="text-3xl font-bold text-slate-900 dark:text-white">{offices.length}</p>
+                    <div className="grid grid-cols-2 gap-3 md:gap-4">
+                        <div className="p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mb-1">Offices on Ballot</p>
+                            <p className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{offices.length}</p>
                         </div>
-                        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-3">
+                        <div className="p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                            <p className="text-xs md:text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 md:mb-3">
                                 {votingStatus === 'not_started' ? 'Starts In' : votingStatus === 'active' ? 'Time Remaining' : 'Status'}
                             </p>
                             {votingTime ? (
                                 votingStatus === 'ended' ? (
-                                    <p className="text-xl font-bold text-slate-900 dark:text-white">Completed</p>
+                                    <p className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">Completed</p>
                                 ) : (
                                     <div className="scale-75 origin-top-left -mb-4 -mt-2">
                                         <CountdownTimer
@@ -152,34 +153,34 @@ export const VoterDashboard: React.FC = () => {
                                     </div>
                                 )
                             ) : (
-                                <p className="text-xl font-bold text-slate-900 dark:text-white">Not Scheduled</p>
+                                <p className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">Not Scheduled</p>
                             )}
                         </div>
                     </div>
                 </div>
 
                 {/* Eligibility Card */}
-                <div className="card p-6 flex flex-col justify-center items-center text-center bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
-                    <div className="size-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4 text-green-600 dark:text-green-400">
-                        <span className="material-symbols-outlined text-3xl">verified_user</span>
+                <div className="card p-4 md:p-6 flex flex-col justify-center items-center text-center bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
+                    <div className="size-14 md:size-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-3 md:mb-4 text-green-600 dark:text-green-400">
+                        <span className="material-symbols-outlined text-2xl md:text-3xl">verified_user</span>
                     </div>
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-2">Verified Voter</h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm">
+                    <h3 className="font-bold text-base md:text-lg text-slate-900 dark:text-white mb-2">Verified Voter</h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm">
                         Your identity has been verified. You are eligible to vote in all {offices.length} contests.
                     </p>
                 </div>
             </div>
 
             {/* Offices List */}
-            <div className="card p-6">
-                <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Contests on Your Ballot</h3>
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="card p-4 md:p-6">
+                <h3 className="font-bold text-base md:text-lg text-slate-900 dark:text-white mb-3 md:mb-4">Contests on Your Ballot</h3>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                     {offices.map((office) => (
-                        <div key={office.id} className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:border-indigo-500/30 transition-colors">
-                            <div className="size-10 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center text-slate-400 shadow-sm">
-                                <span className="material-symbols-outlined">how_to_vote</span>
+                        <div key={office.id} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:border-indigo-500/30 transition-colors">
+                            <div className="size-9 md:size-10 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center text-slate-400 shadow-sm flex-shrink-0">
+                                <span className="material-symbols-outlined text-xl">how_to_vote</span>
                             </div>
-                            <span className="font-medium text-slate-700 dark:text-slate-200">{office.description}</span>
+                            <span className="font-medium text-sm md:text-base text-slate-700 dark:text-slate-200">{office.description}</span>
                         </div>
                     ))}
                 </div>
@@ -229,33 +230,33 @@ export const SelectOffice: React.FC = () => {
 
     return (
         <div className="max-w-4xl mx-auto">
-            <div className="mb-8 text-center">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Official Ballot</h1>
-                <p className="text-slate-500 dark:text-slate-400">Select a contest below to view candidates and cast your vote.</p>
+            <div className="mb-6 md:mb-8 text-center">
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2">Official Ballot</h1>
+                <p className="text-sm md:text-base text-slate-500 dark:text-slate-400">Select a contest below to view candidates and cast your vote.</p>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-3 md:gap-4">
                 {offices.map((office) => (
                     <Link
                         key={office.id}
                         to={`/voter/ballot/${office.office_code}`}
-                        className="group card p-6 flex items-center justify-between hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300"
+                        className="group card p-4 md:p-6 flex items-center justify-between hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300"
                     >
-                        <div className="flex items-center gap-6">
-                            <div className="size-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-300">
-                                <span className="material-symbols-outlined text-2xl">how_to_vote</span>
+                        <div className="flex items-center gap-4 md:gap-6 flex-1 min-w-0">
+                            <div className="size-12 md:size-14 rounded-xl md:rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                                <span className="material-symbols-outlined text-xl md:text-2xl">how_to_vote</span>
                             </div>
-                            <div>
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            <div className="min-w-0">
+                                <h3 className="text-base md:text-xl font-bold text-slate-900 dark:text-white mb-0.5 md:mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
                                     {office.description}
                                 </h3>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm">
                                     Tap to view candidates
                                 </p>
                             </div>
                         </div>
-                        <div className="size-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
-                            <span className="material-symbols-outlined">arrow_forward</span>
+                        <div className="size-8 md:size-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 flex-shrink-0">
+                            <span className="material-symbols-outlined text-xl">arrow_forward</span>
                         </div>
                     </Link>
                 ))}
@@ -351,49 +352,49 @@ export const VoteCandidate: React.FC = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="mb-8 flex items-center gap-4">
+        <div className="max-w-4xl mx-auto pb-20 md:pb-0">
+            <div className="mb-6 md:mb-8 flex items-center gap-3 md:gap-4">
                 <button
                     onClick={() => navigate(-1)}
-                    className="size-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    className="size-9 md:size-10 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
                 >
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{candidates[0]?.office.description || 'Office'}</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Select one candidate for this office.</p>
+                <div className="min-w-0">
+                    <h1 className="text-xl md:text-3xl font-bold text-slate-900 dark:text-white truncate">{candidates[0]?.office.description || 'Office'}</h1>
+                    <p className="text-xs md:text-base text-slate-500 dark:text-slate-400">Select one candidate for this office.</p>
                 </div>
             </div>
 
             {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
 
-            <div className="grid md:grid-cols-2 gap-4 mb-8">
+            <div className="grid gap-3 md:gap-4 mb-6 md:mb-8">
                 {candidates.map((c) => (
                     <label
                         key={c.id}
-                        className={`relative flex items-start gap-4 p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${selected === c.candidate_code
+                        className={`relative flex items-start gap-3 md:gap-4 p-4 md:p-6 rounded-xl md:rounded-2xl border-2 cursor-pointer transition-all duration-200 ${selected === c.candidate_code
                             ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20 shadow-lg shadow-indigo-500/10'
                             : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700'
                             }`}
                     >
-                        <div className={`size-16 rounded-full flex items-center justify-center text-2xl font-bold ${selected === c.candidate_code
+                        <div className={`size-12 md:size-16 rounded-full flex items-center justify-center text-xl md:text-2xl font-bold flex-shrink-0 ${selected === c.candidate_code
                             ? 'bg-indigo-600 text-white'
                             : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
                             }`}>
                             {c.name.charAt(0)}
                         </div>
 
-                        <div className="flex-1">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{c.name}</h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Candidate Code: {c.candidate_code}</p>
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-1 truncate">{c.name}</h3>
+                            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mb-2 md:mb-3">Candidate Code: {c.candidate_code}</p>
+                            <span className="inline-flex items-center px-2 md:px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
                                 Official Candidate
                             </span>
                         </div>
 
-                        <div className={`size-6 rounded-full border-2 flex items-center justify-center mt-1 ${selected === c.candidate_code ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300 dark:border-slate-600'
+                        <div className={`size-5 md:size-6 rounded-full border-2 flex items-center justify-center mt-1 flex-shrink-0 ${selected === c.candidate_code ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300 dark:border-slate-600'
                             }`}>
-                            {selected === c.candidate_code && <div className="size-2.5 bg-white rounded-full" />}
+                            {selected === c.candidate_code && <div className="size-2 md:size-2.5 bg-white rounded-full" />}
                         </div>
 
                         <input

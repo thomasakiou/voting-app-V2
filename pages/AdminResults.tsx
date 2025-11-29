@@ -67,14 +67,14 @@ export const ElectionResults: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 no-print">
+            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-3 md:gap-4 no-print">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Election Results</h1>
-                    <p className="text-slate-500 dark:text-slate-400">View voting results by office.</p>
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Election Results</h1>
+                    <p className="text-sm md:text-base text-slate-500 dark:text-slate-400">View voting results by office.</p>
                 </div>
                 <button
                     onClick={() => window.print()}
-                    className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                    className="w-full sm:w-auto px-3 md:px-4 py-2 md:py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center gap-2 text-sm md:text-base"
                 >
                     <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
                     Download Results PDF
@@ -83,13 +83,13 @@ export const ElectionResults: React.FC = () => {
 
             {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
 
-            <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-slate-200 dark:border-slate-800 p-6 no-print">
-                <div className="mb-6">
+            <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-slate-200 dark:border-slate-800 p-4 md:p-6 no-print">
+                <div className="mb-4 md:mb-6">
                     <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Select Office</label>
                     <select
                         value={selectedOffice}
                         onChange={(e) => handleOfficeChange(e.target.value)}
-                        className="input-field max-w-md dark:bg-slate-900"
+                        className="input-field max-w-full md:max-w-md dark:bg-slate-900"
                     >
                         {offices.map((office) => (
                             <option key={office.id} value={office.office_code} className="dark:bg-slate-900 dark:text-white">
@@ -104,22 +104,22 @@ export const ElectionResults: React.FC = () => {
                 ) : results ? (
                     <div className="space-y-8">
                         {/* Summary Stats */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                                <div className="text-sm text-slate-500 dark:text-slate-400">Total Votes</div>
-                                <div className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                            <div className="p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                                <div className="text-xs md:text-sm text-slate-500 dark:text-slate-400">Total Votes</div>
+                                <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mt-1">
                                     {totalVotes}
                                 </div>
                             </div>
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                                <div className="text-sm text-slate-500 dark:text-slate-400">Candidates</div>
-                                <div className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
+                            <div className="p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                                <div className="text-xs md:text-sm text-slate-500 dark:text-slate-400">Candidates</div>
+                                <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mt-1">
                                     {sortedResults.length}
                                 </div>
                             </div>
-                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                                <div className="text-sm text-slate-500 dark:text-slate-400">Leading Candidate</div>
-                                <div className="text-xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                            <div className="p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 sm:col-span-2 lg:col-span-1">
+                                <div className="text-xs md:text-sm text-slate-500 dark:text-slate-400">Leading Candidate</div>
+                                <div className="text-lg md:text-xl font-bold text-indigo-600 dark:text-indigo-400 mt-1 truncate">
                                     {sortedResults[0]?.candidate_name || 'N/A'}
                                 </div>
                             </div>
@@ -172,15 +172,15 @@ export const ElectionResults: React.FC = () => {
 
                         {/* Results Table */}
                         <div>
-                            <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">Detailed Results</h3>
-                            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
-                                <table className="w-full text-left text-sm">
+                            <h3 className="text-base md:text-lg font-bold mb-3 md:mb-4 text-slate-900 dark:text-white">Detailed Results</h3>
+                            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 -mx-4 md:mx-0">
+                                <table className="w-full text-left text-sm min-w-[600px]">
                                     <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium">
                                         <tr>
-                                            <th className="px-6 py-3">Rank</th>
-                                            <th className="px-6 py-3">Candidate</th>
-                                            <th className="px-6 py-3">Votes</th>
-                                            <th className="px-6 py-3">Percentage</th>
+                                            <th className="px-4 md:px-6 py-3">Rank</th>
+                                            <th className="px-4 md:px-6 py-3">Candidate</th>
+                                            <th className="px-4 md:px-6 py-3">Votes</th>
+                                            <th className="px-4 md:px-6 py-3">Percentage</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-900">

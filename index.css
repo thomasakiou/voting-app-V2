@@ -48,28 +48,38 @@
   /* Glassmorphism */
   .glass {
     @apply bg-white/70 dark:bg-slate-800/70 backdrop-blur-md border border-white/20 dark:border-slate-700/30;
+  }
 
-    .btn-secondary {
-      @apply px-8 py-4 text-base rounded-2xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200;
-    }
+  /* Responsive Buttons */
+  .btn-primary {
+    @apply px-6 py-3 md:px-8 md:py-4 text-sm md:text-base rounded-xl md:rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 transition-all duration-200;
+  }
 
-    .btn-danger {
-      @apply px-6 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all duration-200;
-    }
+  .btn-secondary {
+    @apply px-6 py-3 md:px-8 md:py-4 text-sm md:text-base rounded-xl md:rounded-2xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200;
+  }
 
-    /* Cards */
-    .card {
-      @apply bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow duration-300;
-    }
+  .btn-danger {
+    @apply px-4 py-2 md:px-6 md:py-3 text-sm md:text-base rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg shadow-red-500/30 transition-all duration-200;
+  }
 
-    .card-hover {
-      @apply hover:border-indigo-500/30 dark:hover:border-indigo-400/30 transition-colors duration-300;
-    }
+  /* Input Fields */
+  .input-field {
+    @apply w-full px-3 py-2 md:px-4 md:py-3 text-sm md:text-base rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow duration-300;
+  }
+
+  .card-hover {
+    @apply hover:border-indigo-500/30 dark:hover:border-indigo-400/30 transition-colors duration-300;
   }
 
   /* Alerts */
   .alert {
-    @apply p-4 rounded-xl border mb-6 flex items-center gap-3 shadow-sm animate-fade-in;
+    @apply p-3 md:p-4 rounded-xl border mb-4 md:mb-6 flex items-center gap-3 shadow-sm animate-fade-in text-sm md:text-base;
   }
 
   .alert-error {
@@ -93,24 +103,37 @@
     justify-content: center !important;
     background-color: rgba(0, 0, 0, 0.6) !important;
     backdrop-filter: blur(8px) !important;
-    padding: 1rem !important;
+    padding: 0.5rem !important;
     animation: modalOverlayFadeIn 0.2s ease-out !important;
+  }
+
+  @media (min-width: 768px) {
+    .modal-overlay {
+      padding: 1rem !important;
+    }
   }
 
   .modal-content {
     background: linear-gradient(to bottom, white, rgb(248, 250, 252));
-    border-radius: 1.5rem;
+    border-radius: 1rem;
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.05),
       0 20px 25px -5px rgba(0, 0, 0, 0.1),
       0 10px 10px -5px rgba(0, 0, 0, 0.04),
       0 0 60px -15px rgba(79, 70, 229, 0.3);
     width: 100%;
-    max-width: 32rem;
+    max-width: 95vw;
     overflow: hidden;
     border: 1px solid rgba(226, 232, 240, 0.8);
     animation: modalContentSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     transform-origin: center;
+  }
+
+  @media (min-width: 640px) {
+    .modal-content {
+      max-width: 32rem;
+      border-radius: 1.5rem;
+    }
   }
 
   html.dark .modal-content {
