@@ -118,6 +118,16 @@ export const OfficeManagement: React.FC = () => {
         }
     };
 
+    const handleToggleDisqualify = async (officeId: number, currentDisqualified: boolean) => {
+        try {
+            await officesAPI.disqualify(officeId, !currentDisqualified);
+            setSuccess(`Office ${!currentDisqualified ? 'disqualified' : 'reinstated'} successfully`);
+            loadOffices();
+        } catch (err: any) {
+            setError(err?.data?.detail || 'Failed to update office status');
+        }
+    };
+
     const handleDelete = async (officeId: number) => {
         try {
             await officesAPI.delete(officeId);
@@ -166,6 +176,7 @@ export const OfficeManagement: React.FC = () => {
                                 <tr>
                                     <th className="px-6 py-3">Office Code</th>
                                     <th className="px-6 py-3">Description</th>
+                                    <th className="px-6 py-3">Status</th>
                                     <th className="px-6 py-3">Created</th>
                                     <th className="px-6 py-3 text-right">Actions</th>
                                 </tr>
@@ -177,6 +188,22 @@ export const OfficeManagement: React.FC = () => {
                                             {office.office_code}
                                         </td>
                                         <td className="px-6 py-4">{office.description}</td>
+                                        <td className="px-6 py-4">
+                                            <button
+                                                onClick={() => handleToggleDisqualify(office.id, office.is_disqualified ?? false)}
+                                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                                    office.is_disqualified
+                                                        ? 'bg-red-100 text-red-700 hover:bg-green-100 hover:text-green-700 dark:bg-red-900/30 dark:text-red-400'
+                                                        : 'bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-700 dark:bg-green-900/30 dark:text-green-400'
+                                                }`}
+                                                title={office.is_disqualified ? 'Click to Reinstate Office' : 'Click to Disqualify Office'}
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">
+                                                    {office.is_disqualified ? 'block' : 'verified'}
+                                                </span>
+                                                {office.is_disqualified ? 'Disqualified' : 'Active'}
+                                            </button>
+                                        </td>
                                         <td className="px-6 py-4 text-slate-500">
                                             {new Date(office.created_at).toLocaleDateString()}
                                         </td>

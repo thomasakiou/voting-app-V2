@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { authAPI, UserOut, usersAPI } from '../api';
 
 interface AuthContextType {
     user: UserOut | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (username: string, password: string) => Promise<void>;
+    login: (username: string, phone: string) => Promise<void>;
+    adminLogin: (username: string, password: string) => Promise<void>;
+    verifyOTP: (username: string, otpCode: string) => Promise<UserOut>;
     logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
 }
@@ -33,39 +36,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const initAuth = async () => {
             const token = authAPI.getToken();
             if (token) {
-                try {
-                    // Try to fetch current user data
-                    // Since we don't have a /me endpoint, we'll store username in localStorage
-                    const storedUsername = localStorage.getItem('voting_username');
-                    if (storedUsername) {
-                        try {
-                            const userData = await usersAPI.getByUsername(storedUsername);
-                            setUser(userData);
-                            // Store full_name for fallback use
-                            if (userData.full_name) {
-                                localStorage.setItem('voting_fullname', userData.full_name);
-                            }
-                        } catch (error) {
-                            console.warn('Failed to fetch user details on init, assuming voter role:', error);
-                            // Try to get full_name from localStorage
-                            const storedFullName = localStorage.getItem('voting_fullname');
-
-                            // Fallback for voters who can't read user data
-                            const fallbackUser: UserOut = {
-                                id: 0,
-                                username: storedUsername,
-                                full_name: storedFullName || storedUsername,
-                                role: 'voter',
-                                is_active: true
-                            };
-                            setUser(fallbackUser);
-                        }
-                    }
-                } catch (error) {
-                    console.error('Auth initialization error:', error);
-                    // Clear invalid token
-                    authAPI.clearToken();
-                    localStorage.removeItem('voting_username');
+                const storedUsername = localStorage.getItem('voting_username');
+                if (storedUsername) {
+                    const storedAuthRole = localStorage.getItem('voting_auth_role');
+                    const displayedFullName =
+                        localStorage.getItem('fullname') ||
+                        localStorage.getItem('voting_fullname') ||
+                        storedUsername;
+                    setUser({
+                        id: 0,
+                        username: storedUsername,
+                        full_name: displayedFullName,
+                        role: storedAuthRole === 'admin' ? 'admin' : 'voter',
+                        is_active: true,
+                    });
                 }
             }
             setIsLoading(false);
@@ -74,53 +58,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         initAuth();
     }, []);
 
-    const login = async (username: string, password: string) => {
-        setIsLoading(true);
+    const login = async (_username: string, _phone: string) => {
+        // OTP delivery is handled by the auth API; this method is retained for compatibility.
+    };
+
+    const adminLogin = async (username: string, _password: string) => {
+        const loginResponse = await authAPI.adminLogin(username, _password);
+        localStorage.setItem('voting_username', username);
+        localStorage.setItem('voting_fullname', loginResponse.fullname || username);
+        localStorage.setItem('voting_auth_role', 'admin');
+        setUser({
+            id: 0,
+            username,
+            full_name: loginResponse.fullname || username,
+            role: 'admin',
+            is_active: true,
+        });
+    };
+
+    const verifyOTP = async (username: string, otpCode: string) => {
         try {
-            const loginResponse = await authAPI.login(username, password);
-            console.log('Login response:', loginResponse); // Debug: see what backend returns
+            const loginResponse = await authAPI.verifyOTP(username, otpCode);
+            // OTP login is the voter authentication flow. The backend may omit
+            // role from this response, so it must always establish voter auth.
+            const role: 'voter' = 'voter';
+            const fullName = loginResponse.fullname || localStorage.getItem('fullname') || username;
 
-            // Store username for later retrieval
             localStorage.setItem('voting_username', username);
+            localStorage.setItem('voting_auth_role', role === 'voter' ? 'voter' : 'admin');
+            localStorage.setItem('fullname', fullName);
+            localStorage.setItem('voting_fullname', fullName);
+            localStorage.setItem('access_token', authAPI.getToken() || '');
 
-            // Extract fullname from login response if available
-            if (loginResponse.fullname) {
-                console.log('Storing fullname from login response:', loginResponse.fullname);
-                localStorage.setItem('voting_fullname', loginResponse.fullname);
-            } else {
-                console.warn('No fullname in login response');
-            }
-
-            try {
-                // Try to fetch user data
-                const userData = await usersAPI.getByUsername(username);
-                setUser(userData);
-                // Store full_name for fallback use
-                if (userData.full_name) {
-                    localStorage.setItem('voting_fullname', userData.full_name);
-                }
-            } catch (error: any) {
-                // If fetching user fails (likely 403 for voters), construct a minimal user object
-                console.warn('Failed to fetch user details, assuming voter role:', error);
-
-                // Use fullname from login response or localStorage
-                const storedFullName = loginResponse.fullname || localStorage.getItem('voting_fullname');
-
-                // We assume if they logged in but can't read users, they are a voter
-                const fallbackUser: UserOut = {
-                    id: 0, // Unknown ID
-                    username: username,
-                    full_name: storedFullName || username, // Use login response full_name or fallback to username
-                    role: (loginResponse.role as 'voter' | 'admin' | 'super-admin') || 'voter',
-                    is_active: true
-                };
-                setUser(fallbackUser);
-            }
+            const authenticatedUser: UserOut = {
+                id: 0,
+                username,
+                full_name: fullName,
+                role,
+                is_active: true,
+            };
+            flushSync(() => {
+                setUser(authenticatedUser);
+            });
+            return authenticatedUser;
         } catch (error) {
             setUser(null);
             throw error;
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -134,6 +117,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(null);
             localStorage.removeItem('voting_username');
             localStorage.removeItem('voting_fullname');
+            localStorage.removeItem('fullname');
+            localStorage.removeItem('voting_auth_role');
             setIsLoading(false);
         }
     };
@@ -155,6 +140,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: !!user,
         isLoading,
         login,
+        adminLogin,
+        verifyOTP,
         logout,
         refreshUser,
     };

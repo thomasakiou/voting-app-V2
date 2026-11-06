@@ -1,512 +1,525 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { authAPI, votingTimeAPI, VotingTimeOut, APIError } from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { authAPI } from '../api';
-import { ErrorAlert, SuccessAlert } from '../components/UIComponents';
 
+const getErrorMessage = (err: unknown, fallback: string) => {
+  if (err instanceof APIError) {
+    const detail = err.data?.detail;
+    if (typeof detail === 'string') return detail;
+    if (typeof err.data?.message === 'string') return err.data.message;
+  }
+  return fallback;
+};
+
+const AuthError: React.FC<{ error: string }> = ({ error }) => (
+  <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3 text-red-600 dark:text-red-400 animate-scale-in">
+    <span className="material-symbols-outlined mt-0.5">error</span>
+    <p className="text-sm font-medium leading-relaxed">{error}</p>
+  </div>
+);
+
+const LegalLinks: React.FC = () => (
+  <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+    By signing in, you agree to our{' '}
+    <Link to="/terms" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">Terms of Service</Link>
+    {' '}and{' '}
+    <Link to="/privacy" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">Privacy Policy</Link>.
+  </p>
+);
+
+const AuthField: React.FC<{ id: string; name: string; label: string; icon: string; type: string; placeholder: string; value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }> = ({ id, name, label, icon, type, placeholder, value, onChange }) => (
+  <div className="space-y-2">
+    <label htmlFor={id} className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">{label}</label>
+    <div className="relative group">
+      <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+        <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 transition-colors text-[24px]">{icon}</span>
+      </div>
+      <input
+        id={id}
+        name={name}
+        type={type}
+        required
+        value={value}
+        onChange={onChange}
+        className="input-field pl-14 py-3.5 font-medium text-lg bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 focus:ring-indigo-500/20"
+        placeholder={placeholder}
+      />
+    </div>
+  </div>
+);
+
+const AuthShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="min-h-screen flex">
+    <div className="hidden lg:flex lg:w-1/2 relative bg-[#0B1120] overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-violet-600/20 z-0"></div>
+      <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/30 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/20 rounded-full blur-3xl"></div>
+      <div className="relative z-10 flex flex-col justify-center px-16 text-white">
+        <div className="mb-8 flex items-center gap-3">
+          <div className="size-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/30">
+            <span className="material-symbols-outlined text-4xl">how_to_vote</span>
+          </div>
+          <span className="text-3xl font-bold tracking-tight">NECO MCS</span>
+        </div>
+        <h1 className="text-5xl font-bold leading-tight mb-6">
+          The Future of <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Electronic Voting</span>
+        </h1>
+        <p className="text-xl text-slate-400 max-w-lg leading-relaxed">
+          Experience an authenticated, transparent, and cryptographically secure voting system designed for the NECO MCS Election.
+        </p>
+        <div className="mt-12 flex gap-4">
+          <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
+            <span className="material-symbols-outlined text-green-400">verified</span>
+            <span className="text-sm font-medium text-slate-300">OTP Verified</span>
+          </div>
+          <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
+            <span className="material-symbols-outlined text-blue-400">shield</span>
+            <span className="text-sm font-medium text-slate-300">Cryptographic Receipts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50 dark:bg-[#0B1120]">
+      <div className="w-full max-w-md space-y-8 animate-slide-up">
+        <div className="lg:hidden flex items-center gap-3 mb-6">
+          <div className="size-12 rounded-xl bg-indigo-600 flex items-center justify-center">
+            <span className="material-symbols-outlined text-white text-2xl">how_to_vote</span>
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">NECO MCS Voting</h2>
+        </div>
+        {children}
+      </div>
+    </div>
+  </div>
+);
+
+// ============================================================
+// ELECTION DAY LOGIN (/election and /login)
+// ============================================================
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+  const [votingStatus, setVotingStatus] = useState<VotingTimeOut | null>(null);
+  const [error, setError] = useState('');
+
+  // Check election status on mount
+  useEffect(() => {
+    checkStatus();
+  }, []);
+
+  const checkStatus = async () => {
+    try {
+      setCheckingStatus(true);
+      const status = await votingTimeAPI.getStatus();
+      setVotingStatus(status);
+    } catch (err) {
+      console.error('Failed to check voting status:', err);
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
+
+  const handleValidateVoter = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!username.trim()) {
+      setError('Please enter your 4-digit MCS number.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const data = await authAPI.login(username.trim());
+      sessionStorage.setItem('otp_username', username.trim());
+      sessionStorage.setItem('otp_email_mask', data.masked_email || '');
+      navigate('/verify-otp');
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Unable to initiate election login. Please ensure you are accredited and voting is active.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isVotingOpen = votingStatus?.is_active && votingStatus.status === 'ACTIVE';
+
+  return (
+    <AuthShell>
+      <div>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 text-xs font-semibold mb-3">
+          <span className="material-symbols-outlined text-[16px]">how_to_vote</span>
+          NECO MCS Election Day Portal
+        </div>
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Cast Your Vote</h2>
+        <p className="mt-2 text-base text-slate-500 dark:text-slate-400">
+          Enter your 4-digit MCS number to receive your one-time voting passcode.
+        </p>
+      </div>
+
+      {error && <AuthError error={error} />}
+
+      {/* LOCKED STATUS BANNER */}
+      {!checkingStatus && !isVotingOpen && (
+        <div className="p-6 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 space-y-3">
+          <div className="flex items-center gap-3 text-amber-700 dark:text-amber-400 font-bold text-lg">
+            <span className="material-symbols-outlined text-2xl">lock</span>
+            Voting is Currently Locked
+          </div>
+          <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+            The election portal is locked until election officials open the voting session on election day. Please check back when voting commences.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={checkStatus}
+              className="px-4 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 dark:bg-amber-800/40 text-amber-800 dark:text-amber-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm">refresh</span>
+              Refresh Status
+            </button>
+            <Link
+              to="/accreditation"
+              className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs font-semibold text-center hover:bg-amber-50 transition-colors"
+            >
+              Need Accreditation? Click Here
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ELECTION VALIDATE FORM */}
+      <form onSubmit={handleValidateVoter} className="space-y-6">
+        <AuthField
+          id="username"
+          name="username"
+          label="MCS Number (Username)"
+          icon="badge"
+          type="text"
+          placeholder="e.g. 2668"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+
+        <button
+          type="submit"
+          disabled={loading || !username.trim() || (!checkingStatus && !isVotingOpen)}
+          className="w-full btn-primary flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <div className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          ) : (
+            <>
+              Validate & Send Voting OTP
+              <span className="material-symbols-outlined text-2xl">arrow_forward</span>
+            </>
+          )}
+        </button>
+      </form>
+
+      <div className="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-center text-sm text-slate-500">
+        <p>
+          Not accredited yet?{' '}
+          <Link to="/accreditation" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+            Complete Voter Accreditation
+          </Link>
+        </p>
+        <p>
+          Election Official?{' '}
+          <Link to="/admin/login" className="font-medium text-slate-700 dark:text-slate-300 hover:underline">
+            Sign In to Admin Portal
+          </Link>
+        </p>
+      </div>
+
+      <LegalLinks />
+    </AuthShell>
+  );
+};
+
+// ============================================================
+// ADMIN LOGIN (No OTP required, username + password)
+// ============================================================
+export const AdminLogin: React.FC = () => {
+  const navigate = useNavigate();
+  const { adminLogin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
-    const form = e.target as HTMLFormElement;
-    const username = (form.elements.namedItem('username') as HTMLInputElement).value;
-    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
-
-    try {
-      await login(username, password);
-      setTimeout(() => {
-        const storedUsername = localStorage.getItem('voting_username');
-        if (storedUsername) {
-          if (username.toLowerCase().includes('admin')) {
-            navigate('/admin/dashboard');
-          } else {
-            navigate('/voter/dashboard');
-          }
-        }
-      }, 100);
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err?.data?.detail || 'Invalid username or password');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Hero */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-[#0B1120] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-violet-600/20 z-0"></div>
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/30 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/20 rounded-full blur-3xl"></div>
-
-        <div className="relative z-10 flex flex-col justify-center px-16 text-white">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="size-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/30">
-              <span className="material-symbols-outlined text-4xl">how_to_vote</span>
-            </div>
-            <span className="text-3xl font-bold tracking-tight">SecureVote</span>
-          </div>
-          <h1 className="text-5xl font-bold leading-tight mb-6">
-            The Future of <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">
-              Secure Digital Voting
-            </span>
-          </h1>
-          <p className="text-xl text-slate-400 max-w-lg leading-relaxed">
-            Experience a seamless, transparent, and cryptographically secure voting platform designed for the modern era.
-          </p>
-
-          <div className="mt-12 flex gap-4">
-            <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-              <span className="material-symbols-outlined text-green-400">lock</span>
-              <span className="text-sm font-medium text-slate-300">End-to-End Encrypted</span>
-            </div>
-            <div className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-              <span className="material-symbols-outlined text-blue-400">verified</span>
-              <span className="text-sm font-medium text-slate-300">Identity Verified</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50 dark:bg-[#0B1120]">
-        <div className="w-full max-w-md space-y-10 animate-slide-up">
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="size-12 rounded-xl bg-indigo-600 flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-2xl">how_to_vote</span>
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">SecureVote</h2>
-          </div>
-
-          <div>
-            <h2 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Welcome back</h2>
-            <p className="mt-3 text-lg text-slate-500 dark:text-slate-400">
-              Please sign in to access your dashboard.
-            </p>
-          </div>
-
-          {error && (
-            <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-center gap-3 text-red-600 dark:text-red-400 animate-scale-in">
-              <span className="material-symbols-outlined">error</span>
-              <p className="text-sm font-medium">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-8">
-            <div className="space-y-2">
-              <label htmlFor="username" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
-                Username
-              </label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 transition-colors text-[24px]">person</span>
-                </div>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  required
-                  className="input-field pl-14 py-3.5 font-medium text-lg bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 focus:ring-indigo-500/20"
-                  placeholder="Enter your username"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between ml-1">
-                <label htmlFor="password" className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Password
-                </label>
-                <Link
-                  to="/first-time-password"
-                  className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 transition-colors"
-                >
-                  First time voter?
-                </Link>
-              </div>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 transition-colors text-[24px]">lock</span>
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  className="input-field pl-14 pr-14 py-3.5 font-medium text-lg bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 focus:ring-indigo-500/20"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[24px]">
-                    {showPassword ? 'visibility' : 'visibility_off'}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-primary flex items-center justify-center gap-2 group text-lg font-bold"
-            >
-              {loading ? (
-                <div className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              ) : (
-                <>
-                  Sign In
-                  <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform text-2xl">arrow_forward</span>
-                </>
-              )}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-            By signing in, you agree to our{' '}
-            <Link to="/terms" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
-              Terms of Service
-            </Link>{' '}
-            and{' '}
-            <Link to="/privacy" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
-              Privacy Policy
-            </Link>
-            .
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export const ResetPassword: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    const form = e.target as HTMLFormElement;
-    const username = (form.elements.namedItem('username') as HTMLInputElement).value;
-
-    try {
-      await authAPI.resetPassword(username);
-      setSuccess('Password reset successfully. A temporary password has been sent.');
-      form.reset();
-    } catch (err: any) {
-      setError(err?.data?.detail || 'Failed to reset password');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-[#0B1120]">
-      <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700/50 p-10 animate-fade-in">
-        <div className="mb-8">
-          <Link to="/login" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white mb-6 transition-colors group">
-            <span className="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
-            Back to Login
-          </Link>
-          <div className="size-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center mb-4 text-indigo-600 dark:text-indigo-400">
-            <span className="material-symbols-outlined text-3xl">lock_reset</span>
-          </div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Reset Password</h1>
-          <p className="text-slate-500 dark:text-slate-400">Enter username to reset password (Admin only).</p>
-        </div>
-
-        {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
-        {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
-
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Username</label>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 transition-colors text-[24px]">person</span>
-              </div>
-              <input
-                type="text"
-                name="username"
-                required
-                className="input-field pl-14"
-                placeholder="Enter username"
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full btn-primary py-4 text-lg font-bold"
-          >
-            {loading ? 'Resetting...' : 'Reset Password'}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-export const FirstTimePasswordChange: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    const form = e.target as HTMLFormElement;
+    const form = e.currentTarget;
     const username = (form.elements.namedItem('username') as HTMLInputElement).value.trim();
-    const old_password = (form.elements.namedItem('old_password') as HTMLInputElement).value;
-    const new_password = (form.elements.namedItem('new_password') as HTMLInputElement).value;
-    const confirm_password = (form.elements.namedItem('confirm_password') as HTMLInputElement).value;
-
-    if (new_password !== confirm_password) {
-      setError('New passwords do not match');
-      setLoading(false);
-      return;
-    }
-
-    if (new_password.length < 8) {
-      setError('Password must be at least 8 characters long');
-      setLoading(false);
-      return;
-    }
-
+    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
     try {
-      await authAPI.changePassword({
-        username,
-        old_password,
-        new_password,
-      });
-      setSuccess('Password changed successfully! Redirecting to login...');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-    } catch (err: any) {
-      setError(err?.data?.detail || 'Failed to change password. Please check your username and current password.');
+      await adminLogin(username, password);
+      navigate('/admin/dashboard', { replace: true });
+    } catch (err) {
+      setError(getErrorMessage(err, 'Invalid administrator credentials.'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-[#0B1120]">
-      <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700/50 p-10 animate-fade-in">
-        <div className="mb-8">
-          <Link to="/login" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white mb-6 transition-colors group">
-            <span className="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
-            Back to Login
-          </Link>
-          <div className="size-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center mb-4 text-indigo-600 dark:text-indigo-400">
-            <span className="material-symbols-outlined text-3xl">lock_reset</span>
-          </div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Change Your Password</h1>
-          <p className="text-slate-500 dark:text-slate-400">First time login? Change your default password here.</p>
+    <AuthShell>
+      <div>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800 text-violet-600 dark:text-violet-400 text-xs font-semibold mb-3">
+          <span className="material-symbols-outlined text-[16px]">admin_panel_settings</span>
+          Election Administration
         </div>
-
-        {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
-        {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Username</label>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 transition-colors text-[24px]">person</span>
-              </div>
-              <input
-                type="text"
-                name="username"
-                required
-                className="input-field pl-14"
-                placeholder="Enter your username"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Current Password</label>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 transition-colors text-[24px]">lock</span>
-              </div>
-              <input
-                type="password"
-                name="old_password"
-                required
-                className="input-field pl-14"
-                placeholder="Vote@123 (default)"
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-700/50 space-y-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">New Password</label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 transition-colors text-[24px]">key</span>
-                </div>
-                <input
-                  type="password"
-                  name="new_password"
-                  required
-                  className="input-field pl-14"
-                  placeholder="Min 8 characters"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Confirm New Password</label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 transition-colors text-[24px]">check_circle</span>
-                </div>
-                <input
-                  type="password"
-                  name="confirm_password"
-                  required
-                  className="input-field pl-14"
-                  placeholder="Re-enter new password"
-                />
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full btn-primary py-4 text-lg font-bold"
-          >
-            {loading ? 'Changing Password...' : 'Change Password'}
-          </button>
-        </form>
-
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
-          <p className="text-sm text-blue-700 dark:text-blue-300">
-            <span className="font-semibold">First time voter?</span> Your default password is <code className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 rounded font-mono text-xs">Vote@123</code>
-          </p>
-        </div>
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Admin Sign In</h2>
+        <p className="mt-2 text-base text-slate-500 dark:text-slate-400">
+          Enter your administrative credentials to manage election parameters.
+        </p>
       </div>
-    </div>
+
+      {error && <AuthError error={error} />}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <AuthField id="admin-username" name="username" label="Username" icon="person" type="text" placeholder="admin" />
+        <div className="space-y-2">
+          <label htmlFor="admin-password" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">Password</label>
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+              <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 text-[24px]">lock</span>
+            </div>
+            <input
+              id="admin-password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              className="input-field pl-14 pr-14 py-3.5 font-medium text-lg bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 focus:ring-indigo-500/20"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <span className="material-symbols-outlined text-[24px]">{showPassword ? 'visibility' : 'visibility_off'}</span>
+            </button>
+          </div>
+        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full btn-primary flex items-center justify-center gap-2 group text-lg font-bold"
+        >
+          {loading ? (
+            <div className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          ) : (
+            <>
+              Sign In to Admin Portal
+              <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform text-2xl">arrow_forward</span>
+            </>
+          )}
+        </button>
+      </form>
+
+      <div className="text-center pt-2">
+        <Link to="/election" className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+          Return to Voter Portal
+        </Link>
+      </div>
+
+      <LegalLinks />
+    </AuthShell>
   );
 };
 
-export const ChangePassword: React.FC = () => {
-  const { user } = useAuth();
+// ============================================================
+// VERIFY VOTING OTP
+// ============================================================
+export const VerifyOTP: React.FC = () => {
+  const navigate = useNavigate();
+  const { verifyOTP, isAuthenticated } = useAuth();
+  const username = sessionStorage.getItem('otp_username');
+  const maskedEmail = sessionStorage.getItem('otp_email_mask');
+  const [otpDigits, setOtpDigits] = useState<string[]>(Array(6).fill(''));
+  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [resendSeconds, setResendSeconds] = useState(60);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!isAuthenticated && !username) {
+      navigate('/election', { replace: true });
+    }
+  }, [isAuthenticated, navigate, username]);
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendSeconds((seconds) => {
+        if (seconds <= 1) {
+          window.clearInterval(timer);
+          return 0;
+        }
+        return seconds - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendSeconds]);
+
+  const updateDigit = (index: number, digit: string) => {
+    const nextDigits = [...otpDigits];
+    nextDigits[index] = digit;
+    setOtpDigits(nextDigits);
+
+    if (digit && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, '').slice(-1);
+    updateDigit(index, digit);
+  };
+
+  const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+    const digits = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!digits) return;
+    event.preventDefault();
+    setOtpDigits(Array.from({ length: 6 }, (_, index) => digits[index] || ''));
+    otpRefs.current[Math.min(digits.length, 6) - 1]?.focus();
+  };
+
+  const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!username) return;
     setLoading(true);
     setError('');
-
-    const form = e.target as HTMLFormElement;
-    const old_password = (form.elements.namedItem('old_password') as HTMLInputElement).value;
-    const new_password = (form.elements.namedItem('new_password') as HTMLInputElement).value;
-    const confirm_password = (form.elements.namedItem('confirm_password') as HTMLInputElement).value;
-
-    if (new_password !== confirm_password) {
-      setError('New passwords do not match');
-      setLoading(false);
-      return;
-    }
-
     try {
-      await authAPI.changePassword({
-        username: user?.username || '',
-        old_password,
-        new_password,
-      });
-      setSuccess('Password changed successfully!');
-      form.reset();
-    } catch (err: any) {
-      setError(err?.data?.detail || 'Failed to change password');
+      await verifyOTP(username, otpDigits.join(''));
+      sessionStorage.removeItem('otp_username');
+      sessionStorage.removeItem('otp_email_mask');
+      navigate('/voter/dashboard', { replace: true });
+    } catch (err) {
+      setError(getErrorMessage(err, 'OTP verification failed. Please try again.'));
     } finally {
       setLoading(false);
     }
   };
 
+  const handleResend = async () => {
+    if (!username || resendSeconds > 0) return;
+    setResending(true);
+    setError('');
+    setSuccess('');
+    try {
+      await authAPI.login(username);
+      setOtpDigits(Array(6).fill(''));
+      setResendSeconds(60);
+      setSuccess('A fresh voting OTP has been dispatched to your email.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to resend voting OTP. Please try again.'));
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
-    <div className="max-w-2xl mx-auto py-8 animate-fade-in">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Change Password</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2">Update your password to keep your account secure.</p>
+    <AuthShell>
+      <div className="text-center">
+        <div className="size-16 mx-auto mb-5 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+          <span className="material-symbols-outlined text-3xl text-indigo-600 dark:text-indigo-400">mark_email_read</span>
+        </div>
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Verify Voting OTP</h2>
+        <p className="mt-3 text-base sm:text-lg leading-relaxed text-slate-500 dark:text-slate-400">
+          A 6-digit voting passcode was dispatched to your registered email {maskedEmail ? `(${maskedEmail})` : ''}.
+        </p>
       </div>
 
-      {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
-      {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
+      {error && <AuthError error={error} />}
+      {success && (
+        <div className="p-4 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex items-center gap-3 text-green-700 dark:text-green-400 animate-scale-in">
+          <span className="material-symbols-outlined">check_circle</span>
+          <p className="text-sm font-medium">{success}</p>
+        </div>
+      )}
 
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/50 p-8 shadow-sm">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Current Password</label>
+      <form onSubmit={handleVerify} className="space-y-6">
+        <div className="space-y-3">
+          <label htmlFor="otp-0" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 text-center">
+            Enter 6-Digit Passcode
+          </label>
+          <div
+            className="grid grid-cols-6 gap-2 sm:gap-3 max-w-md mx-auto"
+            onPaste={handleOtpPaste}
+            role="group"
+            aria-label="6-digit OTP code"
+          >
+            {Array.from({ length: 6 }).map((_, index) => (
               <input
-                type="password"
-                name="old_password"
+                key={index}
+                ref={(element) => { otpRefs.current[index] = element; }}
+                id={`otp-${index}`}
+                name={`otp-${index}`}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={1}
                 required
-                className="input-field"
-                placeholder="Enter current password"
+                autoFocus={index === 0}
+                autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                value={otpDigits[index]}
+                onChange={(event) => handleOtpChange(index, event.target.value)}
+                onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                onFocus={(event) => event.currentTarget.select()}
+                className="w-full aspect-square min-w-0 rounded-xl sm:rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/80 text-slate-900 dark:text-white text-center text-xl sm:text-2xl font-bold focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
+                aria-label={`OTP digit ${index + 1}`}
               />
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-700/50">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">New Password</label>
-              <input
-                type="password"
-                name="new_password"
-                required
-                className="input-field"
-                placeholder="Min 8 chars"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Confirm New Password</label>
-              <input
-                type="password"
-                name="confirm_password"
-                required
-                className="input-field"
-                placeholder="Re-enter new password"
-              />
-            </div>
+            ))}
           </div>
+        </div>
+        <button
+          type="submit"
+          disabled={loading || otpDigits.join('').length !== 6}
+          className="w-full btn-primary flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <div className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          ) : (
+            <>
+              Verify & Enter Ballot
+              <span className="material-symbols-outlined text-2xl">arrow_forward</span>
+            </>
+          )}
+        </button>
+      </form>
 
-          <div className="flex justify-end pt-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary"
-            >
-              {loading ? 'Updating...' : 'Update Password'}
-            </button>
-          </div>
-        </form>
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resending || resendSeconds > 0}
+          className="min-h-10 px-4 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+        >
+          {resending ? 'Sending...' : resendSeconds > 0 ? `Resend OTP in ${resendSeconds}s` : 'Resend OTP'}
+        </button>
       </div>
-    </div>
+
+      <div className="text-center">
+        <Link to="/election" className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          Change MCS Username
+        </Link>
+      </div>
+
+      <LegalLinks />
+    </AuthShell>
   );
 };

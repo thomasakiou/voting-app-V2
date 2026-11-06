@@ -1,16 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { officesAPI, candidatesAPI, votesAPI, votingTimeAPI, OfficeResponse, CandidateResponse, VotingTimeResponse } from '../api';
+import {
+    officesAPI,
+    candidatesAPI,
+    votesAPI,
+    votingTimeAPI,
+    OfficeResponse,
+    CandidateResponse,
+    VotingTimeOut,
+    MyVoteResponse,
+    MyStatsResponse,
+} from '../api';
 import { LoadingSpinner, ErrorAlert } from '../components/UIComponents';
-import { CountdownTimer } from '../components/CountdownTimer';
 
 export const VoterDashboard: React.FC = () => {
     const { user } = useAuth();
     const [offices, setOffices] = useState<OfficeResponse[]>([]);
-    const [votingTime, setVotingTime] = useState<VotingTimeResponse | null>(null);
+    const [myVotes, setMyVotes] = useState<MyVoteResponse[]>([]);
+    const [stats, setStats] = useState<MyStatsResponse | null>(null);
+    const [votingStatus, setVotingStatus] = useState<VotingTimeOut | null>(null);
     const [loading, setLoading] = useState(true);
-    const [votingStatus, setVotingStatus] = useState<'not_started' | 'active' | 'ended'>('not_started');
 
     useEffect(() => {
         loadData();
@@ -18,179 +28,215 @@ export const VoterDashboard: React.FC = () => {
 
     const loadData = async () => {
         try {
-            const [officesData, timeData] = await Promise.all([
-                officesAPI.getAll(),
-                votingTimeAPI.getVotingTime()
+            setLoading(true);
+            const [officesData, timeStatus, myVotesData, myStatsData] = await Promise.all([
+                officesAPI.getAll().catch(() => []),
+                votingTimeAPI.getStatus().catch(() => ({ is_active: false, status: 'NOT_STARTED' } as VotingTimeOut)),
+                votesAPI.getMyVotes().catch(() => []),
+                votesAPI.getMyStats().catch(() => null),
             ]);
-            setOffices(officesData);
-            setVotingTime(timeData);
 
-            if (timeData) {
-                checkVotingStatus(timeData);
-            } else {
-                // If no time set, assume active or handle as needed (defaulting to active for now if no restrictions)
-                setVotingStatus('active');
-            }
+            setOffices(officesData);
+            setVotingStatus(timeStatus);
+            setMyVotes(myVotesData);
+            setStats(myStatsData);
         } catch (err) {
-            console.error('Failed to load data:', err);
+            console.error('Failed to load voter dashboard data:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const checkVotingStatus = (timeData: VotingTimeResponse) => {
-        const now = new Date().getTime();
-        const start = new Date(timeData.start_time).getTime();
-        const end = new Date(timeData.end_time).getTime();
-
-        if (now < start) {
-            setVotingStatus('not_started');
-        } else if (now > end) {
-            setVotingStatus('ended');
-        } else {
-            setVotingStatus('active');
-        }
-    };
-
-    // Re-check status periodically
-    useEffect(() => {
-        if (!votingTime) return;
-
-        const interval = setInterval(() => {
-            checkVotingStatus(votingTime);
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [votingTime]);
-
     if (loading) return <LoadingSpinner />;
 
-    return (
-        <div className="space-y-8">
-            {/* Welcome Section */}
-            <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 md:p-8 text-white shadow-xl shadow-indigo-500/20">
-                <div className="absolute top-0 right-0 -mt-10 -mr-10 size-64 rounded-full bg-white/10 blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 -mb-10 -ml-10 size-64 rounded-full bg-black/10 blur-3xl"></div>
+    const isVotingActive = votingStatus?.is_active && votingStatus?.status === 'ACTIVE';
+    const totalOffices = offices.length;
+    const votedCount = myVotes.length;
+    const allVoted = totalOffices > 0 && votedCount >= totalOffices;
 
-                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+    return (
+        <div className="space-y-8 animate-fade-in">
+            {/* Welcome Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 md:p-8 text-white shadow-xl shadow-indigo-500/20">
+                <div className="absolute top-0 right-0 -mt-10 -mr-10 size-64 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 -mb-10 -ml-10 size-64 rounded-full bg-black/10 blur-3xl pointer-events-none"></div>
+
+                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold mb-2">Welcome, {user?.full_name || user?.username}</h1>
-                        <p className="text-indigo-100 text-sm md:text-lg max-w-xl">
-                            {votingStatus === 'active'
-                                ? "The 2024 General Election is currently live. Your voice matters—cast your secure digital ballot today."
-                                : votingStatus === 'not_started'
-                                    ? "The election has not started yet. Please check back at the scheduled start time."
-                                    : "The election has ended. Thank you for participating."}
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-semibold mb-3">
+                            <span className="material-symbols-outlined text-sm">verified</span>
+                            Accredited Voter | MCS #{user?.username}
+                        </div>
+                        <h1 className="text-2xl md:text-4xl font-extrabold mb-2 tracking-tight">
+                            Welcome, {user?.full_name || user?.username}
+                        </h1>
+                        <p className="text-indigo-100 text-sm md:text-base max-w-xl leading-relaxed">
+                            {isVotingActive
+                                ? allVoted
+                                    ? "You have completed voting in all contests on your ballot. View your cryptographic vote receipts below."
+                                    : "The NECO MCS Election is currently live. Cast your secure digital vote for each office."
+                                : "Voting is currently closed. You can review your voting statistics and verification receipts below."}
                         </p>
                     </div>
-                    {votingStatus === 'active' ? (
-                        <Link
-                            to="/voter/ballot"
-                            className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-white text-indigo-600 font-bold rounded-xl shadow-lg hover:shadow-xl hover:bg-indigo-50 transform hover:-translate-y-1 transition-all duration-200 flex items-center justify-center gap-2 text-sm md:text-base"
-                        >
-                            <span className="material-symbols-outlined">how_to_vote</span>
-                            Start Voting
-                        </Link>
-                    ) : (
-                        <div className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-white/10 text-white font-bold rounded-xl border border-white/20 flex items-center justify-center gap-2 cursor-not-allowed text-sm md:text-base">
-                            <span className="material-symbols-outlined">block</span>
-                            <span className="hidden sm:inline">{votingStatus === 'not_started' ? 'Voting Not Started' : 'Voting Closed'}</span>
-                            <span className="sm:hidden">{votingStatus === 'not_started' ? 'Not Started' : 'Closed'}</span>
-                        </div>
-                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        {isVotingActive && !allVoted ? (
+                            <Link
+                                to="/voter/ballot"
+                                className="w-full sm:w-auto px-8 py-4 bg-white text-indigo-600 font-extrabold rounded-2xl shadow-lg hover:shadow-xl hover:bg-indigo-50 transform hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 text-base"
+                            >
+                                <span className="material-symbols-outlined text-xl">how_to_vote</span>
+                                Proceed to Ballot
+                            </Link>
+                        ) : (
+                            <Link
+                                to="/voter/history"
+                                className="w-full sm:w-auto px-6 py-4 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl border border-white/20 flex items-center justify-center gap-2 transition-all text-sm md:text-base"
+                            >
+                                <span className="material-symbols-outlined text-xl">receipt_long</span>
+                                View My Voting Stats
+                            </Link>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4 md:gap-6">
-                {/* Election Status Card */}
-                <div className="md:col-span-2 card p-4 md:p-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6">
+            {/* Voting Progress & Status Cards */}
+            <div className="grid md:grid-cols-3 gap-6">
+                {/* Voting Progress Card */}
+                <div className="md:col-span-2 card p-6 space-y-4">
+                    <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">Election Status</h2>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">Real-time updates</p>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Your Ballot Progress</h2>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {votedCount} of {totalOffices} offices voted
+                            </p>
                         </div>
-                        {votingStatus === 'active' && (
-                            <span className="px-2.5 md:px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 border border-green-200 dark:border-green-800">
-                                <span className="relative flex size-2.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full size-2.5 bg-green-500"></span>
-                                </span>
-                                Polls Open
+
+                        {allVoted ? (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1.5 border border-green-200 dark:border-green-800">
+                                <span className="material-symbols-outlined text-sm">check_circle</span>
+                                Ballot Complete
                             </span>
-                        )}
-                        {votingStatus === 'not_started' && (
-                            <span className="px-2.5 md:px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 border border-yellow-200 dark:border-yellow-800">
-                                <span className="material-symbols-outlined text-sm">schedule</span>
+                        ) : isVotingActive ? (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 flex items-center gap-1.5">
+                                <span className="size-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                                In Progress
+                            </span>
+                        ) : (
+                            <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                                 Polls Closed
-                            </span>
-                        )}
-                        {votingStatus === 'ended' && (
-                            <span className="px-2.5 md:px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs md:text-sm font-bold flex items-center gap-2 border border-red-200 dark:border-red-800">
-                                <span className="material-symbols-outlined text-sm">lock</span>
-                                Election Ended
                             </span>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 md:gap-4">
-                        <div className="p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mb-1">Offices on Ballot</p>
-                            <p className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{offices.length}</p>
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-100 dark:bg-slate-700 h-3 rounded-full overflow-hidden">
+                        <div
+                            className="bg-gradient-to-r from-indigo-500 to-violet-600 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${totalOffices > 0 ? (votedCount / totalOffices) * 100 : 0}%` }}
+                        ></div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 pt-2 text-center">
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                            <span className="text-xs text-slate-400">Total Offices</span>
+                            <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">{totalOffices}</div>
                         </div>
-                        <div className="p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-                            <p className="text-xs md:text-sm font-bold text-slate-500 dark:text-slate-400 mb-2 md:mb-3">
-                                {votingStatus === 'not_started' ? 'Starts In' : votingStatus === 'active' ? 'Time Remaining' : 'Status'}
-                            </p>
-                            {votingTime ? (
-                                votingStatus === 'ended' ? (
-                                    <p className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">Completed</p>
-                                ) : (
-                                    <div className="scale-75 origin-top-left -mb-4 -mt-2">
-                                        <CountdownTimer
-                                            endTime={votingStatus === 'not_started' ? votingTime.start_time : votingTime.end_time}
-                                            onExpire={() => checkVotingStatus(votingTime)}
-                                        />
-                                    </div>
-                                )
-                            ) : (
-                                <p className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">Not Scheduled</p>
-                            )}
+                        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20">
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400">Cast Votes</span>
+                            <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{votedCount}</div>
+                        </div>
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                            <span className="text-xs text-slate-400">Remaining</span>
+                            <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
+                                {Math.max(0, totalOffices - votedCount)}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Eligibility Card */}
-                <div className="card p-4 md:p-6 flex flex-col justify-center items-center text-center bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
-                    <div className="size-14 md:size-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-3 md:mb-4 text-green-600 dark:text-green-400">
-                        <span className="material-symbols-outlined text-2xl md:text-3xl">verified_user</span>
+                {/* Eligibility Verification Card */}
+                <div className="card p-6 flex flex-col justify-center items-center text-center bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
+                    <div className="size-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-3 text-emerald-600 dark:text-emerald-400 shadow-md shadow-emerald-500/10">
+                        <span className="material-symbols-outlined text-3xl">verified_user</span>
                     </div>
-                    <h3 className="font-bold text-base md:text-lg text-slate-900 dark:text-white mb-2">Verified Voter</h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm">
-                        Your identity has been verified. You are eligible to vote in all {offices.length} contests.
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Accredited Voter</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+                        Your identity has been confirmed for the NECO MCS election. Your ballot is strictly anonymous and encrypted.
                     </p>
                 </div>
             </div>
 
-            {/* Offices List */}
-            <div className="card p-4 md:p-6">
-                <h3 className="font-bold text-base md:text-lg text-slate-900 dark:text-white mb-3 md:mb-4">Contests on Your Ballot</h3>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                    {offices.map((office) => (
-                        <div key={office.id} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:border-indigo-500/30 transition-colors">
-                            <div className="size-9 md:size-10 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center text-slate-400 shadow-sm flex-shrink-0">
-                                <span className="material-symbols-outlined text-xl">how_to_vote</span>
-                            </div>
-                            <span className="font-medium text-sm md:text-base text-slate-700 dark:text-slate-200">{office.description}</span>
-                        </div>
-                    ))}
+            {/* My Cast Votes & Cryptographic Receipts */}
+            <div className="card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Your Cast Votes & Receipts</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Verified voting confirmations for your records.
+                        </p>
+                    </div>
+                    <Link
+                        to="/voter/history"
+                        className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                    >
+                        View Full Details
+                        <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                    </Link>
                 </div>
+
+                {myVotes.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 border border-dashed rounded-2xl border-slate-200 dark:border-slate-700">
+                        <p className="mb-3">You have not cast any votes yet.</p>
+                        {isVotingActive && (
+                            <Link to="/voter/ballot" className="btn-primary inline-flex items-center gap-2 text-sm font-semibold">
+                                Cast Your First Vote
+                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                            </Link>
+                        )}
+                    </div>
+                ) : (
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {myVotes.map((vote) => (
+                            <div
+                                key={vote.id}
+                                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold uppercase text-indigo-600 dark:text-indigo-400">
+                                        {vote.office_name}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+                                        <span className="material-symbols-outlined text-xs">check</span>
+                                        Voted
+                                    </span>
+                                </div>
+                                <div className="text-base font-bold text-slate-900 dark:text-white">
+                                    {vote.candidate_name}
+                                </div>
+                                <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs">
+                                    <span className="text-slate-400 font-mono">Receipt:</span>
+                                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                                        {vote.receipt_hash || 'MCS-RECORDED'}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
+// ============================================================
+// SELECT OFFICE (BALLOT PAGE - REQUIREMENT 4)
+// ============================================================
 export const SelectOffice: React.FC = () => {
     const [offices, setOffices] = useState<OfficeResponse[]>([]);
+    const [myVotes, setMyVotes] = useState<MyVoteResponse[]>([]);
+    const [votingStatus, setVotingStatus] = useState<VotingTimeOut | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -199,28 +245,18 @@ export const SelectOffice: React.FC = () => {
 
     const loadData = async () => {
         try {
-            const [officesData, timeData] = await Promise.all([
-                officesAPI.getAll(),
-                votingTimeAPI.getVotingTime()
+            setLoading(true);
+            const [officesData, timeStatus, myVotesData] = await Promise.all([
+                officesAPI.getAll().catch(() => []),
+                votingTimeAPI.getStatus().catch(() => null),
+                votesAPI.getMyVotes().catch(() => []),
             ]);
 
-            // Check if voting is allowed
-            if (timeData) {
-                const now = new Date().getTime();
-                const start = new Date(timeData.start_time).getTime();
-                const end = new Date(timeData.end_time).getTime();
-
-                if (now < start || now > end) {
-                    // Redirect to dashboard if not active
-                    // You might want to show a message, but redirect is safer
-                    window.location.href = '/#/voter/dashboard';
-                    return;
-                }
-            }
-
             setOffices(officesData);
+            setVotingStatus(timeStatus);
+            setMyVotes(myVotesData);
         } catch (err) {
-            console.error('Failed to load data:', err);
+            console.error('Failed to load ballot offices:', err);
         } finally {
             setLoading(false);
         }
@@ -228,107 +264,197 @@ export const SelectOffice: React.FC = () => {
 
     if (loading) return <LoadingSpinner />;
 
+    // Build voted offices lookup map
+    const votedOfficesMap = new Map<string, MyVoteResponse>();
+    myVotes.forEach((v) => {
+        votedOfficesMap.set(v.office_code, v);
+    });
+
+    const isVotingActive = votingStatus?.is_active && votingStatus.status === 'ACTIVE';
+
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="mb-6 md:mb-8 text-center">
-                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2">Official Ballot</h1>
-                <p className="text-sm md:text-base text-slate-500 dark:text-slate-400">Select a contest below to view candidates and cast your vote.</p>
+        <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+            <div className="text-center space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-semibold">
+                    <span className="material-symbols-outlined text-sm">ballot</span>
+                    Official NECO MCS Election Ballot
+                </div>
+                <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    Official Election Ballot
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg mx-auto">
+                    Select any contested office below to vote. Once you submit your vote for a category, it is permanently locked and you can view only your confirmation statistics.
+                </p>
             </div>
 
-            <div className="grid gap-3 md:gap-4">
-                {offices.map((office) => (
-                    <Link
-                        key={office.id}
-                        to={`/voter/ballot/${office.office_code}`}
-                        className="group card p-4 md:p-6 flex items-center justify-between hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300"
-                    >
-                        <div className="flex items-center gap-4 md:gap-6 flex-1 min-w-0">
-                            <div className="size-12 md:size-14 rounded-xl md:rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
-                                <span className="material-symbols-outlined text-xl md:text-2xl">how_to_vote</span>
+            {!isVotingActive && (
+                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm font-medium text-center">
+                    Voting is currently closed or stopped by administrator. Ballots cannot be submitted at this time.
+                </div>
+            )}
+
+            <div className="grid gap-4">
+                {offices.map((office) => {
+                    const isVoted = votedOfficesMap.has(office.office_code);
+                    const voteInfo = votedOfficesMap.get(office.office_code);
+                    const isDisqualified = office.is_disqualified;
+
+                    if (isVoted) {
+                        // Already Voted Category (Requirement 4)
+                        return (
+                            <div
+                                key={office.id}
+                                className="p-5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-300 dark:border-emerald-800/60 flex items-center justify-between"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="size-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                        <span className="material-symbols-outlined text-2xl">check_circle</span>
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                                {office.description}
+                                            </h3>
+                                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                                Voted
+                                            </span>
+                                        </div>
+                                        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
+                                            Voted for: {voteInfo?.candidate_name}
+                                        </p>
+                                        <p className="text-xs font-mono text-slate-400 mt-0.5">
+                                            Receipt: {voteInfo?.receipt_hash || 'MCS-VERIFIED'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="text-right">
+                                    <span className="text-xs font-semibold text-slate-400 italic">
+                                        Category Locked
+                                    </span>
+                                </div>
                             </div>
-                            <div className="min-w-0">
-                                <h3 className="text-base md:text-xl font-bold text-slate-900 dark:text-white mb-0.5 md:mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
-                                    {office.description}
-                                </h3>
-                                <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm">
-                                    Tap to view candidates
-                                </p>
+                        );
+                    }
+
+                    if (isDisqualified) {
+                        return (
+                            <div
+                                key={office.id}
+                                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between opacity-60 cursor-not-allowed"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="size-12 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400">
+                                        <span className="material-symbols-outlined text-2xl">block</span>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                                            {office.description}
+                                        </h3>
+                                        <p className="text-xs text-red-500 font-semibold">Contest Disqualified by Admin</p>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="size-8 md:size-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 flex-shrink-0">
-                            <span className="material-symbols-outlined text-xl">arrow_forward</span>
-                        </div>
-                    </Link>
-                ))}
+                        );
+                    }
+
+                    // Available to vote
+                    return (
+                        <Link
+                            key={office.id}
+                            to={isVotingActive ? `/voter/ballot/${office.office_code}` : '#'}
+                            className={`group card p-5 flex items-center justify-between transition-all duration-200 ${
+                                isVotingActive
+                                    ? 'hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10'
+                                    : 'opacity-50 cursor-not-allowed'
+                            }`}
+                        >
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className="size-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                    <span className="material-symbols-outlined text-2xl">how_to_vote</span>
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors truncate">
+                                        {office.description}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        Click to view candidates and cast vote
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                <span className="material-symbols-outlined text-xl">arrow_forward</span>
+                            </div>
+                        </Link>
+                    );
+                })}
             </div>
         </div>
     );
 };
 
+// ============================================================
+// VOTE CANDIDATE (SELECTION FOR SPECIFIC OFFICE)
+// ============================================================
 export const VoteCandidate: React.FC = () => {
     const navigate = useNavigate();
     const { officeId } = useParams<{ officeId: string }>();
+    const [office, setOffice] = useState<OfficeResponse | null>(null);
     const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
     const [selected, setSelected] = useState<string | null>(null);
+    const [alreadyVoted, setAlreadyVoted] = useState(false);
+    const [existingVote, setExistingVote] = useState<MyVoteResponse | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (officeId) {
-            loadCandidates();
+            loadOfficeData();
         }
     }, [officeId]);
 
-    const loadCandidates = async () => {
+    const loadOfficeData = async () => {
         try {
-            const data = await candidatesAPI.getByOfficeCode(officeId!);
-            setCandidates(data);
+            setLoading(true);
+            const [officeData, candData, myVotes] = await Promise.all([
+                officesAPI.getByCode(officeId!).catch(() => null),
+                candidatesAPI.getByOfficeCode(officeId!).catch(() => []),
+                votesAPI.getMyVotes().catch(() => []),
+            ]);
+
+            setOffice(officeData);
+            setCandidates(candData);
+
+            // Check if already voted
+            const found = myVotes.find((v) => v.office_code === officeId);
+            if (found) {
+                setAlreadyVoted(true);
+                setExistingVote(found);
+            }
         } catch (err) {
-            setError('Failed to load candidates');
+            setError('Failed to load candidate information.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSubmit = async () => {
+    const handleCastVote = async () => {
         if (!selected || !officeId) return;
-
-        // Double check voting time before submission
-        try {
-            const timeData = await votingTimeAPI.getVotingTime();
-            if (timeData) {
-                const now = new Date().getTime();
-                const start = new Date(timeData.start_time).getTime();
-                const end = new Date(timeData.end_time).getTime();
-
-                if (now < start || now > end) {
-                    setError('Voting is currently closed.');
-                    return;
-                }
-            }
-        } catch (err) {
-            console.error('Failed to verify voting time:', err);
-            // Continue if check fails? Or block? Blocking is safer.
-            setError('Failed to verify election status. Please try again.');
-            return;
-        }
 
         setSubmitting(true);
         setError('');
 
         try {
-            await votesAPI.cast({
+            const result = await votesAPI.cast({
                 candidate_code: selected,
                 office_code: officeId,
             });
+            sessionStorage.setItem('last_vote_receipt', JSON.stringify(result));
             navigate('/voter/success');
         } catch (err: any) {
-            if (err?.status === 400 || err?.status === 409) {
-                setError('You have already voted for this office.');
-            } else {
-                setError(err?.data?.detail || 'Failed to cast vote');
-            }
+            setError(err?.data?.detail || 'Failed to submit vote. You may have already voted for this office.');
         } finally {
             setSubmitting(false);
         }
@@ -336,203 +462,252 @@ export const VoteCandidate: React.FC = () => {
 
     if (loading) return <LoadingSpinner />;
 
-    if (candidates.length === 0) {
+    if (alreadyVoted) {
         return (
-            <div className="max-w-xl mx-auto p-8 text-center card mt-12">
-                <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <span className="material-symbols-outlined text-slate-400 text-4xl">person_off</span>
+            <div className="max-w-md mx-auto p-8 card text-center space-y-4 my-12 animate-scale-in">
+                <div className="size-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                    <span className="material-symbols-outlined text-4xl">check_circle</span>
                 </div>
-                <h1 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">No Candidates Found</h1>
-                <p className="text-slate-500 dark:text-slate-400 mb-8">There are no candidates listed for this office yet.</p>
-                <button onClick={() => navigate(-1)} className="btn-secondary w-full">
-                    Back to Ballot
-                </button>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Already Voted</h2>
+                <p className="text-sm text-slate-500">
+                    You have already cast your ballot for <b>{office?.description || officeId}</b>.
+                </p>
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-600 dark:text-slate-300">
+                    Candidate: {existingVote?.candidate_name}<br />
+                    Receipt: {existingVote?.receipt_hash || 'MCS-VERIFIED'}
+                </div>
+                <Link to="/voter/ballot" className="btn-primary w-full inline-block text-center font-bold">
+                    Return to Ballot
+                </Link>
             </div>
-        )
+        );
     }
 
     return (
-        <div className="max-w-4xl mx-auto pb-20 md:pb-0">
-            <div className="mb-6 md:mb-8 flex items-center gap-3 md:gap-4">
-                <button
-                    onClick={() => navigate(-1)}
-                    className="size-9 md:size-10 rounded-lg md:rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
-                >
-                    <span className="material-symbols-outlined">arrow_back</span>
-                </button>
-                <div className="min-w-0">
-                    <h1 className="text-xl md:text-3xl font-bold text-slate-900 dark:text-white truncate">{candidates[0]?.office.description || 'Office'}</h1>
-                    <p className="text-xs md:text-base text-slate-500 dark:text-slate-400">Select one candidate for this office.</p>
+        <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-fade-in">
+            <div className="flex items-center justify-between">
+                <div>
+                    <Link
+                        to="/voter/ballot"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-indigo-600 mb-2 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-sm">arrow_back</span>
+                        Back to Ballot
+                    </Link>
+                    <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                        {office?.description || 'Contest'}
+                    </h1>
+                    <p className="text-sm text-slate-500">Select one candidate to cast your vote.</p>
                 </div>
             </div>
 
             {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
 
-            <div className="grid gap-3 md:gap-4 mb-6 md:mb-8">
-                {candidates.map((c) => (
-                    <label
-                        key={c.id}
-                        className={`relative flex items-start gap-3 md:gap-4 p-4 md:p-6 rounded-xl md:rounded-2xl border-2 cursor-pointer transition-all duration-200 ${selected === c.candidate_code
-                            ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20 shadow-lg shadow-indigo-500/10'
-                            : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700'
+            {/* Candidates Selection Grid */}
+            <div className="grid sm:grid-cols-2 gap-4">
+                {candidates.map((cand) => {
+                    const isDisqualified = cand.is_disqualified;
+                    const isSelected = selected === cand.candidate_code;
+
+                    if (isDisqualified) {
+                        return (
+                            <div
+                                key={cand.id}
+                                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed"
+                            >
+                                <span className="text-xs font-bold text-red-500 uppercase">Disqualified</span>
+                                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">{cand.name}</h3>
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <div
+                            key={cand.id}
+                            onClick={() => setSelected(cand.candidate_code)}
+                            className={`p-6 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                                isSelected
+                                    ? 'border-indigo-600 bg-indigo-50/30 dark:bg-indigo-950/30 shadow-lg shadow-indigo-500/10'
+                                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300'
                             }`}
-                    >
-                        <div className={`size-12 md:size-16 rounded-full flex items-center justify-center text-xl md:text-2xl font-bold flex-shrink-0 ${selected === c.candidate_code
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
-                            }`}>
-                            {c.name.charAt(0)}
-                        </div>
+                        >
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <span className="text-xs font-mono font-semibold text-slate-400">
+                                        #{cand.candidate_code}
+                                    </span>
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-1">
+                                        {cand.name}
+                                    </h3>
+                                </div>
+                                <div className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                    isSelected
+                                        ? 'border-indigo-600 bg-indigo-600 text-white'
+                                        : 'border-slate-300 dark:border-slate-600'
+                                }`}>
+                                    {isSelected && <span className="material-symbols-outlined text-sm font-bold">check</span>}
+                                </div>
+                            </div>
 
-                        <div className="flex-1 min-w-0">
-                            <h3 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-1 truncate">{c.name}</h3>
-                            <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mb-2 md:mb-3">Candidate Code: {c.candidate_code}</p>
-                            <span className="inline-flex items-center px-2 md:px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
-                                Official Candidate
-                            </span>
+                            <p className="text-xs text-slate-400 mt-4">
+                                Tap to select this candidate for {office?.description}
+                            </p>
                         </div>
-
-                        <div className={`size-5 md:size-6 rounded-full border-2 flex items-center justify-center mt-1 flex-shrink-0 ${selected === c.candidate_code ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300 dark:border-slate-600'
-                            }`}>
-                            {selected === c.candidate_code && <div className="size-2 md:size-2.5 bg-white rounded-full" />}
-                        </div>
-
-                        <input
-                            type="radio"
-                            name="candidate"
-                            className="hidden"
-                            onChange={() => setSelected(c.candidate_code)}
-                        />
-                    </label>
-                ))}
+                    );
+                })}
             </div>
 
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 md:static md:bg-transparent md:border-none md:p-0">
-                <div className="max-w-4xl mx-auto flex justify-end">
-                    <button
-                        onClick={handleSubmit}
-                        disabled={!selected || submitting}
-                        className="w-full md:w-auto btn-primary flex items-center justify-center gap-2"
-                    >
-                        {submitting ? (
-                            <>
-                                <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                Submitting...
-                            </>
-                        ) : (
-                            <>
-                                Cast Secure Vote
-                                <span className="material-symbols-outlined">how_to_vote</span>
-                            </>
-                        )}
-                    </button>
-                </div>
+            {/* Submit Action */}
+            <div className="pt-4 flex justify-end">
+                <button
+                    onClick={handleCastVote}
+                    disabled={!selected || submitting}
+                    className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-extrabold text-lg rounded-2xl shadow-xl shadow-indigo-500/20 flex items-center gap-2 transition-all"
+                >
+                    {submitting ? (
+                        <div className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                        <>
+                            Cast Vote for Selected Candidate
+                            <span className="material-symbols-outlined text-2xl">how_to_vote</span>
+                        </>
+                    )}
+                </button>
             </div>
         </div>
     );
 };
 
+// ============================================================
+// CONFIRM VOTE PLACEHOLDER / SUCCESS PAGE
+// ============================================================
 export const ConfirmVote: React.FC = () => {
-    const navigate = useNavigate();
-    return (
-        <div className="fixed inset-0 z-50 bg-[#0B1120]/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-3xl shadow-2xl p-8 relative animate-scale-in border border-slate-100 dark:border-slate-700">
-                <button onClick={() => navigate(-1)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                    <span className="material-symbols-outlined">close</span>
-                </button>
-
-                <div className="text-center mb-8">
-                    <div className="size-20 bg-indigo-50 dark:bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-600 dark:text-indigo-400">
-                        <span className="material-symbols-outlined text-4xl">how_to_vote</span>
-                    </div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Confirm Your Vote</h2>
-                    <p className="text-slate-500 dark:text-slate-400">Please review your selection carefully.</p>
-                </div>
-
-                <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 mb-8 text-center border border-slate-100 dark:border-slate-700/50">
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Warning</p>
-                    <p className="text-slate-900 dark:text-white font-medium">Once cast, your vote cannot be changed.</p>
-                </div>
-
-                <div className="flex gap-4">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="flex-1 btn-secondary"
-                    >
-                        Go Back
-                    </button>
-                    <button
-                        onClick={() => navigate('/voter/success')}
-                        className="flex-1 btn-primary"
-                    >
-                        Cast Final Vote
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
+    return <VoteCandidate />;
 };
 
 export const VoteSuccess: React.FC = () => {
-    const navigate = useNavigate();
-    return (
-        <div className="flex-1 flex items-center justify-center p-4">
-            <div className="max-w-lg w-full card p-10 text-center animate-scale-in">
-                <div className="size-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-8 text-green-600 dark:text-green-400">
-                    <span className="material-symbols-outlined text-5xl">check_circle</span>
-                </div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">Vote Cast Successfully</h1>
-                <p className="text-slate-500 dark:text-slate-400 mb-8 text-lg">
-                    Your ballot has been securely submitted and recorded on the blockchain.
-                </p>
+    const rawReceipt = sessionStorage.getItem('last_vote_receipt');
+    const receipt = rawReceipt ? JSON.parse(rawReceipt) : null;
 
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 text-left space-y-3 mb-8 border border-slate-100 dark:border-slate-700/50">
-                    <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 text-sm">Transaction ID</span>
-                        <span className="font-mono text-xs bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded text-slate-700 dark:text-slate-300">
-                            0x7f...3a2b
+    return (
+        <div className="max-w-md mx-auto p-8 card text-center space-y-6 my-12 animate-scale-in">
+            <div className="size-20 rounded-3xl bg-green-500/10 border-2 border-green-500 flex items-center justify-center mx-auto text-green-500 shadow-xl shadow-green-500/10">
+                <span className="material-symbols-outlined text-5xl">verified</span>
+            </div>
+
+            <div className="space-y-1">
+                <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Vote Successfully Cast!</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Your digital ballot was encrypted and recorded into the NECO MCS election ledger.
+                </p>
+            </div>
+
+            {receipt && (
+                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-left space-y-2.5 text-sm shadow-sm">
+                    <div className="flex justify-between border-b border-slate-200/70 dark:border-slate-700/70 pb-2">
+                        <span className="text-slate-400">Contested Office</span>
+                        <span className="font-bold text-slate-900 dark:text-white">{receipt.office_name}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-200/70 dark:border-slate-700/70 pb-2">
+                        <span className="text-slate-400">Candidate Voted</span>
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400">{receipt.candidate_name}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1">
+                        <span className="text-slate-400">Receipt Code</span>
+                        <span className="font-mono font-bold text-xs px-2.5 py-1 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                            {receipt.receipt_hash || 'MCS-VERIFIED'}
                         </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                        <span className="text-slate-500 dark:text-slate-400 text-sm">Timestamp</span>
-                        <span className="font-medium text-slate-900 dark:text-white text-sm">{new Date().toLocaleString()}</span>
-                    </div>
                 </div>
+            )}
 
-                <button
-                    onClick={() => navigate('/voter/dashboard')}
-                    className="w-full btn-primary"
-                >
-                    Return to Dashboard
-                </button>
+            <div className="flex flex-col gap-3 pt-2">
+                <Link to="/voter/ballot" className="btn-primary font-bold py-3 text-center">
+                    Vote in Other Contests
+                </Link>
+                <Link to="/voter/dashboard" className="btn-secondary font-bold py-3 text-center">
+                    Go to My Voter Dashboard
+                </Link>
             </div>
         </div>
     );
 };
 
+// ============================================================
+// VOTING HISTORY & STATS (REQUIREMENT 4)
+// ============================================================
 export const VotingHistory: React.FC = () => {
+    const { user } = useAuth();
+    const [votes, setVotes] = useState<MyVoteResponse[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadVotes();
+    }, []);
+
+    const loadVotes = async () => {
+        try {
+            setLoading(true);
+            const data = await votesAPI.getMyVotes();
+            setVotes(data);
+        } catch (err) {
+            console.error('Failed to load my votes:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) return <LoadingSpinner />;
+
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Voting History</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Your secure voting record.</p>
-                </div>
+        <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+            <div>
+                <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    My Voting History & Statistics
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Your personal audit trail of cast ballots and cryptographic verification hashes for MCS #{user?.username}.
+                </p>
             </div>
 
-            <div className="card p-16 text-center">
-                <div className="size-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-400">
-                    <span className="material-symbols-outlined text-5xl">visibility_off</span>
+            {votes.length === 0 ? (
+                <div className="p-10 text-center card text-slate-400 space-y-4">
+                    <span className="material-symbols-outlined text-5xl text-slate-300">history</span>
+                    <p>You have not cast any votes yet.</p>
+                    <Link to="/voter/ballot" className="btn-primary inline-flex items-center gap-2">
+                        Go to Ballot
+                    </Link>
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Ballot Secrecy Active</h3>
-                <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-8 leading-relaxed">
-                    To ensure the integrity and anonymity of the election process, individual voting choices are not retrievable after submission.
-                </p>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-medium">
-                    <span className="material-symbols-outlined text-sm">lock</span>
-                    Cryptographically Secured
+            ) : (
+                <div className="card overflow-hidden">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold text-xs uppercase">
+                            <tr>
+                                <th className="px-6 py-3.5">Office</th>
+                                <th className="px-6 py-3.5">Candidate Voted</th>
+                                <th className="px-6 py-3.5">Receipt Hash</th>
+                                <th className="px-6 py-3.5">Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {votes.map((v) => (
+                                <tr key={v.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{v.office_name}</td>
+                                    <td className="px-6 py-4 font-semibold text-indigo-600 dark:text-indigo-400">{v.candidate_name}</td>
+                                    <td className="px-6 py-4 font-mono text-xs">
+                                        <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300">
+                                            {v.receipt_hash || 'MCS-VERIFIED'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-xs text-slate-500">
+                                        {new Date(v.created_at).toLocaleString()}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

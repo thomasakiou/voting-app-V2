@@ -1,6 +1,6 @@
-username,full_name,phone,role,password
-4001,Felix Doel,8012345678,voter,Vote@123
-2026,Fatima Abas,8012345679,voter,Vote@123
+username,full_name,phone,email,role,password
+4001,Felix Doel,8012345678,felix@example.com,voter,Vote@123
+2026,Fatima Abas,8012345679,fatima@example.com,voter,Vote@123
 2732,John Anderson,8012345680,voter,Vote@123
 4006,Sarah Johnson,8012345681,voter,Vote@123
 ,,,,

@@ -3,7 +3,8 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthLayout, AdminLayout, VoterLayout } from './components/Layouts';
-import { Login, ResetPassword, ChangePassword, FirstTimePasswordChange } from './pages/Auth';
+import { Login, AdminLogin, VerifyOTP } from './pages/Auth';
+import { Accreditation } from './pages/Accreditation';
 import { PrivacyPolicy, TermsOfService } from './pages/Legal';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { UserList, CreateUser, BulkUpload, BulkActions } from './pages/AdminUsers';
@@ -12,30 +13,36 @@ import { CandidateManagement, CreateCandidate } from './pages/AdminCandidates';
 import { ElectionResults } from './pages/AdminResults';
 import { SystemStatus, SystemConfig } from './pages/AdminSystem';
 import { VoterDashboard, SelectOffice, VoteCandidate, ConfirmVote, VoteSuccess, VotingHistory } from './pages/Voter';
-import { VoterAnalytics } from './pages/VoterAnalytics';
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <HashRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Navigate to="/election" replace />} />
 
-          {/* Auth Routes */}
+          {/* Public Accreditation Route */}
+          <Route path="/accreditation" element={<Accreditation />} />
+
+          {/* Auth & Election Routes */}
           <Route element={<AuthLayout />}>
+            <Route path="/election" element={<Login />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/first-time-password" element={<FirstTimePasswordChange />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
           </Route>
 
           {/* Admin Routes */}
-          <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={['super-admin', 'admin']}>
-              <AdminLayout />
-            </ProtectedRoute>
-          }>
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['super-admin', 'admin']}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="users" element={<UserList />} />
@@ -49,15 +56,17 @@ const App: React.FC = () => {
             <Route path="results" element={<ElectionResults />} />
             <Route path="system-status" element={<SystemStatus />} />
             <Route path="settings" element={<SystemConfig />} />
-            <Route path="change-password" element={<ChangePassword />} />
           </Route>
 
           {/* Voter Routes */}
-          <Route path="/voter" element={
-            <ProtectedRoute allowedRoles={['voter']}>
-              <VoterLayout />
-            </ProtectedRoute>
-          }>
+          <Route
+            path="/voter"
+            element={
+              <ProtectedRoute allowedRoles={['voter']}>
+                <VoterLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<VoterDashboard />} />
             <Route path="ballot" element={<SelectOffice />} />
@@ -65,8 +74,10 @@ const App: React.FC = () => {
             <Route path="ballot/confirm" element={<ConfirmVote />} />
             <Route path="success" element={<VoteSuccess />} />
             <Route path="history" element={<VotingHistory />} />
-            <Route path="analytics" element={<VoterAnalytics />} />
           </Route>
+
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/election" replace />} />
         </Routes>
       </HashRouter>
     </AuthProvider>

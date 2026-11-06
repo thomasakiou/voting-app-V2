@@ -1,0 +1,513 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { accreditationAPI, APIError } from '../api';
+
+const getErrorMessage = (err: unknown, fallback: string): string => {
+  if (err instanceof APIError) {
+    const detail = err.data?.detail;
+    if (typeof detail === 'string') return detail;
+    if (typeof err.data?.message === 'string') return err.data.message;
+  }
+  return fallback;
+};
+
+export const Accreditation: React.FC = () => {
+  // Step 1: Validate MCS Number
+  // Step 2: Enter Phone & Email and send OTP
+  // Step 3: Enter OTP and submit
+  // Step 4: Success confirmation
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+
+  // Form states
+  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [otpDigits, setOtpDigits] = useState<string[]>(Array(6).fill(''));
+  const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  // UI states
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  // Step 1: Validate MCS username
+  const handleValidateVoter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim()) {
+      setError('Please enter your 4-digit MCS number.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const data = await accreditationAPI.validate(username.trim());
+      setFullName(data.full_name);
+      if (data.phone) setPhone(data.phone);
+      if (data.email) setEmail(data.email);
+      setStep(2);
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Failed to validate MCS number. Please check your credentials.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: Request OTP
+  const handleSendOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phone.trim() || !email.trim()) {
+      setError('Both phone number and email address are compulsory.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      await accreditationAPI.sendOTP(username.trim(), phone.trim(), email.trim());
+      setStep(3);
+      setResendCooldown(60);
+      setSuccessMessage(`A verification OTP has been sent to ${email.trim()}.`);
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Failed to send accreditation OTP. Please try again.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // OTP box input handling
+  const handleOtpChange = (index: number, val: string) => {
+    const digit = val.replace(/\D/g, '').slice(-1);
+    const updated = [...otpDigits];
+    updated[index] = digit;
+    setOtpDigits(updated);
+
+    if (digit && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (event: React.ClipboardEvent<HTMLDivElement>) => {
+    const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    event.preventDefault();
+    setOtpDigits(Array.from({ length: 6 }, (_, i) => pasted[i] || ''));
+    otpRefs.current[Math.min(pasted.length, 6) - 1]?.focus();
+  };
+
+  // Step 3: Verify OTP
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const otpCode = otpDigits.join('');
+    if (otpCode.length !== 6) {
+      setError('Please enter the complete 6-digit OTP code.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await accreditationAPI.verifyOTP(username.trim(), otpCode, phone.trim(), email.trim());
+      setSuccessMessage(res.message);
+      setStep(4);
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Invalid or expired OTP. Please check the code and try again.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0) return;
+    setLoading(true);
+    setError('');
+    try {
+      await accreditationAPI.sendOTP(username.trim(), phone.trim(), email.trim());
+      setResendCooldown(60);
+      setSuccessMessage(`A fresh OTP has been sent to ${email.trim()}.`);
+      setOtpDigits(Array(6).fill(''));
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Failed to resend OTP.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Visual Side Banner */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-[#0B1120] overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-violet-600/20 z-0"></div>
+        <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/30 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-violet-500/20 rounded-full blur-3xl"></div>
+        
+        <div className="relative z-10 flex flex-col justify-center px-16 text-white">
+          <div className="mb-8 flex items-center gap-3">
+            <div className="size-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/30">
+              <span className="material-symbols-outlined text-4xl">verified_user</span>
+            </div>
+            <span className="text-3xl font-bold tracking-tight">NECO MCS</span>
+          </div>
+
+          <h1 className="text-5xl font-bold leading-tight mb-6">
+            Official Voter <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">
+              Accreditation Portal
+            </span>
+          </h1>
+
+          <p className="text-xl text-slate-400 max-w-lg leading-relaxed mb-8">
+            Complete your mandatory biometric & electronic voter accreditation for the NECO MCS Election in 3 simple steps.
+          </p>
+
+          <div className="space-y-4 max-w-md">
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
+              <div className="size-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">1</div>
+              <p className="text-sm font-medium text-slate-300">Validate 4-digit MCS Number</p>
+            </div>
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
+              <div className="size-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">2</div>
+              <p className="text-sm font-medium text-slate-300">Confirm Name & Enter Contact Details</p>
+            </div>
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
+              <div className="size-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">3</div>
+              <p className="text-sm font-medium text-slate-300">Verify OTP to Get Officially Accredited</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12 bg-slate-50 dark:bg-[#0B1120]">
+        <div className="w-full max-w-lg space-y-8 animate-slide-up">
+          {/* Header */}
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 text-xs font-semibold mb-3">
+              <span className="material-symbols-outlined text-[16px]">how_to_reg</span>
+              NECO MCS Voter Accreditation
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+              {step === 1 && 'Voter Verification'}
+              {step === 2 && 'Confirm Identity & Contact'}
+              {step === 3 && 'Enter Accreditation OTP'}
+              {step === 4 && 'Accreditation Complete'}
+            </h2>
+            <p className="mt-2 text-base text-slate-500 dark:text-slate-400">
+              {step === 1 && 'Enter your 4-digit MCS number to check eligibility on the voter register.'}
+              {step === 2 && 'Confirm your full name and provide your phone number and email to receive your OTP.'}
+              {step === 3 && `Enter the 6-digit OTP code dispatched to ${email}.`}
+              {step === 4 && 'Your accreditation has been finalized and recorded in the election register.'}
+            </p>
+          </div>
+
+          {/* Notifications */}
+          {error && (
+            <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3 text-red-600 dark:text-red-400 animate-scale-in">
+              <span className="material-symbols-outlined mt-0.5">error</span>
+              <p className="text-sm font-medium leading-relaxed">{error}</p>
+            </div>
+          )}
+
+          {successMessage && step !== 4 && (
+            <div className="p-4 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 flex items-start gap-3 text-green-700 dark:text-green-400 animate-scale-in">
+              <span className="material-symbols-outlined mt-0.5">check_circle</span>
+              <p className="text-sm font-medium leading-relaxed">{successMessage}</p>
+            </div>
+          )}
+
+          {/* STEP 1: VALIDATE MCS NUMBER */}
+          {step === 1 && (
+            <form onSubmit={handleValidateVoter} className="space-y-6">
+              <div className="space-y-2">
+                <label htmlFor="mcs-username" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+                  MCS Number (4 Digits)
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 transition-colors text-[24px]">
+                      badge
+                    </span>
+                  </div>
+                  <input
+                    id="mcs-username"
+                    name="username"
+                    type="text"
+                    required
+                    maxLength={10}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="input-field pl-14 py-3.5 font-medium text-lg bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 focus:ring-indigo-500/20"
+                    placeholder="e.g. 2668"
+                    autoFocus
+                  />
+                </div>
+                <p className="text-xs text-slate-400 ml-1">Example: 2668, 4001, etc.</p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !username.trim()}
+                className="w-full btn-primary flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
+              >
+                {loading ? (
+                  <div className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    Validate Voter
+                    <span className="material-symbols-outlined text-2xl">arrow_forward</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* STEP 2: FULL NAME (UNEDITABLE) & CONTACT DETAILS */}
+          {step === 2 && (
+            <form onSubmit={handleSendOTP} className="space-y-6">
+              {/* Confirmed Full Name - UNEDITABLE AS REQUIRED */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="voter-fullname" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+                    Confirmed Voter Full Name
+                  </label>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                    Verified
+                  </span>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-indigo-500 text-[24px]">person</span>
+                  </div>
+                  <input
+                    id="voter-fullname"
+                    type="text"
+                    disabled
+                    readOnly
+                    value={fullName}
+                    className="w-full pl-14 pr-5 py-3.5 font-bold text-lg rounded-2xl bg-slate-100 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                  />
+                </div>
+                <p className="text-xs text-slate-400 ml-1">This name is matched from the official NECO MCS register.</p>
+              </div>
+
+              {/* Compulsory Phone Number */}
+              <div className="space-y-2">
+                <label htmlFor="voter-phone" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 text-[24px]">call</span>
+                  </div>
+                  <input
+                    id="voter-phone"
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="input-field pl-14 py-3.5 font-medium text-lg bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 focus:ring-indigo-500/20"
+                    placeholder="08012345678"
+                  />
+                </div>
+              </div>
+
+              {/* Compulsory Email */}
+              <div className="space-y-2">
+                <label htmlFor="voter-email" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 text-[24px]">mail</span>
+                  </div>
+                  <input
+                    id="voter-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="input-field pl-14 py-3.5 font-medium text-lg bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 focus:ring-indigo-500/20"
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+                <p className="text-xs text-slate-400 ml-1">Your accreditation OTP will be delivered directly to this email address.</p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="px-5 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || !phone.trim() || !email.trim()}
+                  className="flex-1 btn-primary flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
+                >
+                  {loading ? (
+                    <div className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      Submit & Request OTP
+                      <span className="material-symbols-outlined text-2xl">arrow_forward</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 3: OTP VERIFICATION */}
+          {step === 3 && (
+            <form onSubmit={handleVerifyOTP} className="space-y-6">
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 text-center">
+                  Enter 6-Digit Accreditation OTP
+                </label>
+                <div
+                  className="grid grid-cols-6 gap-2 sm:gap-3 max-w-md mx-auto"
+                  onPaste={handleOtpPaste}
+                  role="group"
+                  aria-label="6-digit accreditation OTP"
+                >
+                  {Array.from({ length: 6 }).map((_, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => { otpRefs.current[index] = el; }}
+                      id={`acc-otp-${index}`}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      required
+                      autoFocus={index === 0}
+                      autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                      value={otpDigits[index]}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      onFocus={(e) => e.currentTarget.select()}
+                      className="w-full aspect-square min-w-0 rounded-xl sm:rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/80 text-slate-900 dark:text-white text-center text-xl sm:text-2xl font-bold focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || otpDigits.join('').length !== 6}
+                className="w-full btn-primary flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
+              >
+                {loading ? (
+                  <div className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    Confirm Accreditation
+                    <span className="material-symbols-outlined text-2xl">verified</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-between text-sm pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                >
+                  Change email or phone
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={resendCooldown > 0 || loading}
+                  className="font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 disabled:text-slate-400"
+                >
+                  {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 4: ACCREDITATION SUCCESS */}
+          {step === 4 && (
+            <div className="space-y-6 text-center animate-scale-in">
+              <div className="size-20 mx-auto rounded-3xl bg-green-500/10 border-2 border-green-500 flex items-center justify-center text-green-500 shadow-xl shadow-green-500/10">
+                <span className="material-symbols-outlined text-5xl">check_circle</span>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                  Accreditation Confirmed!
+                </h3>
+                {/* EXACT SPECIFIED MESSAGE */}
+                <div className="p-4 rounded-2xl bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 font-semibold text-base sm:text-lg">
+                  you have been successfully accredited for the NECO MCS election, wait for further instruction for voting.
+                </div>
+              </div>
+
+              {/* Voter Credentials Summary */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-left space-y-3 shadow-sm">
+                <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700/50 pb-2">
+                  <span className="text-slate-500">MCS Username</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">{username}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700/50 pb-2">
+                  <span className="text-slate-500">Full Name</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{fullName}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700/50 pb-2">
+                  <span className="text-slate-500">Phone Number</span>
+                  <span className="font-medium text-slate-900 dark:text-white">{phone}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500">Registered Email</span>
+                  <span className="font-medium text-slate-900 dark:text-white">{email}</span>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Link
+                  to="/election"
+                  className="w-full btn-primary inline-flex items-center justify-center gap-2 text-lg font-bold"
+                >
+                  Go to Election Day Portal
+                  <span className="material-symbols-outlined text-2xl">arrow_forward</span>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Footer Navigation */}
+          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm text-slate-500">
+            <Link to="/election" className="hover:text-indigo-600 transition-colors">
+              Go to Election Day Login
+            </Link>
+            <Link to="/admin/login" className="hover:text-indigo-600 transition-colors">
+              Admin Portal
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

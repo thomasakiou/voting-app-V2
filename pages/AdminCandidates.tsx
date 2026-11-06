@@ -150,6 +150,16 @@ export const CandidateManagement: React.FC = () => {
         }
     };
 
+    const handleToggleDisqualify = async (candidateId: number, currentDisqualified: boolean) => {
+        try {
+            await candidatesAPI.disqualify(candidateId, !currentDisqualified);
+            setSuccess(`Candidate ${!currentDisqualified ? 'disqualified' : 'reinstated'} successfully`);
+            loadData();
+        } catch (err: any) {
+            setError(err?.data?.detail || 'Failed to update candidate qualification status');
+        }
+    };
+
     const handleDelete = async (candidateId: number) => {
         try {
             await candidatesAPI.delete(candidateId);
@@ -219,6 +229,7 @@ export const CandidateManagement: React.FC = () => {
                                     <th className="px-6 py-3">Candidate Code</th>
                                     <th className="px-6 py-3">Name</th>
                                     <th className="px-6 py-3">Office</th>
+                                    <th className="px-6 py-3">Status</th>
                                     <th className="px-6 py-3">Created</th>
                                     <th className="px-6 py-3 text-right">Actions</th>
                                 </tr>
@@ -229,6 +240,22 @@ export const CandidateManagement: React.FC = () => {
                                         <td className="px-6 py-4 font-mono text-slate-500">{candidate.candidate_code}</td>
                                         <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{candidate.name}</td>
                                         <td className="px-6 py-4">{candidate.office.description}</td>
+                                        <td className="px-6 py-4">
+                                            <button
+                                                onClick={() => handleToggleDisqualify(candidate.id, candidate.is_disqualified ?? false)}
+                                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                                    candidate.is_disqualified
+                                                        ? 'bg-red-100 text-red-700 hover:bg-green-100 hover:text-green-700 dark:bg-red-900/30 dark:text-red-400'
+                                                        : 'bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-700 dark:bg-green-900/30 dark:text-green-400'
+                                                }`}
+                                                title={candidate.is_disqualified ? 'Click to Reinstate Candidate' : 'Click to Disqualify Candidate'}
+                                            >
+                                                <span className="material-symbols-outlined text-[14px]">
+                                                    {candidate.is_disqualified ? 'block' : 'verified'}
+                                                </span>
+                                                {candidate.is_disqualified ? 'Disqualified' : 'Approved'}
+                                            </button>
+                                        </td>
                                         <td className="px-6 py-4 text-slate-500">
                                             {new Date(candidate.created_at).toLocaleDateString()}
                                         </td>

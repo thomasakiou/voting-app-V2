@@ -1,25 +1,47 @@
 // API Client for Voting System Backend
 // Handles all communication with the FastAPI backend
 
-const API_BASE_URL = 'https://vmi2848672.contaboserver.net/voting/api';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://vmi2848672.contaboserver.net/voting/api';
 
 // Types for API requests/responses
 export interface LoginRequest {
   username: string;
-  password: string;
+  phone?: string;
 }
 
 export interface TokenResponse {
   access_token: string;
   token_type: string;
-  fullname?: string;  // Backend returns "fullname" not "full_name"
+  fullname?: string;
   role?: string;
   username?: string;
 }
 
-export interface UserCreate {
+export interface LoginOTPResponse {
+  message: string;
+  otp_sent: boolean;
+  masked_email?: string;
+  username?: string;
+  full_name?: string;
+}
+
+export interface VerifyOTPRequest {
+  username: string;
+  otp_code: string;
+}
+
+export interface AdminLoginRequest {
   username: string;
   password: string;
+}
+
+export interface UserCreate {
+  username: string;
+  phone?: string;
+  full_name?: string;
+  email?: string;
+  password?: string;
+  role?: 'super-admin' | 'admin' | 'voter';
 }
 
 export interface UserOut {
@@ -27,15 +49,31 @@ export interface UserOut {
   username: string;
   full_name: string;
   phone?: string | null;
+  email?: string | null;
   role: 'super-admin' | 'admin' | 'voter';
   is_active?: boolean | null;
+  is_accredited?: boolean | null;
+  accredited_at?: string | null;
 }
 
 export interface UserUpdate {
   username?: string;
   full_name?: string;
+  email?: string;
   role?: 'super-admin' | 'admin' | 'voter';
   is_active?: boolean;
+}
+
+export interface UserStatsOut {
+  total_voters: number;
+  accredited_voters: number;
+  unaccredited_voters: number;
+  eligible_voters: number;
+  non_eligible_voters: number;
+  active_voters: number;
+  disabled_voters: number;
+  total_votes_cast: number;
+  turnout_percentage: number;
 }
 
 export interface OfficeCreate {
@@ -47,12 +85,14 @@ export interface OfficeResponse {
   id: number;
   office_code: string;
   description: string;
+  is_disqualified?: boolean;
   created_at: string;
 }
 
 export interface OfficeUpdate {
-  office_code: string;
-  description: string;
+  office_code?: string;
+  description?: string;
+  is_disqualified?: boolean;
 }
 
 export interface CandidateCreate {
@@ -65,6 +105,7 @@ export interface CandidateResponse {
   id: number;
   candidate_code: string;
   name: string;
+  is_disqualified?: boolean;
   created_at: string;
   office: {
     office_code: string;
@@ -82,21 +123,60 @@ export interface VoteResponse {
   user_name: string;
   candidate_name: string;
   office_name: string;
+  office_code?: string;
+  candidate_code?: string;
+  receipt_hash?: string;
   created_at: string;
 }
 
-export interface ChangePasswordRequest {
+export interface MyVoteResponse {
+  id: number;
+  office_code: string;
+  office_name: string;
+  candidate_code: string;
+  candidate_name: string;
+  receipt_hash?: string;
+  created_at: string;
+}
+
+export interface MyStatsResponse {
+  voter_name: string;
   username: string;
-  old_password: string;
-  new_password: string;
+  total_offices: number;
+  voted_count: number;
+  remaining_count: number;
+  is_completed: boolean;
+  voted_office_codes: string[];
+  votes: Array<{
+    office_code: string;
+    office_name: string;
+    candidate_name: string;
+    candidate_code: string;
+    receipt_hash?: string;
+    created_at: string;
+  }>;
 }
 
 export interface VotingTimeResponse {
   id?: number;
   start_time: string;
   end_time: string;
+  is_active?: boolean;
+  status?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface VotingTimeOut {
+  id?: number;
+  start_time?: string | null;
+  end_time?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  is_active: boolean;
+  status: string;
+  time_remaining?: number | null;
+  message?: string | null;
 }
 
 export interface VotingTimeSet {
@@ -104,9 +184,45 @@ export interface VotingTimeSet {
   end_time: string;
 }
 
+export interface AccreditationValidateResponse {
+  username: string;
+  full_name: string;
+  is_accredited: boolean;
+  is_active: boolean;
+  phone?: string | null;
+  email?: string | null;
+  message?: string;
+}
+
+export interface AccreditationOTPResponse {
+  message: string;
+  otp_sent: boolean;
+  expires_in_minutes?: number;
+}
+
+export interface AccreditationVerifyResponse {
+  message: string;
+  accredited: boolean;
+  full_name: string;
+  username: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface AuditLog {
+  id: number;
+  admin_id?: number | null;
+  admin_username: string;
+  action: string;
+  target_type?: string | null;
+  target_id?: string | null;
+  details?: string | null;
+  created_at: string;
+}
+
 // Token management
 class TokenManager {
-  private static TOKEN_KEY = 'voting_access_token';
+  private static TOKEN_KEY = 'access_token';
 
   static getToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);
@@ -145,7 +261,7 @@ async function apiFetch<T>(
 
   // Add authorization header if token exists
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers['Authorization'] = 'Bearer ' + token;
   }
 
   // Add content-type for JSON requests
@@ -180,18 +296,13 @@ async function apiFetch<T>(
 
 // Authentication API
 export const authAPI = {
-  async login(username: string, password: string): Promise<TokenResponse> {
-    // OAuth2 password flow requires form data
-    const formData = new URLSearchParams();
-    formData.append('username', username);
-    formData.append('password', password);
-
-    const response = await fetch(`${API_BASE_URL}/login`, {
+  async adminLogin(username: string, password: string): Promise<TokenResponse> {
+    const response = await fetch(`${API_BASE_URL}/admin/login`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: formData,
+      body: JSON.stringify({ username, password }),
     });
 
     if (!response.ok) {
@@ -201,6 +312,51 @@ export const authAPI = {
 
     const data = await response.json();
     TokenManager.setToken(data.access_token);
+    localStorage.setItem('access_token', data.access_token);
+    if (data.fullname) {
+      localStorage.setItem('fullname', data.fullname);
+      localStorage.setItem('voting_fullname', data.fullname);
+    }
+    return data;
+  },
+
+  async login(username: string, phone?: string): Promise<LoginOTPResponse> {
+    const response = await fetch(`${API_BASE_URL}/election/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, phone }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+
+    return response.json();
+  },
+
+  async verifyOTP(username: string, otpCode: string): Promise<TokenResponse> {
+    const response = await fetch(`${API_BASE_URL}/verify-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, otp_code: otpCode }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+
+    const data = await response.json();
+    TokenManager.setToken(data.access_token);
+    if (data.fullname) {
+      localStorage.setItem('fullname', data.fullname);
+      localStorage.setItem('voting_fullname', data.fullname);
+    }
     return data;
   },
 
@@ -212,17 +368,56 @@ export const authAPI = {
     }
   },
 
-  async changePassword(data: ChangePasswordRequest): Promise<void> {
-    await apiFetch('/change-password', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-
-
   getToken: () => TokenManager.getToken(),
   clearToken: () => TokenManager.clearToken(),
+};
+
+// Accreditation API
+export const accreditationAPI = {
+  async validate(username: string): Promise<AccreditationValidateResponse> {
+    const response = await fetch(`${API_BASE_URL}/accreditation/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+
+    return response.json();
+  },
+
+  async sendOTP(username: string, phone: string, email: string): Promise<AccreditationOTPResponse> {
+    const response = await fetch(`${API_BASE_URL}/accreditation/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, phone, email }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+
+    return response.json();
+  },
+
+  async verifyOTP(username: string, otpCode: string, phone: string, email: string): Promise<AccreditationVerifyResponse> {
+    const response = await fetch(`${API_BASE_URL}/accreditation/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, otp_code: otpCode, phone, email }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+
+    return response.json();
+  },
 };
 
 // Users API
@@ -249,7 +444,7 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/users/upload-csv`, {
       method: 'POST',
       headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
+        ...(token && { Authorization: 'Bearer ' + token }),
       },
       body: formData,
     });
@@ -266,6 +461,10 @@ export const usersAPI = {
     return apiFetch<UserOut[]>('/users/');
   },
 
+  async getAnalysis(): Promise<UserStatsOut> {
+    return apiFetch<UserStatsOut>('/users/stats/analysis');
+  },
+
   async getByUsername(username: string): Promise<UserOut> {
     return apiFetch<UserOut>(`/users/${username}?name=${username}`);
   },
@@ -277,12 +476,6 @@ export const usersAPI = {
   async toggleStatus(userId: number, isActive: boolean): Promise<UserOut> {
     return apiFetch<UserOut>(`/users/${userId}/status?is_active=${isActive}`, {
       method: 'PATCH',
-    });
-  },
-
-  async resetPassword(username: string): Promise<void> {
-    await apiFetch(`/reset-password/${username}`, {
-      method: 'POST',
     });
   },
 
@@ -300,6 +493,38 @@ export const usersAPI = {
   async enableAllVoters(): Promise<void> {
     await apiFetch('/users/enable-voters', { method: 'PATCH' });
   },
+
+  async downloadCSV(): Promise<void> {
+    const token = TokenManager.getToken();
+    const response = await fetch(`${API_BASE_URL}/users/export/csv`, {
+      headers: { ...(token && { Authorization: 'Bearer ' + token }) },
+    });
+    if (!response.ok) throw new Error('Failed to download CSV');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'neco_mcs_voters_list.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  },
+
+  async downloadPDF(): Promise<void> {
+    const token = TokenManager.getToken();
+    const response = await fetch(`${API_BASE_URL}/users/export/pdf`, {
+      headers: { ...(token && { Authorization: 'Bearer ' + token }) },
+    });
+    if (!response.ok) throw new Error('Failed to download PDF');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'neco_mcs_voters_list.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  },
 };
 
 // Offices API
@@ -309,7 +534,7 @@ export const officesAPI = {
   },
 
   async getByCode(code: string): Promise<OfficeResponse> {
-    return apiFetch<OfficeResponse>(`/offices/${code}?code=${code}`);
+    return apiFetch<OfficeResponse>(`/offices/${code}`);
   },
 
   async create(data: OfficeCreate): Promise<OfficeResponse> {
@@ -323,6 +548,13 @@ export const officesAPI = {
     return apiFetch<OfficeResponse>(`/offices/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    });
+  },
+
+  async disqualify(id: number, isDisqualified: boolean): Promise<OfficeResponse> {
+    return apiFetch<OfficeResponse>(`/offices/${id}/disqualify`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_disqualified: isDisqualified }),
     });
   },
 
@@ -342,7 +574,7 @@ export const candidatesAPI = {
   },
 
   async getByCode(code: string): Promise<CandidateResponse> {
-    return apiFetch<CandidateResponse>(`/candidates/${code}?code=${code}`);
+    return apiFetch<CandidateResponse>(`/candidates/${code}`);
   },
 
   async create(data: CandidateCreate): Promise<CandidateResponse> {
@@ -359,6 +591,13 @@ export const candidatesAPI = {
     });
   },
 
+  async disqualify(id: number, isDisqualified: boolean): Promise<CandidateResponse> {
+    return apiFetch<CandidateResponse>(`/candidates/${id}/disqualify`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_disqualified: isDisqualified }),
+    });
+  },
+
   async delete(id: number): Promise<void> {
     await apiFetch(`/candidates/${id}`, { method: 'DELETE' });
   },
@@ -370,12 +609,24 @@ export const votesAPI = {
     return apiFetch<VoteResponse[]>('/votes/');
   },
 
+  async getMyVotes(): Promise<MyVoteResponse[]> {
+    return apiFetch<MyVoteResponse[]>('/votes/my-votes');
+  },
+
+  async getMyStats(): Promise<MyStatsResponse> {
+    return apiFetch<MyStatsResponse>('/votes/my-stats');
+  },
+
+  async getLive(): Promise<{ total_votes_cast: number; recent_votes: any[] }> {
+    return apiFetch<{ total_votes_cast: number; recent_votes: any[] }>('/votes/live');
+  },
+
   async getByUserId(userId: number): Promise<VoteResponse[]> {
     return apiFetch<VoteResponse[]>(`/votes/${userId}`);
   },
 
   async getByUsername(username: string): Promise<VoteResponse[]> {
-    return apiFetch<VoteResponse[]>(`/votes/${username}`);
+    return apiFetch<VoteResponse[]>(`/votes/username/${username}`);
   },
 
   async getByCode(code: string): Promise<VoteResponse[]> {
@@ -395,6 +646,22 @@ export const resultsAPI = {
   async getByOfficeCode(officeCode: string): Promise<any> {
     return apiFetch<any>(`/results/${officeCode}`);
   },
+
+  async downloadOfficeCSV(officeCode: string): Promise<void> {
+    const token = TokenManager.getToken();
+    const response = await fetch(`${API_BASE_URL}/results/export/${officeCode}`, {
+      headers: { ...(token && { Authorization: 'Bearer ' + token }) },
+    });
+    if (!response.ok) throw new Error('Failed to download office votes CSV');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `votes_office_${officeCode}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  },
 };
 
 // System API
@@ -408,13 +675,44 @@ export const systemAPI = {
   },
 };
 
-// Voting Time API
+// Audit Logs API
+export const auditLogsAPI = {
+  async getAll(limit = 100, offset = 0, action?: string): Promise<AuditLog[]> {
+    const actionQuery = action ? `&action=${encodeURIComponent(action)}` : '';
+    return apiFetch<AuditLog[]>(`/audit-logs/?limit=${limit}&offset=${offset}${actionQuery}`);
+  },
+
+  async downloadCSV(): Promise<void> {
+    const token = TokenManager.getToken();
+    const response = await fetch(`${API_BASE_URL}/audit-logs/export/csv`, {
+      headers: { ...(token && { Authorization: 'Bearer ' + token }) },
+    });
+    if (!response.ok) throw new Error('Failed to download audit logs');
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'audit_logs.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  },
+};
+
+// Voting Time & Start/Stop API
 export const votingTimeAPI = {
+  async getStatus(): Promise<VotingTimeOut> {
+    const response = await fetch(`${API_BASE_URL}/voting-time/status`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch election status');
+    }
+    return response.json();
+  },
+
   async getVotingTime(): Promise<VotingTimeResponse | null> {
     try {
       return await apiFetch<VotingTimeResponse>('/voting-time/');
     } catch (error) {
-      // Return null if no voting time is set yet
       if (error instanceof APIError && error.status === 404) {
         return null;
       }
@@ -426,6 +724,18 @@ export const votingTimeAPI = {
     return apiFetch<VotingTimeResponse>('/voting-time/', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+
+  async startVoting(): Promise<VotingTimeOut> {
+    return apiFetch<VotingTimeOut>('/voting-time/start', {
+      method: 'POST',
+    });
+  },
+
+  async stopVoting(): Promise<VotingTimeOut> {
+    return apiFetch<VotingTimeOut>('/voting-time/stop', {
+      method: 'POST',
     });
   },
 };

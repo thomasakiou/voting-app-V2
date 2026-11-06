@@ -111,9 +111,6 @@ export const UserList: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; userId?: number; username?: string }>({
     isOpen: false,
   });
-  const [resetConfirm, setResetConfirm] = useState<{ isOpen: boolean; username?: string }>({
-    isOpen: false,
-  });
   const [editModal, setEditModal] = useState<{ isOpen: boolean; user?: UserOut }>({
     isOpen: false,
   });
@@ -156,15 +153,6 @@ export const UserList: React.FC = () => {
     }
   };
 
-  const handleResetPassword = async (username: string) => {
-    try {
-      await usersAPI.resetPassword(username);
-      setSuccess(`Password for ${username} reset to Vote@123`);
-    } catch (err: any) {
-      setError('Failed to reset password');
-    }
-  };
-
   const filteredUsers = users.filter((user) => {
     const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.full_name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -179,29 +167,36 @@ export const UserList: React.FC = () => {
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">User Management</h1>
           <p className="text-slate-500 dark:text-slate-400">Manage all users, roles, and permissions.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => window.print()}
-            className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+            onClick={() => usersAPI.downloadCSV()}
+            className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:border-emerald-500 flex items-center gap-2 text-sm shadow-sm"
           >
-            <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-            Download Voters List
+            <span className="material-symbols-outlined text-sm text-emerald-600">table_view</span>
+            Export CSV
+          </button>
+          <button
+            onClick={() => usersAPI.downloadPDF()}
+            className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:border-red-500 flex items-center gap-2 text-sm shadow-sm"
+          >
+            <span className="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
+            Export PDF
           </button>
           <Link
             to="/admin/users/bulk-actions"
-            className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
+            className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-sm"
           >
             Bulk Actions
           </Link>
           <Link
             to="/admin/users/bulk-upload"
-            className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700"
+            className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 text-sm"
           >
             Bulk Upload
           </Link>
           <Link
             to="/admin/users/create"
-            className="px-4 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="px-3.5 py-2 bg-primary text-white font-medium rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm"
           >
             <span className="material-symbols-outlined text-sm">add</span>
             Add User
@@ -243,33 +238,59 @@ export const UserList: React.FC = () => {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
                 <tr>
-                  <th className="px-6 py-3">ID</th>
-                  <th className="px-6 py-3">Username</th>
-                  <th className="px-6 py-3">Full Name</th>
-                  <th className="px-6 py-3">Role</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
+                  <th className="px-5 py-3">ID</th>
+                  <th className="px-5 py-3">MCS Username</th>
+                  <th className="px-5 py-3">Full Name</th>
+                  <th className="px-5 py-3">Contact</th>
+                  <th className="px-5 py-3">Accreditation</th>
+                  <th className="px-5 py-3">Eligibility / Status</th>
+                  <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-slate-500">{user.id}</td>
-                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{user.username}</td>
-                    <td className="px-6 py-4">{user.full_name}</td>
-                    <td className="px-6 py-4 capitalize">{user.role.replace('-', ' ')}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-4 font-mono text-slate-500 text-xs">{user.id}</td>
+                    <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">{user.username}</td>
+                    <td className="px-5 py-4 font-medium">{user.full_name}</td>
+                    <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-300">
+                      <div>{user.phone || <span className="text-slate-400 italic">No phone</span>}</div>
+                      <div className="text-slate-400">{user.email || <span className="italic">No email</span>}</div>
+                    </td>
+                    <td className="px-5 py-4">
+                      {user.role === 'voter' ? (
+                        user.is_accredited ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                            <span className="material-symbols-outlined text-[14px]">check</span>
+                            Accredited
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                            <span className="material-symbols-outlined text-[14px]">pending</span>
+                            Pending
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-xs text-slate-400 uppercase font-semibold">Admin</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
                       <button
                         onClick={() => handleToggleStatus(user.id, user.is_active ?? true)}
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.is_active
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                          }`}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                          user.is_active
+                            ? 'bg-emerald-100 text-emerald-800 hover:bg-red-100 hover:text-red-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700'
+                            : 'bg-red-100 text-red-800 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-red-900/30 dark:text-red-400 border border-red-300 dark:border-red-700'
+                        }`}
+                        title={user.is_active ? 'Click to Disqualify / Disable voter' : 'Click to Qualify / Enable voter'}
                       >
-                        {user.is_active ? 'Active' : 'Inactive'}
+                        <span className="material-symbols-outlined text-[14px]">
+                          {user.is_active ? 'check_circle' : 'block'}
+                        </span>
+                        {user.is_active ? 'Active (Eligible)' : 'Disqualified'}
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-1">
                         <button
                           onClick={() => setEditModal({ isOpen: true, user })}
@@ -277,13 +298,6 @@ export const UserList: React.FC = () => {
                           title="Edit user"
                         >
                           <span className="material-symbols-outlined text-sm">edit</span>
-                        </button>
-                        <button
-                          onClick={() => setResetConfirm({ isOpen: true, username: user.username })}
-                          className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded text-amber-600 dark:text-amber-400"
-                          title="Reset Password"
-                        >
-                          <span className="material-symbols-outlined text-sm">lock_reset</span>
                         </button>
                         <button
                           onClick={() => setDeleteConfirm({ isOpen: true, userId: user.id, username: user.username })}
@@ -343,15 +357,6 @@ export const UserList: React.FC = () => {
         isDestructive
       />
 
-      <ConfirmDialog
-        isOpen={resetConfirm.isOpen}
-        onClose={() => setResetConfirm({ isOpen: false })}
-        onConfirm={() => resetConfirm.username && handleResetPassword(resetConfirm.username)}
-        title="Reset Password"
-        message={`Are you sure you want to reset the password for "${resetConfirm.username}"? It will be set to 'Vote@123'.`}
-        confirmText="Reset Password"
-      />
-
       {editModal.user && (
         <EditUserModal
           isOpen={editModal.isOpen}
@@ -380,13 +385,11 @@ export const CreateUser: React.FC = () => {
 
     const form = e.target as HTMLFormElement;
     const username = (form.elements.namedItem('username') as HTMLInputElement).value.trim();
-    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
-
     try {
       if (role === 'admin') {
-        await usersAPI.createAdmin({ username, password });
+        await usersAPI.createAdmin({ username });
       } else {
-        await usersAPI.createVoter({ username, password });
+        await usersAPI.createVoter({ username });
       }
       setSuccess('User created successfully!');
       form.reset();
@@ -417,16 +420,6 @@ export const CreateUser: React.FC = () => {
               required
               className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
               placeholder="e.g. jane.doe"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Password</label>
-            <input
-              type="password"
-              name="password"
-              required
-              className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
-              placeholder="Enter password"
             />
           </div>
           <div>
@@ -539,7 +532,7 @@ export const BulkUpload: React.FC = () => {
         <h3 className="font-bold mb-4">Instructions</h3>
         <ul className="list-disc list-inside space-y-2 text-sm text-slate-600 dark:text-slate-400">
           <li>File must be in CSV format.</li>
-          <li>Required columns: username, fullname, phone, role, password</li>
+          <li>Required columns: username, full_name, phone, email, role, password</li>
           <li>Max file size is 10MB.</li>
         </ul>
       </div>

@@ -10,7 +10,20 @@ export const ElectionResults: React.FC = () => {
     const [selectedOffice, setSelectedOffice] = useState<string>('');
     const [results, setResults] = useState<any>(null);
     const [loading, setLoading] = useState(false);
+    const [downloadingOffice, setDownloadingOffice] = useState(false);
     const [error, setError] = useState('');
+
+    const handleDownloadOfficeVoters = async () => {
+        if (!selectedOffice) return;
+        setDownloadingOffice(true);
+        try {
+            await resultsAPI.downloadOfficeCSV(selectedOffice);
+        } catch (err) {
+            setError('Failed to download voters for this office');
+        } finally {
+            setDownloadingOffice(false);
+        }
+    };
 
     useEffect(() => {
         loadOffices();
@@ -84,19 +97,30 @@ export const ElectionResults: React.FC = () => {
             {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
 
             <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-slate-200 dark:border-slate-800 p-4 md:p-6 no-print">
-                <div className="mb-4 md:mb-6">
-                    <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Select Office</label>
-                    <select
-                        value={selectedOffice}
-                        onChange={(e) => handleOfficeChange(e.target.value)}
-                        className="input-field max-w-full md:max-w-md dark:bg-slate-900"
+                <div className="mb-4 md:mb-6 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
+                    <div className="flex-1 max-w-full md:max-w-md">
+                        <label className="block text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">Select Office</label>
+                        <select
+                            value={selectedOffice}
+                            onChange={(e) => handleOfficeChange(e.target.value)}
+                            className="input-field w-full dark:bg-slate-900"
+                        >
+                            {offices.map((office) => (
+                                <option key={office.id} value={office.office_code} className="dark:bg-slate-900 dark:text-white">
+                                    {office.description}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <button
+                        onClick={handleDownloadOfficeVoters}
+                        disabled={downloadingOffice || !selectedOffice}
+                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold rounded-xl flex items-center gap-2 text-sm shadow-md shadow-emerald-500/20 transition-all"
                     >
-                        {offices.map((office) => (
-                            <option key={office.id} value={office.office_code} className="dark:bg-slate-900 dark:text-white">
-                                {office.description}
-                            </option>
-                        ))}
-                    </select>
+                        <span className="material-symbols-outlined text-sm">download</span>
+                        {downloadingOffice ? 'Downloading...' : 'Download Voters for this Office (CSV)'}
+                    </button>
                 </div>
 
                 {loading ? (

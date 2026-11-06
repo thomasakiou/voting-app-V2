@@ -72,12 +72,12 @@ const UserMenu = () => {
             </div>
 
             <Link
-              to={user?.role === 'voter' ? '/voter/dashboard' : '/admin/change-password'}
+              to={user?.role === 'voter' ? '/voter/dashboard' : '/admin/dashboard'}
               className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
               onClick={() => setIsOpen(false)}
             >
               <span className="material-symbols-outlined text-[18px]">settings</span>
-              Settings
+              Dashboard
             </Link>
 
             <button
@@ -264,11 +264,8 @@ export const VoterLayout: React.FC = () => {
               <Link to="/voter/ballot" className="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 Ballot
               </Link>
-              <Link to="/voter/analytics" className="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                Analytics
-              </Link>
               <Link to="/voter/history" className="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                History
+                My Statistics & Receipts
               </Link>
             </nav>
 
@@ -305,18 +302,11 @@ export const VoterLayout: React.FC = () => {
                 Ballot
               </Link>
               <Link
-                to="/voter/analytics"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-3 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                Analytics
-              </Link>
-              <Link
                 to="/voter/history"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block px-4 py-3 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                History
+                My Statistics & Receipts
               </Link>
             </nav>
           )}

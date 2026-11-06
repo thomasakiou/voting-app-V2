@@ -41,7 +41,7 @@ export const PrivacyPolicy: React.FC = () => {
                             </p>
                             <ul className="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-300 ml-4">
                                 <li><strong>Personal Information:</strong> Username, full name, phone number</li>
-                                <li><strong>Authentication Data:</strong> Password (encrypted), login timestamps</li>
+                                <li><strong>Authentication Data:</strong> Login timestamps and OTP session records</li>
                                 <li><strong>Voting Records:</strong> Your vote choices (anonymized and encrypted)</li>
                                 <li><strong>Technical Data:</strong> IP address, browser type, device information</li>
                             </ul>
@@ -81,7 +81,6 @@ export const PrivacyPolicy: React.FC = () => {
                             </p>
                             <ul className="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-300 ml-4 mt-3">
                                 <li>End-to-end encryption for all data transmission</li>
-                                <li>Secure password hashing using bcrypt</li>
                                 <li>Regular security audits and penetration testing</li>
                                 <li>Access controls and authentication mechanisms</li>
                                 <li>Encrypted database storage</li>
