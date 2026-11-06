@@ -515,7 +515,13 @@ export const AdminDashboard: React.FC = () => {
             <span className="material-symbols-outlined text-indigo-600">analytics</span>
             Voters Register & Turnout Analysis
           </h3>
-          <span className="text-xs text-slate-500">Live Voter Demographics</span>
+          <Link
+            to="/admin/analysis"
+            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 transition-all hover:scale-105"
+          >
+            Open Visual Analysis Charts
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

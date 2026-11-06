@@ -7,6 +7,7 @@ import { Login, AdminLogin, VerifyOTP } from './pages/Auth';
 import { Accreditation } from './pages/Accreditation';
 import { PrivacyPolicy, TermsOfService } from './pages/Legal';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminAnalysis } from './pages/AdminAnalysis';
 import { UserList, CreateUser, BulkUpload, BulkActions } from './pages/AdminUsers';
 import { OfficeManagement, CreateOffice } from './pages/AdminOffices';
 import { CandidateManagement, CreateCandidate } from './pages/AdminCandidates';
@@ -45,6 +46,7 @@ const App: React.FC = () => {
           >
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="analysis" element={<AdminAnalysis />} />
             <Route path="users" element={<UserList />} />
             <Route path="users/create" element={<CreateUser />} />
             <Route path="users/bulk-upload" element={<BulkUpload />} />

@@ -170,6 +170,7 @@ export const AdminLayout: React.FC = () => {
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto py-4">
           <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Overview</p>
           <NavItem to="/admin/dashboard" icon="dashboard" label="Dashboard" onClick={() => setSidebarOpen(false)} />
+          <NavItem to="/admin/analysis" icon="insights" label="Voter Analysis" onClick={() => setSidebarOpen(false)} />
           <NavItem to="/admin/results" icon="bar_chart" label="Election Results" onClick={() => setSidebarOpen(false)} />
 
           <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-8">Management</p>
