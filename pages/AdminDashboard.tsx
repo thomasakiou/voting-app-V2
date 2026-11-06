@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   usersAPI,
@@ -8,6 +9,195 @@ import {
   UserStatsOut,
 } from '../api';
 import { LoadingSpinner, SuccessAlert, ErrorAlert } from '../components/UIComponents';
+
+// ============================================================
+// CUSTOM ELECTION CONFIRMATION MODAL
+// ============================================================
+interface VotingConfirmModalProps {
+  isOpen: boolean;
+  action: 'start' | 'stop';
+  loading: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}
+
+const VotingConfirmModal: React.FC<VotingConfirmModalProps> = ({
+  isOpen,
+  action,
+  loading,
+  onConfirm,
+  onClose,
+}) => {
+  if (!isOpen) return null;
+
+  const isStart = action === 'start';
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+      <div
+        className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header Ribbon */}
+        <div className="p-6 pb-2 flex items-start gap-4">
+          <div className={`size-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
+            isStart
+              ? 'bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 shadow-emerald-500/20'
+              : 'bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 shadow-red-500/20'
+          }`}>
+            <span className="material-symbols-outlined text-3xl">
+              {isStart ? 'play_arrow' : 'stop'}
+            </span>
+          </div>
+
+          <div className="flex-1">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 ${
+              isStart
+                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+            }`}>
+              <span className={`size-1.5 rounded-full ${isStart ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+              NECO MCS Election Control
+            </span>
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">
+              {isStart ? 'Start Election Voting?' : 'Stop Voting Immediately?'}
+            </h3>
+          </div>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-6 space-y-4">
+          <p className="text-slate-600 dark:text-slate-300 text-base leading-relaxed">
+            {isStart
+              ? 'You are about to activate the NECO MCS electronic election session. All accredited voters will immediately be able to access their ballots and cast votes in real-time.'
+              : 'Are you sure you want to STOP the election now? Voting will terminate immediately. No further ballots can be submitted, and voter dashboard access will be locked.'}
+          </p>
+
+          <div className={`p-4 rounded-2xl border text-sm leading-relaxed ${
+            isStart
+              ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300'
+              : 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300'
+          }`}>
+            <div className="flex items-center gap-2 font-bold mb-1">
+              <span className="material-symbols-outlined text-base">
+                {isStart ? 'verified' : 'warning'}
+              </span>
+              {isStart ? 'Accredited Voters Ready' : 'Immediate Effect Warning'}
+            </div>
+            <p className="text-xs">
+              {isStart
+                ? 'Only voters with is_active = True and who successfully accredited with their MCS number will be allowed to vote.'
+                : 'Any voter currently in the middle of viewing the ballot will be blocked from submitting further votes.'}
+            </p>
+          </div>
+        </div>
+
+        {/* Modal Actions */}
+        <div className="p-6 pt-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={onConfirm}
+            className={`px-6 py-2.5 rounded-xl text-white font-bold text-sm flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition-all ${
+              isStart
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/30'
+                : 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-red-500/30'
+            }`}
+          >
+            {loading ? (
+              <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-lg">
+                  {isStart ? 'play_arrow' : 'stop'}
+                </span>
+                {isStart ? 'Yes, Start Voting Now' : 'Yes, Stop Voting Immediately'}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return createPortal(modalContent, document.body);
+};
+
+// ============================================================
+// CUSTOM ELECTION NOTIFICATION ALERT MODAL
+// ============================================================
+interface VotingNotificationAlertProps {
+  isOpen: boolean;
+  type: 'success' | 'danger';
+  title: string;
+  message: string;
+  onClose: () => void;
+}
+
+const VotingNotificationAlert: React.FC<VotingNotificationAlertProps> = ({
+  isOpen,
+  type,
+  title,
+  message,
+  onClose,
+}) => {
+  if (!isOpen) return null;
+
+  const isSuccess = type === 'success';
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+      <div
+        className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-in text-center p-8 space-y-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={`size-20 rounded-3xl mx-auto flex items-center justify-center shadow-xl ${
+          isSuccess
+            ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-emerald-500/30'
+            : 'bg-gradient-to-tr from-red-600 to-rose-500 text-white shadow-red-500/30'
+        }`}>
+          <span className="material-symbols-outlined text-5xl">
+            {isSuccess ? 'how_to_vote' : 'lock'}
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300">
+            <span className="material-symbols-outlined text-sm">notifications_active</span>
+            NECO MCS Election Notification
+          </div>
+          <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+            {title}
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-sm mx-auto">
+            {message}
+          </p>
+        </div>
+
+        <button
+          onClick={onClose}
+          className={`w-full py-3.5 rounded-2xl font-bold text-base text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] ${
+            isSuccess
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/30 hover:shadow-emerald-500/50'
+              : 'bg-gradient-to-r from-red-600 to-rose-600 shadow-red-500/30 hover:shadow-red-500/50'
+          }`}
+        >
+          Acknowledge & Continue
+        </button>
+      </div>
+    </div>
+  );
+
+  return createPortal(modalContent, document.body);
+};
 
 export const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<UserStatsOut | null>(null);
@@ -21,6 +211,23 @@ export const AdminDashboard: React.FC = () => {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+
+  // Custom modal states
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; action: 'start' | 'stop' }>({
+    isOpen: false,
+    action: 'start',
+  });
+  const [customAlert, setCustomAlert] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'danger';
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     loadAllData();
@@ -62,41 +269,72 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Start Voting Button
-  const handleStartVoting = async () => {
-    if (!window.confirm('Are you sure you want to START the election? Voters will immediately be able to cast their ballots.')) {
-      return;
-    }
+  // Click triggers custom confirmation modal
+  const openStartConfirm = () => {
+    setConfirmModal({ isOpen: true, action: 'start' });
+  };
+
+  const openStopConfirm = () => {
+    setConfirmModal({ isOpen: true, action: 'stop' });
+  };
+
+  // Perform Start Voting
+  const executeStartVoting = async () => {
     setTogglingVoting(true);
     setError('');
-    setSuccess('');
     try {
       const res = await votingTimeAPI.startVoting();
       setVotingStatus(res);
+      setConfirmModal({ isOpen: false, action: 'start' });
+      setCustomAlert({
+        isOpen: true,
+        type: 'success',
+        title: 'Voting Started Successfully!',
+        message: 'The NECO MCS election session is now officially LIVE. Accredited voters can now authenticate with their MCS number and cast their ballots.',
+      });
       setSuccess('Voting has started! Voters can now log in and vote.');
       loadAllData();
     } catch (err: any) {
-      setError(err?.data?.detail || 'Failed to start voting.');
+      const msg = err?.data?.detail || 'Failed to start voting.';
+      setError(msg);
+      setConfirmModal({ isOpen: false, action: 'start' });
+      setCustomAlert({
+        isOpen: true,
+        type: 'danger',
+        title: 'Unable to Start Voting',
+        message: msg,
+      });
     } finally {
       setTogglingVoting(false);
     }
   };
 
-  // Stop Voting Button
-  const handleStopVoting = async () => {
-    if (!window.confirm('Are you sure you want to STOP voting immediately? No further ballots can be submitted.')) {
-      return;
-    }
+  // Perform Stop Voting
+  const executeStopVoting = async () => {
     setTogglingVoting(true);
     setError('');
-    setSuccess('');
     try {
       const res = await votingTimeAPI.stopVoting();
       setVotingStatus(res);
+      setConfirmModal({ isOpen: false, action: 'stop' });
+      setCustomAlert({
+        isOpen: true,
+        type: 'danger',
+        title: 'Voting Stopped Immediately!',
+        message: 'The NECO MCS election session has been officially CLOSED. All voter ballots and dashboard access are now permanently locked.',
+      });
       setSuccess('Voting has been stopped immediately. No more votes can be cast.');
       loadAllData();
     } catch (err: any) {
-      setError(err?.data?.detail || 'Failed to stop voting.');
+      const msg = err?.data?.detail || 'Failed to stop voting.';
+      setError(msg);
+      setConfirmModal({ isOpen: false, action: 'stop' });
+      setCustomAlert({
+        isOpen: true,
+        type: 'danger',
+        title: 'Unable to Stop Voting',
+        message: msg,
+      });
     } finally {
       setTogglingVoting(false);
     }
@@ -136,6 +374,24 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* CUSTOM CONFIRMATION MODAL (Replaces default window.confirm) */}
+      <VotingConfirmModal
+        isOpen={confirmModal.isOpen}
+        action={confirmModal.action}
+        loading={togglingVoting}
+        onConfirm={confirmModal.action === 'start' ? executeStartVoting : executeStopVoting}
+        onClose={() => setConfirmModal({ isOpen: false, action: confirmModal.action })}
+      />
+
+      {/* CUSTOM NOTIFICATION ALERT (Branded popup for action results) */}
+      <VotingNotificationAlert
+        isOpen={customAlert.isOpen}
+        type={customAlert.type}
+        title={customAlert.title}
+        message={customAlert.message}
+        onClose={() => setCustomAlert({ ...customAlert, isOpen: false })}
+      />
+
       {/* Top Banner & Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -216,7 +472,7 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
             {isVotingActive ? (
               <button
-                onClick={handleStopVoting}
+                onClick={openStopConfirm}
                 disabled={togglingVoting}
                 className="px-8 py-4 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-lg shadow-xl shadow-red-900/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-red-400/50"
               >
@@ -231,7 +487,7 @@ export const AdminDashboard: React.FC = () => {
               </button>
             ) : (
               <button
-                onClick={handleStartVoting}
+                onClick={openStartConfirm}
                 disabled={togglingVoting}
                 className="px-8 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-lg shadow-xl shadow-emerald-900/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-emerald-300/50"
               >
