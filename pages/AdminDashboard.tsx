@@ -251,6 +251,9 @@ export const AdminDashboard: React.FC = () => {
       setLiveVotes(liveData);
     } catch (err: any) {
       console.error('Failed to load dashboard data:', err);
+      if (err?.status === 401) {
+        setError('Your administrator session has expired. Please log out and sign in again to continue monitoring.');
+      }
     } finally {
       setLoading(false);
     }
