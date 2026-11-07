@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { officesAPI, resultsAPI, OfficeResponse } from '../api';
-import { LoadingSpinner, ErrorAlert } from '../components/UIComponents';
+import { LoadingSpinner, ErrorAlert, TablePagination, usePagination } from '../components/UIComponents';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -77,6 +77,20 @@ export const ElectionResults: React.FC = () => {
             fill: COLORS[index % COLORS.length],
         };
     });
+
+    const {
+        currentPage,
+        setCurrentPage,
+        pageSize,
+        setPageSize,
+        totalPages,
+        totalItems,
+        paginatedItems: paginatedResults,
+    } = usePagination(sortedResults, 10);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedOffice, setCurrentPage]);
 
     return (
         <div className="space-y-6">
@@ -208,11 +222,12 @@ export const ElectionResults: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-900">
-                                        {sortedResults.map((result: any, index: number) => {
+                                        {paginatedResults.map((result: any, index: number) => {
+                                            const rank = (currentPage - 1) * pageSize + index + 1;
                                             const percentage = totalVotes > 0 ? ((result.vote_count / totalVotes) * 100).toFixed(1) : '0.0';
                                             return (
                                                 <tr key={index} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                                    <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300">{index + 1}</td>
+                                                    <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300">{rank}</td>
                                                     <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
                                                         {result.candidate_name}
                                                     </td>
@@ -233,6 +248,17 @@ export const ElectionResults: React.FC = () => {
                                         })}
                                     </tbody>
                                 </table>
+
+                                <TablePagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    totalItems={totalItems}
+                                    pageSize={pageSize}
+                                    onPageChange={setCurrentPage}
+                                    onPageSizeChange={setPageSize}
+                                    pageSizeOptions={[5, 10, 25, 50]}
+                                    itemName="candidates"
+                                />
                             </div>
                         </div>
                     </div>

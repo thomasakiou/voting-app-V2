@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { usersAPI, UserOut, UserUpdate } from '../api';
-import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal } from '../components/UIComponents';
+import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
 
 const EditUserModal: React.FC<{
   isOpen: boolean;
@@ -160,6 +160,20 @@ export const UserList: React.FC = () => {
     return matchesSearch && matchesRole;
   });
 
+  const {
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+    totalPages,
+    totalItems,
+    paginatedItems: paginatedUsers,
+  } = usePagination(filteredUsers, 10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter, setCurrentPage]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 no-print">
@@ -213,7 +227,7 @@ export const UserList: React.FC = () => {
             <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">search</span>
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder="Search users by MCS username or full name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary outline-none"
@@ -222,7 +236,7 @@ export const UserList: React.FC = () => {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+            className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
           >
             <option value="all">All Roles</option>
             <option value="super-admin">Super Admin</option>
@@ -233,86 +247,103 @@ export const UserList: React.FC = () => {
 
         {loading ? (
           <LoadingSpinner />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
-                <tr>
-                  <th className="px-5 py-3">ID</th>
-                  <th className="px-5 py-3">MCS Username</th>
-                  <th className="px-5 py-3">Full Name</th>
-                  <th className="px-5 py-3">Contact</th>
-                  <th className="px-5 py-3">Accreditation</th>
-                  <th className="px-5 py-3">Eligibility / Status</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-5 py-4 font-mono text-slate-500 text-xs">{user.id}</td>
-                    <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">{user.username}</td>
-                    <td className="px-5 py-4 font-medium">{user.full_name}</td>
-                    <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-300">
-                      <div>{user.phone || <span className="text-slate-400 italic">No phone</span>}</div>
-                      <div className="text-slate-400">{user.email || <span className="italic">No email</span>}</div>
-                    </td>
-                    <td className="px-5 py-4">
-                      {user.role === 'voter' ? (
-                        user.is_accredited ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                            <span className="material-symbols-outlined text-[14px]">check</span>
-                            Accredited
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                            <span className="material-symbols-outlined text-[14px]">pending</span>
-                            Pending
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-xs text-slate-400 uppercase font-semibold">Admin</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      <button
-                        onClick={() => handleToggleStatus(user.id, user.is_active ?? true)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                          user.is_active
-                            ? 'bg-emerald-100 text-emerald-800 hover:bg-red-100 hover:text-red-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700'
-                            : 'bg-red-100 text-red-800 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-red-900/30 dark:text-red-400 border border-red-300 dark:border-red-700'
-                        }`}
-                        title={user.is_active ? 'Click to Disqualify / Disable voter' : 'Click to Qualify / Enable voter'}
-                      >
-                        <span className="material-symbols-outlined text-[14px]">
-                          {user.is_active ? 'check_circle' : 'block'}
-                        </span>
-                        {user.is_active ? 'Active (Eligible)' : 'Disqualified'}
-                      </button>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex justify-end gap-1">
-                        <button
-                          onClick={() => setEditModal({ isOpen: true, user })}
-                          className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-blue-600 dark:text-blue-400"
-                          title="Edit user"
-                        >
-                          <span className="material-symbols-outlined text-sm">edit</span>
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm({ isOpen: true, userId: user.id, username: user.username })}
-                          className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-500"
-                          title="Delete user"
-                        >
-                          <span className="material-symbols-outlined text-sm">delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        ) : filteredUsers.length === 0 ? (
+          <div className="p-8 text-center text-slate-400">
+            No users found matching your search criteria.
           </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
+                  <tr>
+                    <th className="px-5 py-3">ID</th>
+                    <th className="px-5 py-3">MCS Username</th>
+                    <th className="px-5 py-3">Full Name</th>
+                    <th className="px-5 py-3">Contact</th>
+                    <th className="px-5 py-3">Accreditation</th>
+                    <th className="px-5 py-3">Eligibility / Status</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {paginatedUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="px-5 py-4 font-mono text-slate-500 text-xs">{user.id}</td>
+                      <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">{user.username}</td>
+                      <td className="px-5 py-4 font-medium">{user.full_name}</td>
+                      <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-300">
+                        <div>{user.phone || <span className="text-slate-400 italic">No phone</span>}</div>
+                        <div className="text-slate-400">{user.email || <span className="italic">No email</span>}</div>
+                      </td>
+                      <td className="px-5 py-4">
+                        {user.role === 'voter' ? (
+                          user.is_accredited ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                              <span className="material-symbols-outlined text-[14px]">check</span>
+                              Accredited
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                              <span className="material-symbols-outlined text-[14px]">pending</span>
+                              Pending
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-xs text-slate-400 uppercase font-semibold">Admin</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <button
+                          onClick={() => handleToggleStatus(user.id, user.is_active ?? true)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                            user.is_active
+                              ? 'bg-emerald-100 text-emerald-800 hover:bg-red-100 hover:text-red-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700'
+                              : 'bg-red-100 text-red-800 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-red-900/30 dark:text-red-400 border border-red-300 dark:border-red-700'
+                          }`}
+                          title={user.is_active ? 'Click to Disqualify / Disable voter' : 'Click to Qualify / Enable voter'}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">
+                            {user.is_active ? 'check_circle' : 'block'}
+                          </span>
+                          {user.is_active ? 'Active (Eligible)' : 'Disqualified'}
+                        </button>
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => setEditModal({ isOpen: true, user })}
+                            className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-blue-600 dark:text-blue-400"
+                            title="Edit user"
+                          >
+                            <span className="material-symbols-outlined text-sm">edit</span>
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm({ isOpen: true, userId: user.id, username: user.username })}
+                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-500"
+                            title="Delete user"
+                          >
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[10, 25, 50, 100, 250]}
+              itemName="users"
+            />
+          </>
         )}
       </div>
 
@@ -419,7 +450,7 @@ export const CreateUser: React.FC = () => {
               name="username"
               required
               className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
-              placeholder="e.g. jane.doe"
+              placeholder="e.g. 2668"
             />
           </div>
           <div>

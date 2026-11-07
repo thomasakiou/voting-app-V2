@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
 // Loading Spinner Component
@@ -152,3 +152,173 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
     return createPortal(dialogContent, document.body);
 };
+
+// ============================================================
+// TABLE PAGINATION WITH NUMBER OF ROWS FILTER
+// ============================================================
+export interface TablePaginationProps {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    pageSize: number;
+    onPageChange: (page: number) => void;
+    onPageSizeChange: (size: number) => void;
+    pageSizeOptions?: number[];
+    itemName?: string;
+    className?: string;
+}
+
+export const TablePagination: React.FC<TablePaginationProps> = ({
+    currentPage,
+    totalPages,
+    totalItems,
+    pageSize,
+    onPageChange,
+    onPageSizeChange,
+    pageSizeOptions = [10, 25, 50, 100],
+    itemName = 'entries',
+    className = '',
+}) => {
+    if (totalItems === 0) return null;
+
+    const startRow = Math.min((currentPage - 1) * pageSize + 1, totalItems);
+    const endRow = Math.min(currentPage * pageSize, totalItems);
+
+    const getPageNumbers = () => {
+        if (totalPages <= 7) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
+        }
+        if (currentPage <= 4) {
+            return [1, 2, 3, 4, 5, '...', totalPages];
+        }
+        if (currentPage >= totalPages - 3) {
+            return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        }
+        return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+    };
+
+    const pages = getPageNumbers();
+
+    return (
+        <div className={`p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-[#1a1d29] ${className}`}>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
+                <div className="flex items-center gap-2">
+                    <span>Rows per page:</span>
+                    <select
+                        value={pageSize}
+                        onChange={(e) => {
+                            const newSize = Number(e.target.value);
+                            onPageSizeChange(newSize);
+                            onPageChange(1);
+                        }}
+                        className="px-2.5 py-1 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
+                    >
+                        {pageSizeOptions.map((opt) => (
+                            <option key={opt} value={opt}>
+                                {opt}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <span className="text-slate-300 dark:text-slate-600">|</span>
+                <span>
+                    Showing <span className="font-semibold text-slate-900 dark:text-white">{startRow}</span> to{' '}
+                    <span className="font-semibold text-slate-900 dark:text-white">{endRow}</span> of{' '}
+                    <span className="font-semibold text-slate-900 dark:text-white">{totalItems}</span> {itemName}
+                </span>
+            </div>
+
+            <div className="flex items-center gap-1">
+                <button
+                    type="button"
+                    onClick={() => onPageChange(1)}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="First page"
+                >
+                    <span className="material-symbols-outlined text-sm">first_page</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Previous page"
+                >
+                    <span className="material-symbols-outlined text-sm">chevron_left</span>
+                </button>
+
+                <div className="flex items-center gap-1 mx-1">
+                    {pages.map((p, idx) =>
+                        p === '...' ? (
+                            <span key={`dots-${idx}`} className="px-2 text-slate-400 text-xs select-none">
+                                ...
+                            </span>
+                        ) : (
+                            <button
+                                key={`page-${p}`}
+                                type="button"
+                                onClick={() => onPageChange(p as number)}
+                                className={`min-w-8 h-8 px-2 text-xs font-semibold rounded-lg transition-colors ${
+                                    currentPage === p
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                }`}
+                            >
+                                {p}
+                            </button>
+                        )
+                    )}
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Next page"
+                >
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => onPageChange(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="Last page"
+                >
+                    <span className="material-symbols-outlined text-sm">last_page</span>
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export function usePagination<T>(items: T[], initialPageSize: number = 10) {
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(initialPageSize);
+
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(1);
+        }
+    }, [totalPages, currentPage]);
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, items.length);
+    const paginatedItems = useMemo(() => items.slice(startIndex, endIndex), [items, startIndex, endIndex]);
+
+    return {
+        currentPage,
+        setCurrentPage,
+        pageSize,
+        setPageSize,
+        totalPages,
+        totalItems: items.length,
+        startIndex,
+        endIndex,
+        paginatedItems,
+    };
+}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { systemAPI, auditLogsAPI, AuditLog } from '../api';
-import { LoadingSpinner, ErrorAlert, SuccessAlert } from '../components/UIComponents';
+import { LoadingSpinner, ErrorAlert, SuccessAlert, TablePagination, usePagination } from '../components/UIComponents';
 
 export const SystemStatus: React.FC = () => {
     const [status, setStatus] = useState<any>(null);
@@ -78,16 +78,30 @@ export const SystemConfig: React.FC = () => {
     const [success, setSuccess] = useState('');
     const [filterAction, setFilterAction] = useState('');
 
+    const {
+        currentPage,
+        setCurrentPage,
+        pageSize,
+        setPageSize,
+        totalPages,
+        totalItems,
+        paginatedItems: paginatedAuditLogs,
+    } = usePagination(auditLogs, 10);
+
     useEffect(() => {
         loadData();
     }, [filterAction]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filterAction, setCurrentPage]);
 
     const loadData = async () => {
         try {
             setLoading(true);
             const [configData, logsData] = await Promise.all([
                 systemAPI.getConfig().catch(() => ({})),
-                auditLogsAPI.getAll(100, 0, filterAction || undefined).catch(() => []),
+                auditLogsAPI.getAll(500, 0, filterAction || undefined).catch(() => []),
             ]);
             setConfig(configData);
             setAuditLogs(logsData);
@@ -179,45 +193,58 @@ export const SystemConfig: React.FC = () => {
                         No audit logs recorded for the selected filter.
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold text-xs uppercase">
-                                <tr>
-                                    <th className="px-5 py-3">Timestamp</th>
-                                    <th className="px-5 py-3">Admin</th>
-                                    <th className="px-5 py-3">Action</th>
-                                    <th className="px-5 py-3">Target</th>
-                                    <th className="px-5 py-3">Details</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {auditLogs.map((log) => (
-                                    <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                                        <td className="px-5 py-3 font-mono text-xs text-slate-500 whitespace-nowrap">
-                                            {new Date(log.created_at).toLocaleString()}
-                                        </td>
-                                        <td className="px-5 py-3 font-semibold text-slate-900 dark:text-white">
-                                            {log.admin_username}
-                                        </td>
-                                        <td className="px-5 py-3">
-                                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                                                {log.action}
-                                            </span>
-                                        </td>
-                                        <td className="px-5 py-3 text-xs font-medium text-slate-600 dark:text-slate-300">
-                                            {log.target_type && (
-                                                <span className="text-slate-400">[{log.target_type}] </span>
-                                            )}
-                                            {log.target_id || '-'}
-                                        </td>
-                                        <td className="px-5 py-3 text-xs text-slate-600 dark:text-slate-300 max-w-xs truncate" title={log.details || ''}>
-                                            {log.details || '-'}
-                                        </td>
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-semibold text-xs uppercase">
+                                    <tr>
+                                        <th className="px-5 py-3">Timestamp</th>
+                                        <th className="px-5 py-3">Admin</th>
+                                        <th className="px-5 py-3">Action</th>
+                                        <th className="px-5 py-3">Target</th>
+                                        <th className="px-5 py-3">Details</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {paginatedAuditLogs.map((log) => (
+                                        <tr key={log.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                                            <td className="px-5 py-3 font-mono text-xs text-slate-500 whitespace-nowrap">
+                                                {new Date(log.created_at).toLocaleString()}
+                                            </td>
+                                            <td className="px-5 py-3 font-semibold text-slate-900 dark:text-white">
+                                                {log.admin_username}
+                                            </td>
+                                            <td className="px-5 py-3">
+                                                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                                                    {log.action}
+                                                </span>
+                                            </td>
+                                            <td className="px-5 py-3 text-xs font-medium text-slate-600 dark:text-slate-300">
+                                                {log.target_type && (
+                                                    <span className="text-slate-400">[{log.target_type}] </span>
+                                                )}
+                                                {log.target_id || '-'}
+                                            </td>
+                                            <td className="px-5 py-3 text-xs text-slate-600 dark:text-slate-300 max-w-xs truncate" title={log.details || ''}>
+                                                {log.details || '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <TablePagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={totalItems}
+                            pageSize={pageSize}
+                            onPageChange={setCurrentPage}
+                            onPageSizeChange={setPageSize}
+                            pageSizeOptions={[10, 25, 50, 100]}
+                            itemName="audit records"
+                        />
+                    </>
                 )}
             </div>
 

@@ -12,7 +12,7 @@ import {
     MyVoteResponse,
     MyStatsResponse,
 } from '../api';
-import { LoadingSpinner, ErrorAlert } from '../components/UIComponents';
+import { LoadingSpinner, ErrorAlert, TablePagination, usePagination } from '../components/UIComponents';
 
 export const VoterDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -598,25 +598,25 @@ export const VoteSuccess: React.FC = () => {
             <div className="space-y-1">
                 <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Vote Successfully Cast!</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Your digital ballot was encrypted and recorded into the NECO MCS election ledger.
+                    Your ballot has been cryptographically signed and permanently counted.
                 </p>
             </div>
 
             {receipt && (
-                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-left space-y-2.5 text-sm shadow-sm">
-                    <div className="flex justify-between border-b border-slate-200/70 dark:border-slate-700/70 pb-2">
-                        <span className="text-slate-400">Contested Office</span>
+                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-left space-y-3">
+                    <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700/60 pb-2">
+                        <span className="text-slate-500">Contest</span>
                         <span className="font-bold text-slate-900 dark:text-white">{receipt.office_name}</span>
                     </div>
-                    <div className="flex justify-between border-b border-slate-200/70 dark:border-slate-700/70 pb-2">
-                        <span className="text-slate-400">Candidate Voted</span>
-                        <span className="font-bold text-indigo-600 dark:text-indigo-400">{receipt.candidate_name}</span>
+                    <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700/60 pb-2">
+                        <span className="text-slate-500">Candidate Selected</span>
+                        <span className="font-semibold text-indigo-600 dark:text-indigo-400">{receipt.candidate_name}</span>
                     </div>
-                    <div className="flex justify-between items-center pt-1">
-                        <span className="text-slate-400">Receipt Code</span>
-                        <span className="font-mono font-bold text-xs px-2.5 py-1 rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
-                            {receipt.receipt_hash || 'MCS-VERIFIED'}
-                        </span>
+                    <div className="space-y-1 pt-1">
+                        <span className="text-xs text-slate-400 font-mono block">Cryptographic Verification Hash:</span>
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 font-mono text-xs text-slate-700 dark:text-slate-300 break-all select-all border border-slate-200 dark:border-slate-800 font-bold">
+                            {receipt.receipt_hash}
+                        </div>
                     </div>
                 </div>
             )}
@@ -640,6 +640,16 @@ export const VotingHistory: React.FC = () => {
     const { user } = useAuth();
     const [votes, setVotes] = useState<MyVoteResponse[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const {
+        currentPage,
+        setCurrentPage,
+        pageSize,
+        setPageSize,
+        totalPages,
+        totalItems,
+        paginatedItems: paginatedVotes,
+    } = usePagination(votes, 10);
 
     useEffect(() => {
         loadVotes();
@@ -680,32 +690,45 @@ export const VotingHistory: React.FC = () => {
                 </div>
             ) : (
                 <div className="card overflow-hidden">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold text-xs uppercase">
-                            <tr>
-                                <th className="px-6 py-3.5">Office</th>
-                                <th className="px-6 py-3.5">Candidate Voted</th>
-                                <th className="px-6 py-3.5">Receipt Hash</th>
-                                <th className="px-6 py-3.5">Timestamp</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {votes.map((v) => (
-                                <tr key={v.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                                    <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{v.office_name}</td>
-                                    <td className="px-6 py-4 font-semibold text-indigo-600 dark:text-indigo-400">{v.candidate_name}</td>
-                                    <td className="px-6 py-4 font-mono text-xs">
-                                        <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300">
-                                            {v.receipt_hash || 'MCS-VERIFIED'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-xs text-slate-500">
-                                        {new Date(v.created_at).toLocaleString()}
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold text-xs uppercase">
+                                <tr>
+                                    <th className="px-6 py-3.5">Office</th>
+                                    <th className="px-6 py-3.5">Candidate Voted</th>
+                                    <th className="px-6 py-3.5">Receipt Hash</th>
+                                    <th className="px-6 py-3.5">Timestamp</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {paginatedVotes.map((v) => (
+                                    <tr key={v.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                                        <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{v.office_name}</td>
+                                        <td className="px-6 py-4 font-semibold text-indigo-600 dark:text-indigo-400">{v.candidate_name}</td>
+                                        <td className="px-6 py-4 font-mono text-xs">
+                                            <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-700 font-bold text-slate-700 dark:text-slate-300">
+                                                {v.receipt_hash || 'MCS-VERIFIED'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-xs text-slate-500">
+                                            {new Date(v.created_at).toLocaleString()}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <TablePagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={totalItems}
+                        pageSize={pageSize}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={setPageSize}
+                        pageSizeOptions={[5, 10, 25]}
+                        itemName="votes"
+                    />
                 </div>
             )}
         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { officesAPI, OfficeResponse } from '../api';
-import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal } from '../components/UIComponents';
+import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
 
 const EditOfficeModal: React.FC<{
     isOpen: boolean;
@@ -93,6 +93,7 @@ export const OfficeManagement: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; officeId?: number; officeName?: string }>({
         isOpen: false,
     });
@@ -138,6 +139,25 @@ export const OfficeManagement: React.FC = () => {
         }
     };
 
+    const filteredOffices = offices.filter((o) =>
+        o.office_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        o.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const {
+        currentPage,
+        setCurrentPage,
+        pageSize,
+        setPageSize,
+        totalPages,
+        totalItems,
+        paginatedItems: paginatedOffices,
+    } = usePagination(filteredOffices, 10);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, setCurrentPage]);
+
     return (
         <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4 no-print">
@@ -167,71 +187,101 @@ export const OfficeManagement: React.FC = () => {
             {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
 
             <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden no-print">
+                <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+                    <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">search</span>
+                        <input
+                            type="text"
+                            placeholder="Search offices by code or description..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary outline-none"
+                        />
+                    </div>
+                </div>
+
                 {loading ? (
                     <LoadingSpinner />
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
-                                <tr>
-                                    <th className="px-6 py-3">Office Code</th>
-                                    <th className="px-6 py-3">Description</th>
-                                    <th className="px-6 py-3">Status</th>
-                                    <th className="px-6 py-3">Created</th>
-                                    <th className="px-6 py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {offices.map((office) => (
-                                    <tr key={office.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-6 py-4 font-mono text-slate-900 dark:text-white font-medium">
-                                            {office.office_code}
-                                        </td>
-                                        <td className="px-6 py-4">{office.description}</td>
-                                        <td className="px-6 py-4">
-                                            <button
-                                                onClick={() => handleToggleDisqualify(office.id, office.is_disqualified ?? false)}
-                                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
-                                                    office.is_disqualified
-                                                        ? 'bg-red-100 text-red-700 hover:bg-green-100 hover:text-green-700 dark:bg-red-900/30 dark:text-red-400'
-                                                        : 'bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-700 dark:bg-green-900/30 dark:text-green-400'
-                                                }`}
-                                                title={office.is_disqualified ? 'Click to Reinstate Office' : 'Click to Disqualify Office'}
-                                            >
-                                                <span className="material-symbols-outlined text-[14px]">
-                                                    {office.is_disqualified ? 'block' : 'verified'}
-                                                </span>
-                                                {office.is_disqualified ? 'Disqualified' : 'Active'}
-                                            </button>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-500">
-                                            {new Date(office.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <button
-                                                    onClick={() => setEditModal({ isOpen: true, office })}
-                                                    className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-blue-600 dark:text-blue-400"
-                                                    title="Edit office"
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">edit</span>
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        setDeleteConfirm({ isOpen: true, officeId: office.id, officeName: office.description })
-                                                    }
-                                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-500"
-                                                    title="Delete office"
-                                                >
-                                                    <span className="material-symbols-outlined text-sm">delete</span>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                ) : filteredOffices.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400">
+                        No offices found matching your search.
                     </div>
+                ) : (
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
+                                    <tr>
+                                        <th className="px-6 py-3">Office Code</th>
+                                        <th className="px-6 py-3">Description</th>
+                                        <th className="px-6 py-3">Status</th>
+                                        <th className="px-6 py-3">Created</th>
+                                        <th className="px-6 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {paginatedOffices.map((office) => (
+                                        <tr key={office.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="px-6 py-4 font-mono text-slate-900 dark:text-white font-medium">
+                                                {office.office_code}
+                                            </td>
+                                            <td className="px-6 py-4">{office.description}</td>
+                                            <td className="px-6 py-4">
+                                                <button
+                                                    onClick={() => handleToggleDisqualify(office.id, office.is_disqualified ?? false)}
+                                                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                                        office.is_disqualified
+                                                            ? 'bg-red-100 text-red-700 hover:bg-green-100 hover:text-green-700 dark:bg-red-900/30 dark:text-red-400'
+                                                            : 'bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-700 dark:bg-green-900/30 dark:text-green-400'
+                                                    }`}
+                                                    title={office.is_disqualified ? 'Click to Reinstate Office' : 'Click to Disqualify Office'}
+                                                >
+                                                    <span className="material-symbols-outlined text-[14px]">
+                                                        {office.is_disqualified ? 'block' : 'verified'}
+                                                    </span>
+                                                    {office.is_disqualified ? 'Disqualified' : 'Active'}
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-500">
+                                                {new Date(office.created_at).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex justify-end gap-1">
+                                                    <button
+                                                        onClick={() => setEditModal({ isOpen: true, office })}
+                                                        className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-blue-600 dark:text-blue-400"
+                                                        title="Edit office"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">edit</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() =>
+                                                            setDeleteConfirm({ isOpen: true, officeId: office.id, officeName: office.description })
+                                                        }
+                                                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-500"
+                                                        title="Delete office"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">delete</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <TablePagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={totalItems}
+                            pageSize={pageSize}
+                            onPageChange={setCurrentPage}
+                            onPageSizeChange={setPageSize}
+                            pageSizeOptions={[5, 10, 25, 50]}
+                            itemName="offices"
+                        />
+                    </>
                 )}
             </div>
 

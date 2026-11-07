@@ -8,7 +8,7 @@ import {
   VotingTimeOut,
   UserStatsOut,
 } from '../api';
-import { LoadingSpinner, SuccessAlert, ErrorAlert } from '../components/UIComponents';
+import { LoadingSpinner, SuccessAlert, ErrorAlert, TablePagination, usePagination } from '../components/UIComponents';
 
 // ============================================================
 // CUSTOM ELECTION CONFIRMATION MODAL
@@ -211,6 +211,17 @@ export const AdminDashboard: React.FC = () => {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+
+  // Live votes pagination
+  const {
+    currentPage: livePage,
+    setCurrentPage: setLivePage,
+    pageSize: livePageSize,
+    setPageSize: setLivePageSize,
+    totalPages: liveTotalPages,
+    totalItems: liveTotalItems,
+    paginatedItems: paginatedLiveVotes,
+  } = usePagination(liveVotes.recent_votes || [], 10);
 
   // Custom modal states
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; action: 'start' | 'stop' }>({
@@ -648,42 +659,55 @@ export const AdminDashboard: React.FC = () => {
             Real-time feed as voters cast votes from their dashboards.
           </p>
 
-          <div className="overflow-x-auto max-h-96 overflow-y-auto">
+          <div className="overflow-x-auto">
             {liveVotes.recent_votes.length === 0 ? (
               <div className="p-8 text-center text-slate-400 border border-dashed rounded-xl border-slate-200 dark:border-slate-700">
                 No ballots cast yet. Once voters cast votes, they will stream here live.
               </div>
             ) : (
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold text-xs uppercase">
-                  <tr>
-                    <th className="px-4 py-2.5">Voter Name</th>
-                    <th className="px-4 py-2.5">Contested Office</th>
-                    <th className="px-4 py-2.5">Candidate Voted</th>
-                    <th className="px-4 py-2.5">Receipt Hash</th>
-                    <th className="px-4 py-2.5">Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {liveVotes.recent_votes.map((vote: any) => (
-                    <tr key={vote.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                      <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{vote.user_name}</td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{vote.office_name}</td>
-                      <td className="px-4 py-3 font-medium text-indigo-600 dark:text-indigo-400">
-                        {vote.candidate_name}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold">
-                          {vote.receipt_hash || 'MCS-SECURE'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-400">
-                        {new Date(vote.created_at).toLocaleTimeString()}
-                      </td>
+              <>
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold text-xs uppercase">
+                    <tr>
+                      <th className="px-4 py-2.5">Voter Name</th>
+                      <th className="px-4 py-2.5">Contested Office</th>
+                      <th className="px-4 py-2.5">Candidate Voted</th>
+                      <th className="px-4 py-2.5">Receipt Hash</th>
+                      <th className="px-4 py-2.5">Timestamp</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {paginatedLiveVotes.map((vote: any) => (
+                      <tr key={vote.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                        <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{vote.user_name}</td>
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{vote.office_name}</td>
+                        <td className="px-4 py-3 font-medium text-indigo-600 dark:text-indigo-400">
+                          {vote.candidate_name}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                          <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold">
+                            {vote.receipt_hash || 'MCS-SECURE'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-400">
+                          {new Date(vote.created_at).toLocaleTimeString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <TablePagination
+                  currentPage={livePage}
+                  totalPages={liveTotalPages}
+                  totalItems={liveTotalItems}
+                  pageSize={livePageSize}
+                  onPageChange={setLivePage}
+                  onPageSizeChange={setLivePageSize}
+                  pageSizeOptions={[5, 10, 25, 50]}
+                  itemName="ballots"
+                />
+              </>
             )}
           </div>
         </div>
