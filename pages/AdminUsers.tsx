@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { usersAPI, voterContactAPI, UserOut, UserUpdate, VoterDisputeOut } from '../api';
 import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
@@ -108,6 +108,8 @@ export const UserList: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [accreditationFilter, setAccreditationFilter] = useState<'all' | 'accredited' | 'pending'>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; userId?: number; username?: string }>({
     isOpen: false,
   });
@@ -200,12 +202,31 @@ export const UserList: React.FC = () => {
     }
   };
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.full_name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  const filteredUsers = useMemo(() => {
+    const q = searchTerm.toLowerCase().trim();
+    return users.filter((user) => {
+      const matchesSearch =
+        !q ||
+        user.username.toLowerCase().includes(q) ||
+        user.full_name.toLowerCase().includes(q) ||
+        (user.phone && user.phone.includes(q)) ||
+        (user.email && user.email.toLowerCase().includes(q));
+
+      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && (user.is_active ?? true)) ||
+        (statusFilter === 'inactive' && !user.is_active);
+
+      const matchesAccreditation =
+        accreditationFilter === 'all' ||
+        (accreditationFilter === 'accredited' && user.is_accredited) ||
+        (accreditationFilter === 'pending' && !user.is_accredited);
+
+      return matchesSearch && matchesRole && matchesStatus && matchesAccreditation;
+    });
+  }, [users, searchTerm, roleFilter, statusFilter, accreditationFilter]);
 
   const {
     currentPage,
@@ -219,7 +240,7 @@ export const UserList: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, roleFilter, setCurrentPage]);
+  }, [searchTerm, roleFilter, statusFilter, accreditationFilter, setCurrentPage]);
 
   return (
     <div className="space-y-6">
@@ -284,28 +305,88 @@ export const UserList: React.FC = () => {
       {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
 
       <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden no-print">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex gap-4">
-          <div className="flex-1 relative">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-3 items-center">
+          <div className="flex-1 min-w-[220px] relative">
             <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">search</span>
             <input
               type="text"
-              placeholder="Search users by MCS username or full name..."
+              placeholder="Search by MCS username, full name, phone, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary outline-none"
+              className="w-full pl-10 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary outline-none"
             />
           </div>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-          >
-            <option value="all">All Roles</option>
-            <option value="super-admin">Super Admin</option>
-            <option value="admin">Admin</option>
-            <option value="voter">Voter</option>
-          </select>
+
+          {/* Filter by Eligibility / Status */}
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:inline">Status:</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Eligible / Active</option>
+              <option value="inactive">Disqualified / Inactive</option>
+            </select>
+          </div>
+
+          {/* Filter by Accreditation */}
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:inline">Accreditation:</label>
+            <select
+              value={accreditationFilter}
+              onChange={(e) => setAccreditationFilter(e.target.value as any)}
+              className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+            >
+              <option value="all">All Accreditation</option>
+              <option value="accredited">Accredited</option>
+              <option value="pending">Pending / Not Accredited</option>
+            </select>
+          </div>
+
+          {/* Filter by Role */}
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:inline">Role:</label>
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+            >
+              <option value="all">All Roles</option>
+              <option value="voter">Voters Only</option>
+              <option value="admin">Admin</option>
+              <option value="super-admin">Super Admin</option>
+            </select>
+          </div>
+
+          {(searchTerm || roleFilter !== 'all' || statusFilter !== 'all' || accreditationFilter !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setRoleFilter('all');
+                setStatusFilter('all');
+                setAccreditationFilter('all');
+              }}
+              className="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
+
+        {/* Counter Summary Bar */}
+        {!loading && (
+          <div className="px-4 py-2 bg-slate-50/70 dark:bg-slate-800/30 border-b border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span>
+              Showing <strong className="font-semibold text-slate-700 dark:text-slate-200">{filteredUsers.length}</strong> of{' '}
+              <strong className="font-semibold text-slate-700 dark:text-slate-200">{users.length}</strong> total registered users
+            </span>
+            {(statusFilter !== 'all' || accreditationFilter !== 'all' || roleFilter !== 'all') && (
+              <span className="text-indigo-600 dark:text-indigo-400 font-medium">Filtered View Active</span>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <LoadingSpinner />
