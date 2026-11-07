@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { accreditationAPI, APIError } from '../api';
 
 const getErrorMessage = (err: unknown, fallback: string): string => {
@@ -485,27 +484,17 @@ export const Accreditation: React.FC = () => {
                 </div>
               </div>
 
-              <div className="pt-2">
-                <Link
-                  to="/election"
-                  className="w-full btn-primary inline-flex items-center justify-center gap-2 text-lg font-bold"
-                >
-                  Go to Election Day Portal
-                  <span className="material-symbols-outlined text-2xl">arrow_forward</span>
-                </Link>
+              <div className="pt-2 p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-center space-y-1">
+                <span className="material-symbols-outlined text-2xl text-indigo-600 dark:text-indigo-400">info</span>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  You have been successfully accredited for the NECO MCS election.
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Please wait for further instructions for voting.
+                </p>
               </div>
             </div>
           )}
-
-          {/* Footer Navigation */}
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm text-slate-500">
-            <Link to="/election" className="hover:text-indigo-600 transition-colors">
-              Go to Election Day Login
-            </Link>
-            <Link to="/admin/login" className="hover:text-indigo-600 transition-colors">
-              Admin Portal
-            </Link>
-          </div>
         </div>
       </div>
     </div>

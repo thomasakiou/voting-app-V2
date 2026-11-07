@@ -172,7 +172,7 @@ export const Login: React.FC = () => {
           <p className="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
             The election portal is locked until election officials open the voting session on election day. Please check back when voting commences.
           </p>
-          <div className="pt-2 flex flex-col sm:flex-row gap-2">
+          <div className="pt-2">
             <button
               onClick={checkStatus}
               className="px-4 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 dark:bg-amber-800/40 text-amber-800 dark:text-amber-200 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
@@ -180,12 +180,6 @@ export const Login: React.FC = () => {
               <span className="material-symbols-outlined text-sm">refresh</span>
               Refresh Status
             </button>
-            <Link
-              to="/accreditation"
-              className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200 text-xs font-semibold text-center hover:bg-amber-50 transition-colors"
-            >
-              Need Accreditation? Click Here
-            </Link>
           </div>
         </div>
       )}
@@ -218,21 +212,6 @@ export const Login: React.FC = () => {
           )}
         </button>
       </form>
-
-      <div className="flex flex-col gap-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-center text-sm text-slate-500">
-        <p>
-          Not accredited yet?{' '}
-          <Link to="/accreditation" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
-            Complete Voter Accreditation
-          </Link>
-        </p>
-        <p>
-          Election Official?{' '}
-          <Link to="/admin/login" className="font-medium text-slate-700 dark:text-slate-300 hover:underline">
-            Sign In to Admin Portal
-          </Link>
-        </p>
-      </div>
 
       <LegalLinks />
     </AuthShell>
@@ -321,12 +300,6 @@ export const AdminLogin: React.FC = () => {
           )}
         </button>
       </form>
-
-      <div className="text-center pt-2">
-        <Link to="/election" className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
-          Return to Voter Portal
-        </Link>
-      </div>
 
       <LegalLinks />
     </AuthShell>

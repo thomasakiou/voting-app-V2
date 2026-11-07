@@ -35,8 +35,9 @@ const UserMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = async () => {
+    const isAdmin = user?.role === 'admin' || user?.role === 'super-admin';
     await logout();
-    navigate('/login');
+    navigate(isAdmin ? '/admin/login' : '/election');
   };
 
   return (

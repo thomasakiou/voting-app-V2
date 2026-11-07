@@ -1,18 +1,21 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export const PrivacyPolicy: React.FC = () => {
+    const navigate = useNavigate();
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-12 px-4">
             <div className="max-w-4xl mx-auto">
                 <div className="mb-8">
-                    <Link
-                        to="/login"
-                        className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 mb-6 transition-colors group"
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 mb-6 transition-colors group cursor-pointer"
                     >
                         <span className="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
-                        Back to Login
-                    </Link>
+                        Go Back
+                    </button>
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700/50 p-8 md:p-12">
@@ -146,17 +149,20 @@ export const PrivacyPolicy: React.FC = () => {
 };
 
 export const TermsOfService: React.FC = () => {
+    const navigate = useNavigate();
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] py-12 px-4">
             <div className="max-w-4xl mx-auto">
                 <div className="mb-8">
-                    <Link
-                        to="/login"
-                        className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 mb-6 transition-colors group"
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 mb-6 transition-colors group cursor-pointer"
                     >
                         <span className="material-symbols-outlined text-sm group-hover:-translate-x-1 transition-transform">arrow_back</span>
-                        Back to Login
-                    </Link>
+                        Go Back
+                    </button>
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700/50 p-8 md:p-12">

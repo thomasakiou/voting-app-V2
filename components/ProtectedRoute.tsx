@@ -27,7 +27,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     // Redirect to login if not authenticated
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+        if (allowedRoles && (allowedRoles.includes('admin') || allowedRoles.includes('super-admin'))) {
+            return <Navigate to="/admin/login" replace />;
+        }
+        return <Navigate to="/election" replace />;
     }
 
     // Check role-based access
