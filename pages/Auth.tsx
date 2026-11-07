@@ -154,7 +154,8 @@ export const Login: React.FC = () => {
     try {
       const data = await authAPI.login(username.trim(), undefined, getDeviceId());
       sessionStorage.setItem('otp_username', username.trim());
-      sessionStorage.setItem('otp_email_mask', data.masked_email || '');
+      const contactMask = [data.masked_email, data.masked_phone].filter(Boolean).join(' and ') || data.masked_email || '';
+      sessionStorage.setItem('otp_email_mask', contactMask);
       navigate('/verify-otp');
     } catch (err: any) {
       setError(getErrorMessage(err, 'Unable to initiate election login. Please ensure you are accredited and voting is active.'));
@@ -431,7 +432,7 @@ export const VerifyOTP: React.FC = () => {
         </div>
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Verify Voting OTP</h2>
         <p className="mt-3 text-base sm:text-lg leading-relaxed text-slate-500 dark:text-slate-400">
-          A 6-digit voting passcode was dispatched to your registered email {maskedEmail ? `(${maskedEmail})` : ''}.
+          A 6-digit voting passcode was dispatched to your registered contact {maskedEmail ? `(${maskedEmail})` : ''}.
         </p>
       </div>
 

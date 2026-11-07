@@ -214,7 +214,7 @@ export const Accreditation: React.FC = () => {
             <p className="mt-2 text-base text-slate-500 dark:text-slate-400">
               {step === 1 && 'Enter your 4-digit MCS number to check eligibility on the voter register.'}
               {step === 2 && 'Confirm your full name and registered contact details to receive your accreditation OTP.'}
-              {step === 3 && `Enter the 6-digit OTP code dispatched to ${maskedEmail || 'your email'}.`}
+              {step === 3 && `Enter the 6-digit OTP code dispatched to ${[maskedEmail, maskedPhone].filter(p => p && p !== 'Not provided').join(' and ') || 'your registered contact'}.`}
               {step === 4 && 'Your accreditation has been finalized and recorded in the election register.'}
             </p>
           </div>
@@ -379,7 +379,7 @@ export const Accreditation: React.FC = () => {
                   />
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 ml-1">
-                  Your accreditation OTP will be sent directly to your registered email above.
+                  Your accreditation OTP will be sent to your registered contact details above.
                 </p>
               </div>
 
@@ -406,7 +406,7 @@ export const Accreditation: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || !maskedEmail}
+                  disabled={loading || (!maskedEmail && !maskedPhone)}
                   className="flex-1 btn-primary flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
                 >
                   {loading ? (

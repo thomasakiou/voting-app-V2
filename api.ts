@@ -21,6 +21,9 @@ export interface LoginOTPResponse {
   message: string;
   otp_sent: boolean;
   masked_email?: string;
+  masked_phone?: string;
+  has_email?: boolean;
+  has_phone?: boolean;
   username?: string;
   full_name?: string;
 }
