@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { accreditationAPI, APIError } from '../api';
 
 const getErrorMessage = (err: unknown, fallback: string): string => {
@@ -221,7 +222,18 @@ export const Accreditation: React.FC = () => {
           {error && (
             <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3 text-red-600 dark:text-red-400 animate-scale-in">
               <span className="material-symbols-outlined mt-0.5">error</span>
-              <p className="text-sm font-medium leading-relaxed">{error}</p>
+              <div className="text-sm font-medium leading-relaxed">
+                <p>{error}</p>
+                {error.toLowerCase().includes('email') && (
+                  <Link
+                    to="/contact-update"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline mt-2"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                    Click here to register your email and phone number
+                  </Link>
+                )}
+              </div>
             </div>
           )}
 
@@ -275,6 +287,16 @@ export const Accreditation: React.FC = () => {
                   </>
                 )}
               </button>
+
+              <div className="text-center pt-2">
+                <Link
+                  to="/contact-update"
+                  className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline inline-flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[14px]">edit_note</span>
+                  Need to register or update your email / phone number? Click here
+                </Link>
+              </div>
             </form>
           )}
 

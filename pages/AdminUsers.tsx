@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { usersAPI, UserOut, UserUpdate } from '../api';
+import { usersAPI, voterContactAPI, UserOut, UserUpdate, VoterDisputeOut } from '../api';
 import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
 
 const EditUserModal: React.FC<{
@@ -123,9 +123,38 @@ export const UserList: React.FC = () => {
     isOpen: false,
   });
 
+  // Disputes state
+  const [disputes, setDisputes] = useState<VoterDisputeOut[]>([]);
+  const [isDisputesOpen, setIsDisputesOpen] = useState(false);
+  const [disputesLoading, setDisputesLoading] = useState(false);
+
   useEffect(() => {
     loadUsers();
+    loadDisputes();
   }, []);
+
+  const loadDisputes = async () => {
+    try {
+      setDisputesLoading(true);
+      const data = await voterContactAPI.getDisputes();
+      setDisputes(data);
+    } catch (err: any) {
+      console.error('Failed to load disputes', err);
+    } finally {
+      setDisputesLoading(false);
+    }
+  };
+
+  const handleResolveDispute = async (disputeId: number, action: 'APPROVE' | 'REJECT') => {
+    try {
+      await voterContactAPI.resolveDispute(disputeId, { action });
+      setSuccess(`Dispute #${disputeId} ${action === 'APPROVE' ? 'approved and voter contact updated' : 'rejected'}.`);
+      loadDisputes();
+      loadUsers();
+    } catch (err: any) {
+      setError(err?.data?.detail || err?.message || 'Failed to update dispute');
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -213,6 +242,21 @@ export const UserList: React.FC = () => {
           >
             <span className="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
             Export PDF
+          </button>
+          <button
+            onClick={() => {
+              loadDisputes();
+              setIsDisputesOpen(true);
+            }}
+            className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:border-amber-500 flex items-center gap-2 text-sm shadow-sm relative"
+          >
+            <span className="material-symbols-outlined text-sm text-amber-500">report_problem</span>
+            Disputes
+            {disputes.filter((d) => d.status === 'PENDING').length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-xs font-bold bg-amber-500 text-white">
+                {disputes.filter((d) => d.status === 'PENDING').length}
+              </span>
+            )}
           </button>
           <Link
             to="/admin/users/bulk-actions"
@@ -464,6 +508,101 @@ export const UserList: React.FC = () => {
           }}
         />
       )}
+
+      {/* Voter Disputes Modal */}
+      <Modal
+        isOpen={isDisputesOpen}
+        onClose={() => setIsDisputesOpen(false)}
+        title="Voter Contact Disputes"
+      >
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Review and action contact correction requests submitted by voters for locked details.
+          </p>
+
+          {disputesLoading ? (
+            <LoadingSpinner size="md" />
+          ) : disputes.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-sm">
+              No voter contact disputes logged in the system.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {disputes.map((dispute) => (
+                <div
+                  key={dispute.id}
+                  className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 space-y-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 dark:text-white">
+                          {dispute.full_name}
+                        </span>
+                        <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                          #{dispute.username}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">
+                        Category: {dispute.dispute_type} • {new Date(dispute.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        dispute.status === 'RESOLVED'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : dispute.status === 'REJECTED'
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                      }`}
+                    >
+                      {dispute.status}
+                    </span>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-2 text-xs bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                    <div>
+                      <span className="text-slate-400 block">Current on file:</span>
+                      <span className="font-mono text-slate-700 dark:text-slate-300">
+                        {dispute.current_email || 'No email'} | {dispute.current_phone || 'No phone'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">Requested change:</span>
+                      <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                        {dispute.requested_email || 'Keep email'} | {dispute.requested_phone || 'Keep phone'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-600 dark:text-slate-300 bg-amber-50/50 dark:bg-amber-950/20 p-2.5 rounded-lg border border-amber-200/50 dark:border-amber-900/30">
+                    <span className="font-bold text-amber-800 dark:text-amber-300 block mb-0.5">Voter Explanation:</span>
+                    {dispute.reason}
+                  </div>
+
+                  {dispute.status === 'PENDING' && (
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        onClick={() => handleResolveDispute(dispute.id, 'REJECT')}
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 transition-colors"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => handleResolveDispute(dispute.id, 'APPROVE')}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors flex items-center gap-1 shadow-sm"
+                      >
+                        <span className="material-symbols-outlined text-[15px]">check</span>
+                        Approve & Update Contact
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };

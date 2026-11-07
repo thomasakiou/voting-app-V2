@@ -215,6 +215,57 @@ export interface AccreditationVerifyResponse {
   masked_phone?: string;
 }
 
+export interface VoterContactLookupResponse {
+  username: string;
+  full_name: string;
+  email?: string | null;
+  phone?: string | null;
+  masked_email?: string | null;
+  masked_phone?: string | null;
+  has_email: boolean;
+  has_phone: boolean;
+  is_accredited: boolean;
+  is_active: boolean;
+  message?: string;
+}
+
+export interface VoterContactOTPResponse {
+  message: string;
+  otp_sent: boolean;
+  masked_email?: string;
+  masked_phone?: string;
+  expires_in_minutes?: number;
+}
+
+export interface VoterContactVerifyResponse {
+  message: string;
+  verified: boolean;
+  username: string;
+  full_name: string;
+  email?: string;
+  phone?: string;
+  masked_email?: string;
+  masked_phone?: string;
+}
+
+export interface VoterDisputeOut {
+  id: number;
+  user_id: number;
+  username: string;
+  full_name: string;
+  current_email?: string | null;
+  current_phone?: string | null;
+  requested_email?: string | null;
+  requested_phone?: string | null;
+  dispute_type: string;
+  reason: string;
+  status: 'PENDING' | 'RESOLVED' | 'REJECTED';
+  admin_notes?: string | null;
+  resolved_by?: string | null;
+  created_at: string;
+  resolved_at?: string | null;
+}
+
 export interface AuditLog {
   id: number;
   admin_id?: number | null;
@@ -434,6 +485,86 @@ export const accreditationAPI = {
     }
 
     return response.json();
+  },
+};
+
+// Voter Contact & Dispute Management API
+export const voterContactAPI = {
+  async lookup(username: string): Promise<VoterContactLookupResponse> {
+    const response = await fetch(`${API_BASE_URL}/voter-contact/lookup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
+  },
+
+  async sendOTP(username: string, email?: string, phone?: string): Promise<VoterContactOTPResponse> {
+    const payload: { username: string; email?: string; phone?: string } = { username };
+    if (email) payload.email = email;
+    if (phone) payload.phone = phone;
+
+    const response = await fetch(`${API_BASE_URL}/voter-contact/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
+  },
+
+  async verifyOTP(username: string, otpCode: string): Promise<VoterContactVerifyResponse> {
+    const response = await fetch(`${API_BASE_URL}/voter-contact/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, otp_code: otpCode }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
+  },
+
+  async raiseDispute(data: {
+    username: string;
+    dispute_type?: string;
+    requested_email?: string;
+    requested_phone?: string;
+    reason: string;
+  }): Promise<VoterDisputeOut> {
+    const response = await fetch(`${API_BASE_URL}/voter-contact/dispute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
+  },
+
+  async getDisputes(status?: string): Promise<VoterDisputeOut[]> {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return apiFetch<VoterDisputeOut[]>(`/voter-contact/disputes${query}`);
+  },
+
+  async resolveDispute(
+    disputeId: number,
+    data: { action: 'APPROVE' | 'REJECT'; admin_notes?: string }
+  ): Promise<VoterDisputeOut> {
+    return apiFetch<VoterDisputeOut>(`/voter-contact/disputes/${disputeId}/resolve`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   },
 };
 
