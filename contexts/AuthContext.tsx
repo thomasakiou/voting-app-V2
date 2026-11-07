@@ -8,7 +8,7 @@ interface AuthContextType {
     isLoading: boolean;
     login: (username: string, phone: string) => Promise<void>;
     adminLogin: (username: string, password: string) => Promise<void>;
-    verifyOTP: (username: string, otpCode: string) => Promise<UserOut>;
+    verifyOTP: (username: string, otpCode: string, deviceId?: string) => Promise<UserOut>;
     logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
 }
@@ -76,9 +76,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
     };
 
-    const verifyOTP = async (username: string, otpCode: string) => {
+    const verifyOTP = async (username: string, otpCode: string, deviceId?: string) => {
         try {
-            const loginResponse = await authAPI.verifyOTP(username, otpCode);
+            const loginResponse = await authAPI.verifyOTP(username, otpCode, deviceId);
             // OTP login is the voter authentication flow. The backend may omit
             // role from this response, so it must always establish voter auth.
             const role: 'voter' = 'voter';

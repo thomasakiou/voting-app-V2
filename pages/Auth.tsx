@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI, votingTimeAPI, VotingTimeOut, APIError } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { getDeviceId } from '../utils/device';
 
 const getErrorMessage = (err: unknown, fallback: string) => {
   if (err instanceof APIError) {
@@ -12,12 +13,29 @@ const getErrorMessage = (err: unknown, fallback: string) => {
   return fallback;
 };
 
-const AuthError: React.FC<{ error: string }> = ({ error }) => (
-  <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3 text-red-600 dark:text-red-400 animate-scale-in">
-    <span className="material-symbols-outlined mt-0.5">error</span>
-    <p className="text-sm font-medium leading-relaxed">{error}</p>
-  </div>
-);
+const AuthError: React.FC<{ error: string }> = ({ error }) => {
+  const isDeviceMismatch = error.toLowerCase().includes('device mismatch');
+  return (
+    <div className={`p-4 rounded-2xl border flex items-start gap-3 animate-scale-in ${
+      isDeviceMismatch
+        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
+        : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'
+    }`}>
+      <span className="material-symbols-outlined mt-0.5">
+        {isDeviceMismatch ? 'phonelink_lock' : 'error'}
+      </span>
+      <div className="text-sm font-medium leading-relaxed">
+        <p className="font-semibold">{isDeviceMismatch ? 'Device Security Lock' : 'Authentication Error'}</p>
+        <p className="mt-0.5">{error}</p>
+        {isDeviceMismatch && (
+          <p className="mt-2 text-xs opacity-90">
+            For security, voting is strictly restricted to the physical device and browser used during your accreditation. If your device was damaged or replaced, an administrator can reverse your accreditation to let you re-register a new device.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const LegalLinks: React.FC = () => (
   <p className="text-center text-sm text-slate-500 dark:text-slate-400">
@@ -134,7 +152,7 @@ export const Login: React.FC = () => {
     setError('');
 
     try {
-      const data = await authAPI.login(username.trim());
+      const data = await authAPI.login(username.trim(), undefined, getDeviceId());
       sessionStorage.setItem('otp_username', username.trim());
       sessionStorage.setItem('otp_email_mask', data.masked_email || '');
       navigate('/verify-otp');
@@ -377,7 +395,7 @@ export const VerifyOTP: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await verifyOTP(username, otpDigits.join(''));
+      await verifyOTP(username, otpDigits.join(''), getDeviceId());
       sessionStorage.removeItem('otp_username');
       sessionStorage.removeItem('otp_email_mask');
       navigate('/voter/dashboard', { replace: true });
@@ -394,7 +412,7 @@ export const VerifyOTP: React.FC = () => {
     setError('');
     setSuccess('');
     try {
-      await authAPI.login(username);
+      await authAPI.login(username, undefined, getDeviceId());
       setOtpDigits(Array(6).fill(''));
       setResendSeconds(60);
       setSuccess('A fresh voting OTP has been dispatched to your email.');

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { accreditationAPI, APIError } from '../api';
+import { getDeviceId, getDeviceInfo } from '../utils/device';
 
 const getErrorMessage = (err: unknown, fallback: string): string => {
   if (err instanceof APIError) {
@@ -123,7 +124,7 @@ export const Accreditation: React.FC = () => {
     setError('');
 
     try {
-      const res = await accreditationAPI.verifyOTP(username.trim(), otpCode);
+      const res = await accreditationAPI.verifyOTP(username.trim(), otpCode, undefined, undefined, getDeviceId(), getDeviceInfo());
       setSuccessMessage(res.message);
       if (res.masked_email) setMaskedEmail(res.masked_email);
       if (res.masked_phone) setMaskedPhone(res.masked_phone);
@@ -382,6 +383,19 @@ export const Accreditation: React.FC = () => {
                 </p>
               </div>
 
+              {/* Strict Device Security Notice */}
+              <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 flex items-start gap-3">
+                <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400 mt-0.5">phonelink_lock</span>
+                <div className="text-xs text-indigo-950 dark:text-indigo-200 leading-relaxed">
+                  <p className="font-bold text-sm text-indigo-900 dark:text-indigo-100 mb-1">
+                    Device Binding Security
+                  </p>
+                  <p>
+                    This device (<strong className="font-semibold text-indigo-600 dark:text-indigo-400">{getDeviceInfo()}</strong>) will be securely bound to your voter account. On election day, you can only cast your vote from this exact device and browser.
+                  </p>
+                </div>
+              </div>
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -510,9 +524,16 @@ export const Accreditation: React.FC = () => {
                   <span className="text-slate-500">Phone Number</span>
                   <span className="font-mono font-medium text-slate-900 dark:text-white">{maskedPhone || 'On record'}</span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
+                <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700/50 pb-2">
                   <span className="text-slate-500">Registered Email</span>
                   <span className="font-mono font-medium text-slate-900 dark:text-white">{maskedEmail}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500">Bound Voting Device</span>
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[16px]">phonelink_lock</span>
+                    {getDeviceInfo()}
+                  </span>
                 </div>
               </div>
 

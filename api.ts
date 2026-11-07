@@ -54,6 +54,8 @@ export interface UserOut {
   is_active?: boolean | null;
   is_accredited?: boolean | null;
   accredited_at?: string | null;
+  accredited_device_id?: string | null;
+  device_info?: string | null;
 }
 
 export interface UserUpdate {
@@ -377,13 +379,17 @@ export const authAPI = {
     return data;
   },
 
-  async login(username: string, phone?: string): Promise<LoginOTPResponse> {
+  async login(username: string, phone?: string, deviceId?: string): Promise<LoginOTPResponse> {
+    const payload: { username: string; phone?: string; device_id?: string } = { username };
+    if (phone) payload.phone = phone;
+    if (deviceId) payload.device_id = deviceId;
+
     const response = await fetch(`${API_BASE_URL}/election/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, phone }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -394,13 +400,19 @@ export const authAPI = {
     return response.json();
   },
 
-  async verifyOTP(username: string, otpCode: string): Promise<TokenResponse> {
+  async verifyOTP(username: string, otpCode: string, deviceId?: string): Promise<TokenResponse> {
+    const payload: { username: string; otp_code: string; device_id?: string } = {
+      username,
+      otp_code: otpCode,
+    };
+    if (deviceId) payload.device_id = deviceId;
+
     const response = await fetch(`${API_BASE_URL}/verify-otp`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, otp_code: otpCode }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -465,13 +477,29 @@ export const accreditationAPI = {
     return response.json();
   },
 
-  async verifyOTP(username: string, otpCode: string, phone?: string, email?: string): Promise<AccreditationVerifyResponse> {
-    const payload: { username: string; otp_code: string; phone?: string; email?: string } = {
+  async verifyOTP(
+    username: string,
+    otpCode: string,
+    phone?: string,
+    email?: string,
+    deviceId?: string,
+    deviceInfo?: string
+  ): Promise<AccreditationVerifyResponse> {
+    const payload: {
+      username: string;
+      otp_code: string;
+      phone?: string;
+      email?: string;
+      device_id?: string;
+      device_info?: string;
+    } = {
       username,
       otp_code: otpCode,
     };
     if (phone) payload.phone = phone;
     if (email) payload.email = email;
+    if (deviceId) payload.device_id = deviceId;
+    if (deviceInfo) payload.device_info = deviceInfo;
 
     const response = await fetch(`${API_BASE_URL}/accreditation/verify-otp`, {
       method: 'POST',
