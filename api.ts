@@ -191,12 +191,16 @@ export interface AccreditationValidateResponse {
   is_active: boolean;
   phone?: string | null;
   email?: string | null;
+  masked_phone?: string | null;
+  masked_email?: string | null;
   message?: string;
 }
 
 export interface AccreditationOTPResponse {
   message: string;
   otp_sent: boolean;
+  masked_email?: string;
+  masked_phone?: string;
   expires_in_minutes?: number;
 }
 
@@ -207,6 +211,8 @@ export interface AccreditationVerifyResponse {
   username: string;
   email?: string;
   phone?: string;
+  masked_email?: string;
+  masked_phone?: string;
 }
 
 export interface AuditLog {
@@ -389,11 +395,15 @@ export const accreditationAPI = {
     return response.json();
   },
 
-  async sendOTP(username: string, phone: string, email: string): Promise<AccreditationOTPResponse> {
+  async sendOTP(username: string, phone?: string, email?: string): Promise<AccreditationOTPResponse> {
+    const payload: { username: string; phone?: string; email?: string } = { username };
+    if (phone) payload.phone = phone;
+    if (email) payload.email = email;
+
     const response = await fetch(`${API_BASE_URL}/accreditation/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, phone, email }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -404,11 +414,18 @@ export const accreditationAPI = {
     return response.json();
   },
 
-  async verifyOTP(username: string, otpCode: string, phone: string, email: string): Promise<AccreditationVerifyResponse> {
+  async verifyOTP(username: string, otpCode: string, phone?: string, email?: string): Promise<AccreditationVerifyResponse> {
+    const payload: { username: string; otp_code: string; phone?: string; email?: string } = {
+      username,
+      otp_code: otpCode,
+    };
+    if (phone) payload.phone = phone;
+    if (email) payload.email = email;
+
     const response = await fetch(`${API_BASE_URL}/accreditation/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, otp_code: otpCode, phone, email }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {

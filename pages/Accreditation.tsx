@@ -12,7 +12,7 @@ const getErrorMessage = (err: unknown, fallback: string): string => {
 
 export const Accreditation: React.FC = () => {
   // Step 1: Validate MCS Number
-  // Step 2: Enter Phone & Email and send OTP
+  // Step 2: Confirm Details & Request OTP
   // Step 3: Enter OTP and submit
   // Step 4: Success confirmation
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -20,8 +20,8 @@ export const Accreditation: React.FC = () => {
   // Form states
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  const [maskedPhone, setMaskedPhone] = useState('');
+  const [maskedEmail, setMaskedEmail] = useState('');
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(6).fill(''));
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -53,8 +53,8 @@ export const Accreditation: React.FC = () => {
     try {
       const data = await accreditationAPI.validate(username.trim());
       setFullName(data.full_name);
-      if (data.phone) setPhone(data.phone);
-      if (data.email) setEmail(data.email);
+      setMaskedPhone(data.masked_phone || data.phone || '');
+      setMaskedEmail(data.masked_email || data.email || '');
       setStep(2);
     } catch (err: any) {
       setError(getErrorMessage(err, 'Failed to validate MCS number. Please check your credentials.'));
@@ -63,22 +63,19 @@ export const Accreditation: React.FC = () => {
     }
   };
 
-  // Step 2: Request OTP
+  // Step 2: Request OTP to pre-registered email
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim() || !email.trim()) {
-      setError('Both phone number and email address are compulsory.');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      await accreditationAPI.sendOTP(username.trim(), phone.trim(), email.trim());
+      const res = await accreditationAPI.sendOTP(username.trim());
+      if (res.masked_email) setMaskedEmail(res.masked_email);
+      if (res.masked_phone) setMaskedPhone(res.masked_phone);
       setStep(3);
       setResendCooldown(60);
-      setSuccessMessage(`A verification OTP has been sent to ${email.trim()}.`);
+      setSuccessMessage(res.message || `A verification OTP has been sent to your registered email.`);
     } catch (err: any) {
       setError(getErrorMessage(err, 'Failed to send accreditation OTP. Please try again.'));
     } finally {
@@ -125,8 +122,10 @@ export const Accreditation: React.FC = () => {
     setError('');
 
     try {
-      const res = await accreditationAPI.verifyOTP(username.trim(), otpCode, phone.trim(), email.trim());
+      const res = await accreditationAPI.verifyOTP(username.trim(), otpCode);
       setSuccessMessage(res.message);
+      if (res.masked_email) setMaskedEmail(res.masked_email);
+      if (res.masked_phone) setMaskedPhone(res.masked_phone);
       setStep(4);
     } catch (err: any) {
       setError(getErrorMessage(err, 'Invalid or expired OTP. Please check the code and try again.'));
@@ -140,9 +139,9 @@ export const Accreditation: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      await accreditationAPI.sendOTP(username.trim(), phone.trim(), email.trim());
+      const res = await accreditationAPI.sendOTP(username.trim());
       setResendCooldown(60);
-      setSuccessMessage(`A fresh OTP has been sent to ${email.trim()}.`);
+      setSuccessMessage(res.message || `A fresh OTP has been sent to your registered email.`);
       setOtpDigits(Array(6).fill(''));
     } catch (err: any) {
       setError(getErrorMessage(err, 'Failed to resend OTP.'));
@@ -185,7 +184,7 @@ export const Accreditation: React.FC = () => {
             </div>
             <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="size-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">2</div>
-              <p className="text-sm font-medium text-slate-300">Confirm Name & Enter Contact Details</p>
+              <p className="text-sm font-medium text-slate-300">Confirm Name & Registered Contact</p>
             </div>
             <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="size-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">3</div>
@@ -206,14 +205,14 @@ export const Accreditation: React.FC = () => {
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
               {step === 1 && 'Voter Verification'}
-              {step === 2 && 'Confirm Identity & Contact'}
+              {step === 2 && 'Confirm Your Identity'}
               {step === 3 && 'Enter Accreditation OTP'}
               {step === 4 && 'Accreditation Complete'}
             </h2>
             <p className="mt-2 text-base text-slate-500 dark:text-slate-400">
               {step === 1 && 'Enter your 4-digit MCS number to check eligibility on the voter register.'}
-              {step === 2 && 'Confirm your full name and provide your phone number and email to receive your OTP.'}
-              {step === 3 && `Enter the 6-digit OTP code dispatched to ${email}.`}
+              {step === 2 && 'Confirm your full name and registered contact details to receive your accreditation OTP.'}
+              {step === 3 && `Enter the 6-digit OTP code dispatched to ${maskedEmail || 'your email'}.`}
               {step === 4 && 'Your accreditation has been finalized and recorded in the election register.'}
             </p>
           </div>
@@ -279,10 +278,10 @@ export const Accreditation: React.FC = () => {
             </form>
           )}
 
-          {/* STEP 2: FULL NAME (UNEDITABLE) & CONTACT DETAILS */}
+          {/* STEP 2: CONFIRM DETAILS (READ-ONLY) & REQUEST OTP */}
           {step === 2 && (
             <form onSubmit={handleSendOTP} className="space-y-6">
-              {/* Confirmed Full Name - UNEDITABLE AS REQUIRED */}
+              {/* Confirmed Full Name */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label htmlFor="voter-fullname" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
@@ -308,47 +307,57 @@ export const Accreditation: React.FC = () => {
                 <p className="text-xs text-slate-400 ml-1">This name is matched from the official NECO MCS register.</p>
               </div>
 
-              {/* Compulsory Phone Number */}
+              {/* Registered Phone Number - Masked */}
               <div className="space-y-2">
-                <label htmlFor="voter-phone" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <div className="relative group">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="voter-phone" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+                    Registered Phone Number
+                  </label>
+                  <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                    Protected
+                  </span>
+                </div>
+                <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                    <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 text-[24px]">call</span>
+                    <span className="material-symbols-outlined text-indigo-500 text-[24px]">call</span>
                   </div>
                   <input
                     id="voter-phone"
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="input-field pl-14 py-3.5 font-medium text-lg bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 focus:ring-indigo-500/20"
-                    placeholder="08012345678"
+                    type="text"
+                    disabled
+                    readOnly
+                    value={maskedPhone || 'Not provided'}
+                    className="w-full pl-14 pr-5 py-3.5 font-mono font-bold text-lg rounded-2xl bg-slate-100 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner tracking-wider"
                   />
                 </div>
               </div>
 
-              {/* Compulsory Email */}
+              {/* Registered Email Address - Masked */}
               <div className="space-y-2">
-                <label htmlFor="voter-email" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <div className="relative group">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="voter-email" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+                    Registered Email Address
+                  </label>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400">
+                    OTP Destination
+                  </span>
+                </div>
+                <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                    <span className="material-symbols-outlined text-slate-400 group-focus-within:text-indigo-500 text-[24px]">mail</span>
+                    <span className="material-symbols-outlined text-indigo-500 text-[24px]">mail</span>
                   </div>
                   <input
                     id="voter-email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="input-field pl-14 py-3.5 font-medium text-lg bg-slate-50/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-700 focus:ring-indigo-500/20"
-                    placeholder="your.email@example.com"
+                    type="text"
+                    disabled
+                    readOnly
+                    value={maskedEmail}
+                    className="w-full pl-14 pr-5 py-3.5 font-mono font-bold text-lg rounded-2xl bg-slate-100 dark:bg-slate-800/80 border-2 border-slate-200 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 cursor-not-allowed shadow-inner"
                   />
                 </div>
-                <p className="text-xs text-slate-400 ml-1">Your accreditation OTP will be delivered directly to this email address.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 ml-1">
+                  Your accreditation OTP will be sent directly to your registered email above.
+                </p>
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -361,7 +370,7 @@ export const Accreditation: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || !phone.trim() || !email.trim()}
+                  disabled={loading || !maskedEmail}
                   className="flex-1 btn-primary flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
                 >
                   {loading ? (
@@ -431,9 +440,10 @@ export const Accreditation: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                  className="text-slate-500 hover:text-slate-700 dark:text-slate-400 flex items-center gap-1"
                 >
-                  Change email or phone
+                  <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                  Back to details
                 </button>
                 <button
                   type="button"
@@ -476,11 +486,11 @@ export const Accreditation: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700/50 pb-2">
                   <span className="text-slate-500">Phone Number</span>
-                  <span className="font-medium text-slate-900 dark:text-white">{phone}</span>
+                  <span className="font-mono font-medium text-slate-900 dark:text-white">{maskedPhone || 'On record'}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-500">Registered Email</span>
-                  <span className="font-medium text-slate-900 dark:text-white">{email}</span>
+                  <span className="font-mono font-medium text-slate-900 dark:text-white">{maskedEmail}</span>
                 </div>
               </div>
 
