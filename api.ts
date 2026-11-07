@@ -496,6 +496,12 @@ export const usersAPI = {
     });
   },
 
+  async reverseAccreditation(userId: number): Promise<UserOut> {
+    return apiFetch<UserOut>(`/users/${userId}/reverse-accreditation`, {
+      method: 'PATCH',
+    });
+  },
+
   async update(id: number, data: UserUpdate): Promise<UserOut> {
     return apiFetch<UserOut>(`/users/${id}`, {
       method: 'PUT',

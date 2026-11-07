@@ -111,6 +111,14 @@ export const UserList: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; userId?: number; username?: string }>({
     isOpen: false,
   });
+  const [reverseConfirm, setReverseConfirm] = useState<{
+    isOpen: boolean;
+    userId?: number;
+    username?: string;
+    fullName?: string;
+  }>({
+    isOpen: false,
+  });
   const [editModal, setEditModal] = useState<{ isOpen: boolean; user?: UserOut }>({
     isOpen: false,
   });
@@ -150,6 +158,16 @@ export const UserList: React.FC = () => {
       loadUsers();
     } catch (err: any) {
       setError('Failed to delete user');
+    }
+  };
+
+  const handleReverseAccreditation = async (userId: number) => {
+    try {
+      await usersAPI.reverseAccreditation(userId);
+      setSuccess('Accreditation reversed successfully. Voter can now re-accredit.');
+      loadUsers();
+    } catch (err: any) {
+      setError(err?.data?.detail || err?.message || 'Failed to reverse accreditation');
     }
   };
 
@@ -279,10 +297,27 @@ export const UserList: React.FC = () => {
                       <td className="px-5 py-4">
                         {user.role === 'voter' ? (
                           user.is_accredited ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                              <span className="material-symbols-outlined text-[14px]">check</span>
-                              Accredited
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                                <span className="material-symbols-outlined text-[14px]">check</span>
+                                Accredited
+                              </span>
+                              <button
+                                onClick={() =>
+                                  setReverseConfirm({
+                                    isOpen: true,
+                                    userId: user.id,
+                                    username: user.username,
+                                    fullName: user.full_name,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 transition-colors"
+                                title="Reverse accreditation so this voter can re-accredit"
+                              >
+                                <span className="material-symbols-outlined text-[13px]">replay</span>
+                                Reverse
+                              </button>
+                            </div>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
                               <span className="material-symbols-outlined text-[14px]">pending</span>
@@ -311,6 +346,22 @@ export const UserList: React.FC = () => {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex justify-end gap-1">
+                          {user.role === 'voter' && user.is_accredited && (
+                            <button
+                              onClick={() =>
+                                setReverseConfirm({
+                                  isOpen: true,
+                                  userId: user.id,
+                                  username: user.username,
+                                  fullName: user.full_name,
+                                })
+                              }
+                              className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded text-amber-600 dark:text-amber-400"
+                              title="Reverse accreditation (allow re-accreditation)"
+                            >
+                              <span className="material-symbols-outlined text-sm">replay</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => setEditModal({ isOpen: true, user })}
                             className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-blue-600 dark:text-blue-400"
@@ -386,6 +437,20 @@ export const UserList: React.FC = () => {
         message={`Are you sure you want to delete user "${deleteConfirm.username}"? This action cannot be undone.`}
         confirmText="Delete"
         isDestructive
+      />
+
+      <ConfirmDialog
+        isOpen={reverseConfirm.isOpen}
+        onClose={() => setReverseConfirm({ isOpen: false })}
+        onConfirm={() => {
+          if (reverseConfirm.userId) {
+            handleReverseAccreditation(reverseConfirm.userId);
+            setReverseConfirm({ isOpen: false });
+          }
+        }}
+        title="Reverse Voter Accreditation"
+        message={`Are you sure you want to reverse accreditation for voter "${reverseConfirm.fullName || ''}" (MCS #${reverseConfirm.username})? Their status will be set back to Pending so they can undergo accreditation again.`}
+        confirmText="Reverse Accreditation"
       />
 
       {editModal.user && (
