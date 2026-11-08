@@ -1,5 +1,6 @@
 // API Client for Voting System Backend
 // Handles all communication with the FastAPI backend
+import { getDeviceId } from './utils/device';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'https://vmi2848672.contaboserver.net/voting/api';
 
@@ -36,6 +37,7 @@ export interface VerifyOTPRequest {
 export interface AdminLoginRequest {
   username: string;
   password: string;
+  device_id?: string;
 }
 
 export interface UserCreate {
@@ -385,13 +387,18 @@ async function apiFetch<T>(
 
 // Authentication API
 export const authAPI = {
-  async adminLogin(username: string, password: string): Promise<TokenResponse> {
+  async adminLogin(username: string, password: string, deviceId?: string): Promise<TokenResponse> {
+    const resolvedDeviceId = deviceId || getDeviceId();
     const response = await fetch(`${API_BASE_URL}/admin/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({
+        username,
+        password,
+        device_id: resolvedDeviceId,
+      }),
     });
 
     if (!response.ok) {
