@@ -45,3 +45,26 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     return children;
 };
+
+export const PublicVoterRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+    const { user, isAuthenticated, isLoading } = useAuth();
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
+                <div className="text-center">
+                    <div className="size-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-slate-600 dark:text-slate-400">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    const role = user?.role || (localStorage.getItem('voting_auth_role') as any);
+    if (isAuthenticated && (role === 'admin' || role === 'super-admin')) {
+        return <Navigate to="/admin/dashboard" replace />;
+    }
+
+    return children;
+};
+

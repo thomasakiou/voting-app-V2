@@ -251,14 +251,14 @@ export const UserList: React.FC = () => {
         </div>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => usersAPI.downloadCSV()}
+            onClick={() => usersAPI.downloadCSV({ search: searchTerm, role: roleFilter, status: statusFilter, accreditation: accreditationFilter })}
             className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:border-emerald-500 flex items-center gap-2 text-sm shadow-sm"
           >
             <span className="material-symbols-outlined text-sm text-emerald-600">table_view</span>
             Export CSV
           </button>
           <button
-            onClick={() => usersAPI.downloadPDF()}
+            onClick={() => usersAPI.downloadPDF({ search: searchTerm, role: roleFilter, status: statusFilter, accreditation: accreditationFilter })}
             className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:border-red-500 flex items-center gap-2 text-sm shadow-sm"
           >
             <span className="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
@@ -775,10 +775,16 @@ export const BulkUpload: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [skippedDetails, setSkippedDetails] = useState<Array<{ username: string; full_name?: string; reason: string }>>([]);
+  const [createdCount, setCreatedCount] = useState<number | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
+      setError('');
+      setSuccess('');
+      setSkippedDetails([]);
+      setCreatedCount(null);
     }
   };
 
@@ -790,27 +796,96 @@ export const BulkUpload: React.FC = () => {
 
     setLoading(true);
     setError('');
+    setSuccess('');
+    setSkippedDetails([]);
+    setCreatedCount(null);
 
-    try {
-      await usersAPI.uploadCSV(file);
-      setSuccess('Voters uploaded successfully!');
-      setFile(null);
-    } catch (err: any) {
-      setError(err?.data?.detail || 'Failed to upload file');
-    } finally {
-      setLoading(false);
+  try {
+    const res = await usersAPI.uploadCSV(file);
+    setCreatedCount(res.created);
+    if (res.skipped > 0) {
+      setSkippedDetails(res.skipped_details || []);
+      setSuccess(`Import completed: ${res.created} voter(s) successfully registered.`);
+    } else {
+      setSuccess(`All ${res.created} voter(s) successfully uploaded without errors!`);
     }
+    setFile(null);
+  } catch (err: any) {
+    setError(err?.data?.detail || err?.message || 'Failed to upload file');
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const downloadSkippedReport = () => {
+    if (!skippedDetails.length) return;
+    const header = "MCS Number,Full Name,Failure Reason\n";
+    const rows = skippedDetails.map(item => `"${item.username}","${item.full_name || ''}","${item.reason.replace(/"/g, '""')}"`).join("\n");
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'voter_upload_failures.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Bulk Upload Voters</h1>
-        <p className="text-slate-500">Upload a CSV file containing voter records.</p>
+        <p className="text-slate-500">Upload a CSV file containing voter records into the system.</p>
       </div>
 
       {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
       {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
+
+      {/* DETAILED ALERT FOR SKIPPED / FAILED ROWS (Requirement 6) */}
+      {skippedDetails.length > 0 && (
+        <div className="p-5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-amber-600 text-2xl">warning</span>
+              <h3 className="font-bold text-amber-900 dark:text-amber-300 text-lg">
+                Upload Warning: {skippedDetails.length} Row(s) Were Not Uploaded
+              </h3>
+            </div>
+            <button
+              onClick={downloadSkippedReport}
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm"
+            >
+              <span className="material-symbols-outlined text-sm">download</span>
+              Download Failure Report (.CSV)
+            </button>
+          </div>
+
+          <p className="text-sm text-amber-800 dark:text-amber-400">
+            The following voter records could not be imported. Review the failure reasons below to correct your CSV:
+          </p>
+
+          <div className="max-h-72 overflow-y-auto rounded-lg border border-amber-200 dark:border-amber-800/50 bg-white dark:bg-slate-900">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-amber-100/70 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 text-xs uppercase font-semibold sticky top-0">
+                <tr>
+                  <th className="px-4 py-2.5">MCS Number</th>
+                  <th className="px-4 py-2.5">Full Name</th>
+                  <th className="px-4 py-2.5">Failure / Skip Reason</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-amber-100 dark:divide-amber-900/30 font-medium">
+                {skippedDetails.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-amber-50/50 dark:hover:bg-amber-950/20">
+                    <td className="px-4 py-2 text-slate-900 dark:text-white font-mono text-xs">{item.username}</td>
+                    <td className="px-4 py-2 text-slate-700 dark:text-slate-300">{item.full_name || '—'}</td>
+                    <td className="px-4 py-2 text-red-600 dark:text-red-400 text-xs">{item.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-[#1a1d29] border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-12 text-center hover:border-primary transition-colors">
         <span className="material-symbols-outlined text-6xl text-slate-300 dark:text-slate-600 mb-4 block">
@@ -848,7 +923,8 @@ export const BulkUpload: React.FC = () => {
         <h3 className="font-bold mb-4">Instructions</h3>
         <ul className="list-disc list-inside space-y-2 text-sm text-slate-600 dark:text-slate-400">
           <li>File must be in CSV format.</li>
-          <li>Required columns: username, full_name, phone, email, role, password</li>
+          <li>Supported headers: username (or mcs_number), full_name, phone, email, role, password</li>
+          <li>Duplicate usernames or duplicate emails are skipped to preserve system integrity.</li>
           <li>Max file size is 10MB.</li>
         </ul>
       </div>
@@ -861,7 +937,17 @@ export const BulkActions: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Bulk Disqualify state
+  const [disqualifyFile, setDisqualifyFile] = useState<File | null>(null);
+  const [disqualifyLoading, setDisqualifyLoading] = useState(false);
+  const [disqualifyResult, setDisqualifyResult] = useState<{
+    disqualified_count: number;
+    not_found_count: number;
+    not_found_usernames: string[];
+  } | null>(null);
+
   const handleEnableAll = async () => {
+    if (!window.confirm('Are you sure you want to enable voting access for ALL registered voters?')) return;
     setLoading(true);
     setError('');
     try {
@@ -875,6 +961,7 @@ export const BulkActions: React.FC = () => {
   };
 
   const handleDisableAll = async () => {
+    if (!window.confirm('Warning: Are you sure you want to disable voting access for ALL registered voters?')) return;
     setLoading(true);
     setError('');
     try {
@@ -887,21 +974,120 @@ export const BulkActions: React.FC = () => {
     }
   };
 
+  const handleDisqualifyUpload = async () => {
+    if (!disqualifyFile) {
+      setError('Please select a CSV file containing voter usernames to disqualify.');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to disqualify all voters listed in "${disqualifyFile.name}"? They will become Inactive and ineligible to vote.`)) {
+      return;
+    }
+
+    setDisqualifyLoading(true);
+    setError('');
+    setSuccess('');
+    setDisqualifyResult(null);
+
+    try {
+      const res = await usersAPI.bulkDisqualifyCSV(disqualifyFile);
+      setDisqualifyResult({
+        disqualified_count: res.disqualified_count,
+        not_found_count: res.not_found_count,
+        not_found_usernames: res.not_found_usernames || [],
+      });
+      setSuccess(`Disqualification complete: ${res.disqualified_count} voter(s) successfully disqualified (set to Inactive).`);
+      setDisqualifyFile(null);
+    } catch (err: any) {
+      setError(err?.data?.detail || err?.message || 'Failed to disqualify voters from CSV.');
+    } finally {
+      setDisqualifyLoading(false);
+    }
+  };
+
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-8">
+    <div className="max-w-3xl mx-auto space-y-8">
+      <div>
         <h1 className="text-3xl font-black mb-2 text-slate-900 dark:text-white">
           Bulk Voter Status Management
         </h1>
         <p className="text-slate-500">
-          Use these actions to enable or disable voting access for all registered voters simultaneously.
+          Manage voting eligibility and account statuses in bulk via mass actions or CSV upload.
         </p>
       </div>
 
       {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
       {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
 
-      <div className="bg-white dark:bg-[#1a1d29] p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-6">
+      {/* SECTION 1: BULK DISQUALIFY VIA CSV (Requirement 5) */}
+      <div className="bg-white dark:bg-[#1a1d29] p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="size-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
+            <span className="material-symbols-outlined">person_off</span>
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              Bulk Disqualify Voters by CSV
+            </h2>
+            <p className="text-sm text-slate-500">
+              Upload a CSV file containing usernames (MCS numbers) of voters to be disqualified (set to Inactive / Ineligible).
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center gap-4">
+          <input
+            type="file"
+            accept=".csv"
+            id="bulk-disqualify-csv"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                setDisqualifyFile(e.target.files[0]);
+                setError('');
+                setSuccess('');
+                setDisqualifyResult(null);
+              }
+            }}
+          />
+          <label
+            htmlFor="bulk-disqualify-csv"
+            className="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-medium rounded-lg text-sm cursor-pointer whitespace-nowrap transition-colors"
+          >
+            {disqualifyFile ? 'Change File' : 'Select Usernames CSV'}
+          </label>
+          <span className="text-sm text-slate-600 dark:text-slate-400 truncate flex-1">
+            {disqualifyFile ? disqualifyFile.name : 'No file chosen (CSV with usernames)'}
+          </span>
+          <button
+            onClick={handleDisqualifyUpload}
+            disabled={!disqualifyFile || disqualifyLoading}
+            className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-sm transition-colors disabled:opacity-50 whitespace-nowrap"
+          >
+            {disqualifyLoading ? 'Processing...' : 'Disqualify Voters'}
+          </button>
+        </div>
+
+        {disqualifyResult && (
+          <div className="p-4 rounded-lg bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2 text-sm">
+            <div className="flex items-center gap-2 text-emerald-600 font-semibold">
+              <span className="material-symbols-outlined text-sm">check_circle</span>
+              {disqualifyResult.disqualified_count} voter(s) successfully marked as Inactive.
+            </div>
+            {disqualifyResult.not_found_count > 0 && (
+              <div className="text-amber-700 dark:text-amber-400">
+                <span className="font-semibold">{disqualifyResult.not_found_count}</span> username(s) from the CSV were not found in the system:
+                <p className="mt-1 font-mono text-xs max-h-20 overflow-y-auto bg-amber-50/50 dark:bg-amber-950/20 p-2 rounded">
+                  {disqualifyResult.not_found_usernames.join(', ')}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* SECTION 2: GLOBAL STATUS SWITCH */}
+      <div className="bg-white dark:bg-[#1a1d29] p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-6 shadow-sm">
         <div className="flex items-start gap-4 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30">
           <span className="material-symbols-outlined text-amber-600">warning</span>
           <div>
@@ -909,7 +1095,7 @@ export const BulkActions: React.FC = () => {
               Warning: Proceed with extreme caution.
             </h3>
             <p className="text-sm text-amber-700 dark:text-amber-600 mt-1">
-              These actions will affect all voter accounts in the system.
+              These actions will affect all voter accounts in the system simultaneously.
             </p>
           </div>
         </div>
@@ -934,3 +1120,4 @@ export const BulkActions: React.FC = () => {
     </div>
   );
 };
+

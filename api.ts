@@ -344,6 +344,21 @@ async function apiFetch<T>(
     } catch {
       errorData = await response.text();
     }
+
+    if (response.status === 401) {
+      const detail = typeof errorData === 'object' && errorData?.detail ? errorData.detail : '';
+      if (typeof detail === 'string' && detail.toLowerCase().includes('admin session expired')) {
+        TokenManager.removeToken();
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('voting_username');
+        localStorage.removeItem('voting_fullname');
+        localStorage.removeItem('fullname');
+        localStorage.removeItem('voting_auth_role');
+        alert('Your admin session has expired: A new login was initiated on another device.');
+        window.location.href = '/#/admin/login';
+      }
+    }
+
     throw new APIError(response.status, response.statusText, errorData);
   }
 
@@ -679,9 +694,16 @@ export const usersAPI = {
     await apiFetch('/users/enable-voters', { method: 'PATCH' });
   },
 
-  async downloadCSV(): Promise<void> {
+  async downloadCSV(filters?: { search?: string; role?: string; status?: string; accreditation?: string }): Promise<void> {
     const token = TokenManager.getToken();
-    const response = await fetch(`${API_BASE_URL}/users/export/csv`, {
+    const params = new URLSearchParams();
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.role && filters.role !== 'all') params.append('role', filters.role);
+    if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
+    if (filters?.accreditation && filters.accreditation !== 'all') params.append('accreditation', filters.accreditation);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const response = await fetch(`${API_BASE_URL}/users/export/csv${query}`, {
       headers: { ...(token && { Authorization: 'Bearer ' + token }) },
     });
     if (!response.ok) throw new Error('Failed to download CSV');
@@ -695,9 +717,16 @@ export const usersAPI = {
     a.remove();
   },
 
-  async downloadPDF(): Promise<void> {
+  async downloadPDF(filters?: { search?: string; role?: string; status?: string; accreditation?: string }): Promise<void> {
     const token = TokenManager.getToken();
-    const response = await fetch(`${API_BASE_URL}/users/export/pdf`, {
+    const params = new URLSearchParams();
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.role && filters.role !== 'all') params.append('role', filters.role);
+    if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
+    if (filters?.accreditation && filters.accreditation !== 'all') params.append('accreditation', filters.accreditation);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const response = await fetch(`${API_BASE_URL}/users/export/pdf${query}`, {
       headers: { ...(token && { Authorization: 'Bearer ' + token }) },
     });
     if (!response.ok) throw new Error('Failed to download PDF');
@@ -709,6 +738,33 @@ export const usersAPI = {
     document.body.appendChild(a);
     a.click();
     a.remove();
+  },
+
+  async bulkDisqualifyCSV(file: File): Promise<{
+    message: string;
+    disqualified_count: number;
+    disqualified_usernames: string[];
+    not_found_count: number;
+    not_found_usernames: string[];
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = TokenManager.getToken();
+    const response = await fetch(`${API_BASE_URL}/users/bulk-disqualify`, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: 'Bearer ' + token }),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+
+    return response.json();
   },
 };
 
