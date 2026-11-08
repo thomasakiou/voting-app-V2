@@ -1,7 +1,7 @@
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import { ProtectedRoute, PublicVoterRoute } from './components/ProtectedRoute';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthLayout, AdminLayout, VoterLayout } from './components/Layouts';
 import { Login, AdminLogin, VerifyOTP } from './pages/Auth';
 import { Accreditation } from './pages/Accreditation';
@@ -23,19 +23,19 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/" element={<Navigate to="/election" replace />} />
 
-          {/* Public Accreditation Route - Locked from Admins */}
-          <Route path="/accreditation" element={<PublicVoterRoute><Accreditation /></PublicVoterRoute>} />
+          {/* Public Accreditation Route */}
+          <Route path="/accreditation" element={<Accreditation />} />
 
-          {/* Public Voter Contact Registration & Verification Route - Locked from Admins */}
-          <Route path="/contact-update" element={<PublicVoterRoute><VoterContactUpdate /></PublicVoterRoute>} />
-          <Route path="/profile-update" element={<PublicVoterRoute><VoterContactUpdate /></PublicVoterRoute>} />
+          {/* Public Voter Contact Registration & Verification Route */}
+          <Route path="/contact-update" element={<VoterContactUpdate />} />
+          <Route path="/profile-update" element={<VoterContactUpdate />} />
 
           {/* Auth & Election Routes */}
           <Route element={<AuthLayout />}>
-            <Route path="/election" element={<PublicVoterRoute><Login /></PublicVoterRoute>} />
-            <Route path="/login" element={<PublicVoterRoute><Login /></PublicVoterRoute>} />
+            <Route path="/election" element={<Login />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/verify-otp" element={<PublicVoterRoute><VerifyOTP /></PublicVoterRoute>} />
+            <Route path="/verify-otp" element={<VerifyOTP />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
           </Route>

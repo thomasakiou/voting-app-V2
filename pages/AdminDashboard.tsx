@@ -495,7 +495,98 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Alerts */}
+            {/* COMPACT URL LOCKS BAR (Top of Dashboard) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-white dark:bg-[#1a1d29] border border-slate-200 dark:border-slate-800 shadow-sm text-xs">
+        <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold tracking-wide">
+          <span className="material-symbols-outlined text-base text-indigo-600">lock_clock</span>
+          <span>Voter URL Locks:</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* 1. Contact Update Toggle */}
+          {(() => {
+            const isLocked = portalLocks?.contact_update?.is_locked ?? false;
+            return (
+              <button
+                type="button"
+                onClick={() => handleTogglePortalLock('contact_update', isLocked)}
+                disabled={togglingLock === 'contact_update'}
+                className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 border transition-all shadow-xs ${
+                  isLocked
+                    ? 'bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+                }`}
+                title="Click to toggle lock for Contact Update URL"
+              >
+                {togglingLock === 'contact_update' ? (
+                  <div className="size-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <span className="material-symbols-outlined text-sm">
+                    {isLocked ? 'lock' : 'lock_open'}
+                  </span>
+                )}
+                <span>Contact Update: <b>{isLocked ? 'Locked' : 'Open'}</b></span>
+              </button>
+            );
+          })()}
+
+          {/* 2. Accreditation Toggle */}
+          {(() => {
+            const isLocked = portalLocks?.accreditation?.is_locked ?? false;
+            return (
+              <button
+                type="button"
+                onClick={() => handleTogglePortalLock('accreditation', isLocked)}
+                disabled={togglingLock === 'accreditation'}
+                className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 border transition-all shadow-xs ${
+                  isLocked
+                    ? 'bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+                }`}
+                title="Click to toggle lock for Accreditation URL"
+              >
+                {togglingLock === 'accreditation' ? (
+                  <div className="size-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <span className="material-symbols-outlined text-sm">
+                    {isLocked ? 'lock' : 'lock_open'}
+                  </span>
+                )}
+                <span>Accreditation: <b>{isLocked ? 'Locked' : 'Open'}</b></span>
+              </button>
+            );
+          })()}
+
+          {/* 3. Election Toggle */}
+          {(() => {
+            const isLocked = portalLocks?.election?.is_locked ?? false;
+            return (
+              <button
+                type="button"
+                onClick={() => handleTogglePortalLock('election', isLocked)}
+                disabled={togglingLock === 'election'}
+                className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 border transition-all shadow-xs ${
+                  isLocked
+                    ? 'bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100'
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100'
+                }`}
+                title="Click to toggle lock for Election URL"
+              >
+                {togglingLock === 'election' ? (
+                  <div className="size-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <span className="material-symbols-outlined text-sm">
+                    {isLocked ? 'lock' : 'lock_open'}
+                  </span>
+                )}
+                <span>Election: <b>{isLocked ? 'Locked' : 'Open'}</b></span>
+              </button>
+            );
+          })()}
+        </div>
+      </div>
+
+{/* Alerts */}
       {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
       {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
 
@@ -565,218 +656,6 @@ export const AdminDashboard: React.FC = () => {
               </button>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* PORTAL ACCESS & URL LOCK CONTROLS */}
-      <div className="bg-white dark:bg-[#1a1d29] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-indigo-600">lock</span>
-              Portal Access & URL Locks
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Lock or unlock voter portals. When a portal URL is locked, voters visiting that page will see a prominent alert that it is closed by the election administration.
-            </p>
-          </div>
-          <span className="text-xs font-semibold px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full w-fit">
-            Administrative URL Controls
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* 1. Contact Update URL Card */}
-          {(() => {
-            const isLocked = portalLocks?.contact_update?.is_locked ?? false;
-            return (
-              <div className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
-                isLocked
-                  ? 'border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20'
-                  : 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20'
-              }`}>
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`material-symbols-outlined text-2xl ${isLocked ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {isLocked ? 'lock' : 'lock_open'}
-                      </span>
-                      <span className="font-bold text-slate-900 dark:text-white text-base">
-                        Contact Update
-                      </span>
-                    </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                      isLocked
-                        ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
-                        : 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
-                    }`}>
-                      {isLocked ? 'Locked' : 'Open'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1 mb-4 text-xs">
-                    <div className="font-mono bg-white/70 dark:bg-slate-900/60 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 truncate">
-                      /contact-update
-                    </div>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">
-                      {isLocked
-                        ? 'Voters visiting this page see an alert that contact update is closed.'
-                        : 'Voters can register or update missing email / phone number.'}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleTogglePortalLock('contact_update', isLocked)}
-                  disabled={togglingLock === 'contact_update'}
-                  className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all ${
-                    isLocked
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
-                >
-                  {togglingLock === 'contact_update' ? (
-                    <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-base">
-                        {isLocked ? 'lock_open' : 'lock'}
-                      </span>
-                      {isLocked ? 'Unlock Contact Update' : 'Lock Contact Update'}
-                    </>
-                  )}
-                </button>
-              </div>
-            );
-          })()}
-
-          {/* 2. Accreditation URL Card */}
-          {(() => {
-            const isLocked = portalLocks?.accreditation?.is_locked ?? false;
-            return (
-              <div className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
-                isLocked
-                  ? 'border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20'
-                  : 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20'
-              }`}>
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`material-symbols-outlined text-2xl ${isLocked ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {isLocked ? 'lock' : 'lock_open'}
-                      </span>
-                      <span className="font-bold text-slate-900 dark:text-white text-base">
-                        Accreditation
-                      </span>
-                    </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                      isLocked
-                        ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
-                        : 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
-                    }`}>
-                      {isLocked ? 'Locked' : 'Open'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1 mb-4 text-xs">
-                    <div className="font-mono bg-white/70 dark:bg-slate-900/60 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 truncate">
-                      /accreditation
-                    </div>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">
-                      {isLocked
-                        ? 'Voters visiting this page see an alert that accreditation is closed.'
-                        : 'Eligible voters can accredit their device and verify OTP.'}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleTogglePortalLock('accreditation', isLocked)}
-                  disabled={togglingLock === 'accreditation'}
-                  className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all ${
-                    isLocked
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
-                >
-                  {togglingLock === 'accreditation' ? (
-                    <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-base">
-                        {isLocked ? 'lock_open' : 'lock'}
-                      </span>
-                      {isLocked ? 'Unlock Accreditation' : 'Lock Accreditation'}
-                    </>
-                  )}
-                </button>
-              </div>
-            );
-          })()}
-
-          {/* 3. Election URL Card */}
-          {(() => {
-            const isLocked = portalLocks?.election?.is_locked ?? false;
-            return (
-              <div className={`p-5 rounded-2xl border transition-all flex flex-col justify-between ${
-                isLocked
-                  ? 'border-red-300 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20'
-                  : 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20'
-              }`}>
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`material-symbols-outlined text-2xl ${isLocked ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {isLocked ? 'lock' : 'lock_open'}
-                      </span>
-                      <span className="font-bold text-slate-900 dark:text-white text-base">
-                        Election Portal
-                      </span>
-                    </div>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                      isLocked
-                        ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
-                        : 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
-                    }`}>
-                      {isLocked ? 'Locked' : 'Open'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-1 mb-4 text-xs">
-                    <div className="font-mono bg-white/70 dark:bg-slate-900/60 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 truncate">
-                      /election
-                    </div>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1">
-                      {isLocked
-                        ? 'Voters visiting this page see an alert that the voting portal is closed.'
-                        : 'Accredited voters can log in with OTP and submit ballots.'}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleTogglePortalLock('election', isLocked)}
-                  disabled={togglingLock === 'election'}
-                  className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all ${
-                    isLocked
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'bg-red-600 hover:bg-red-700 text-white'
-                  }`}
-                >
-                  {togglingLock === 'election' ? (
-                    <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-base">
-                        {isLocked ? 'lock_open' : 'lock'}
-                      </span>
-                      {isLocked ? 'Unlock Election Portal' : 'Lock Election Portal'}
-                    </>
-                  )}
-                </button>
-              </div>
-            );
-          })()}
         </div>
       </div>
 
