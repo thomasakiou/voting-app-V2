@@ -895,6 +895,7 @@ export const BulkUpload: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [skippedDetails, setSkippedDetails] = useState<Array<{ username: string; full_name?: string; reason: string }>>([]);
   const [createdCount, setCreatedCount] = useState<number | null>(null);
+  const [existingCount, setExistingCount] = useState<number>(0);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -903,6 +904,7 @@ export const BulkUpload: React.FC = () => {
       setSuccess('');
       setSkippedDetails([]);
       setCreatedCount(null);
+      setExistingCount(0);
     }
   };
 
@@ -917,23 +919,48 @@ export const BulkUpload: React.FC = () => {
     setSuccess('');
     setSkippedDetails([]);
     setCreatedCount(null);
+    setExistingCount(0);
 
-  try {
-    const res = await usersAPI.uploadCSV(file);
-    setCreatedCount(res.created);
-    if (res.skipped > 0) {
-      setSkippedDetails(res.skipped_details || []);
-      setSuccess(`Import completed: ${res.created} voter(s) successfully registered.`);
-    } else {
-      setSuccess(`All ${res.created} voter(s) successfully uploaded without errors!`);
+    try {
+      const res = await usersAPI.uploadCSV(file);
+      setCreatedCount(res.created);
+
+      const rawSkipped = res.skipped_details || [];
+      // Filter out already existing voters so they don't clutter the error alert
+      const alreadyExisting = rawSkipped.filter((item: any) =>
+        item.reason && item.reason.toLowerCase().includes('already exists')
+      );
+      const genuineFailures = rawSkipped.filter((item: any) =>
+        !item.reason || !item.reason.toLowerCase().includes('already exists')
+      );
+
+      setExistingCount(alreadyExisting.length);
+      setSkippedDetails(genuineFailures);
+
+      if (genuineFailures.length > 0) {
+        setSuccess(
+          `Import finished: ${res.created} new voter(s) added.${
+            alreadyExisting.length > 0 ? ` (${alreadyExisting.length} existing voters safely skipped).` : ''
+          }`
+        );
+      } else if (res.created > 0) {
+        setSuccess(
+          `Upload complete: ${res.created} new voter(s) successfully registered.${
+            alreadyExisting.length > 0 ? ` (${alreadyExisting.length} already registered voters were skipped).` : ''
+          }`
+        );
+      } else {
+        setSuccess(
+          `All ${alreadyExisting.length} voter(s) in this file are already registered in the system.`
+        );
+      }
+      setFile(null);
+    } catch (err: any) {
+      setError(err?.data?.detail || err?.message || 'Failed to upload file');
+    } finally {
+      setLoading(false);
     }
-    setFile(null);
-  } catch (err: any) {
-    setError(err?.data?.detail || err?.message || 'Failed to upload file');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const downloadSkippedReport = () => {
     if (!skippedDetails.length) return;
@@ -959,14 +986,27 @@ export const BulkUpload: React.FC = () => {
       {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
       {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
 
-      {/* DETAILED ALERT FOR SKIPPED / FAILED ROWS (Requirement 6) */}
+      {/* Info notice for existing voters */}
+      {existingCount > 0 && skippedDetails.length === 0 && (
+        <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 flex items-center gap-3 text-sm text-blue-800 dark:text-blue-300 shadow-sm animate-scale-in">
+          <span className="material-symbols-outlined text-blue-600 text-xl">info</span>
+          <div>
+            <p className="font-semibold">All existing voters preserved</p>
+            <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+              {existingCount} voter(s) in this file are already registered in the database and were safely skipped.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* DETAILED ALERT FOR GENUINE FAILURES ONLY (excluding already existing voters) */}
       {skippedDetails.length > 0 && (
-        <div className="p-5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700 space-y-4">
+        <div className="p-5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700 space-y-4 animate-scale-in">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-amber-600 text-2xl">warning</span>
               <h3 className="font-bold text-amber-900 dark:text-amber-300 text-lg">
-                Upload Warning: {skippedDetails.length} Row(s) Were Not Uploaded
+                Upload Warning: {skippedDetails.length} Record(s) Failed to Upload
               </h3>
             </div>
             <button
@@ -979,7 +1019,8 @@ export const BulkUpload: React.FC = () => {
           </div>
 
           <p className="text-sm text-amber-800 dark:text-amber-400">
-            The following voter records could not be imported. Review the failure reasons below to correct your CSV:
+            The following records encountered conflicts (such as duplicate emails belonging to another voter or database errors) and could not be imported.
+            {existingCount > 0 && ` (${existingCount} already existing voters were skipped and are excluded from this list).`}
           </p>
 
           <div className="max-h-72 overflow-y-auto rounded-lg border border-amber-200 dark:border-amber-800/50 bg-white dark:bg-slate-900">
@@ -988,7 +1029,7 @@ export const BulkUpload: React.FC = () => {
                 <tr>
                   <th className="px-4 py-2.5">MCS Number</th>
                   <th className="px-4 py-2.5">Full Name</th>
-                  <th className="px-4 py-2.5">Failure / Skip Reason</th>
+                  <th className="px-4 py-2.5">Failure Reason</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-amber-100 dark:divide-amber-900/30 font-medium">
