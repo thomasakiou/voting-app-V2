@@ -184,6 +184,18 @@ export interface VotingTimeOut {
   message?: string | null;
 }
 
+export interface PortalLockItem {
+  is_locked: boolean;
+  message: string;
+}
+
+export interface PortalLocksStatus {
+  contact_update: PortalLockItem;
+  accreditation: PortalLockItem;
+  election: PortalLockItem;
+  updated_at?: string;
+}
+
 export interface VotingTimeSet {
   start_time: string;
   end_time: string;
@@ -980,3 +992,30 @@ export const votingTimeAPI = {
     });
   },
 };
+
+// Portal Locks API (Lock / Unlock Contact Update, Accreditation, Election URLs)
+export const portalLocksAPI = {
+  async getStatus(): Promise<PortalLocksStatus> {
+    const response = await fetch(`${API_BASE_URL}/portal-locks/status`);
+    if (!response.ok) {
+      return {
+        contact_update: { is_locked: false, message: '' },
+        accreditation: { is_locked: false, message: '' },
+        election: { is_locked: false, message: '' },
+      };
+    }
+    return response.json();
+  },
+
+  async toggle(
+    portal: 'contact_update' | 'accreditation' | 'election',
+    is_locked: boolean,
+    message?: string
+  ): Promise<PortalLocksStatus> {
+    return apiFetch<PortalLocksStatus>('/portal-locks/toggle', {
+      method: 'POST',
+      body: JSON.stringify({ portal, is_locked, message }),
+    });
+  },
+};
+

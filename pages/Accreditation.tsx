@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { accreditationAPI, APIError } from '../api';
+import { accreditationAPI, portalLocksAPI, APIError } from '../api';
 import { getDeviceId, getDeviceInfo } from '../utils/device';
 
 const getErrorMessage = (err: unknown, fallback: string): string => {
@@ -32,6 +32,20 @@ export const Accreditation: React.FC = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [isPortalLocked, setIsPortalLocked] = useState(false);
+  const [lockMessage, setLockMessage] = useState('');
+
+  useEffect(() => {
+    portalLocksAPI.getStatus().then((status) => {
+      if (status.accreditation?.is_locked) {
+        setIsPortalLocked(true);
+        setLockMessage(
+          status.accreditation.message ||
+            'Voter Accreditation is currently closed by the election administration.'
+        );
+      }
+    }).catch(() => null);
+  }, []);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -219,6 +233,21 @@ export const Accreditation: React.FC = () => {
             </p>
           </div>
 
+          {/* Portal Locked Alert Banner */}
+          {isPortalLocked && (
+            <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border-2 border-red-400 dark:border-red-800 flex items-start gap-3 shadow-md animate-scale-in">
+              <span className="material-symbols-outlined text-red-600 text-3xl shrink-0">lock</span>
+              <div>
+                <h3 className="font-bold text-red-900 dark:text-red-200 text-base">
+                  Accreditation Currently Closed
+                </h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-0.5">
+                  {lockMessage || 'Voter Accreditation is currently closed by the election administration. Device accreditation and OTP issuance are temporarily disabled.'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Notifications */}
           {error && (
             <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3 text-red-600 dark:text-red-400 animate-scale-in">
@@ -276,7 +305,7 @@ export const Accreditation: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={loading || !username.trim()}
+                disabled={loading || isPortalLocked || !username.trim()}
                 className="w-full btn-primary flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
               >
                 {loading ? (

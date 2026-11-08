@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { voterContactAPI, APIError } from '../api';
+import { voterContactAPI, portalLocksAPI, APIError } from '../api';
 
 const getErrorMessage = (err: unknown, fallback: string): string => {
   if (err instanceof APIError) {
@@ -53,6 +53,20 @@ export const VoterContactUpdate: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isPortalLocked, setIsPortalLocked] = useState(false);
+  const [lockMessage, setLockMessage] = useState('');
+
+  useEffect(() => {
+    portalLocksAPI.getStatus().then((status) => {
+      if (status.contact_update?.is_locked) {
+        setIsPortalLocked(true);
+        setLockMessage(
+          status.contact_update.message ||
+            'The Voter Contact Update portal is currently closed by the election administration.'
+        );
+      }
+    }).catch(() => null);
+  }, []);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -287,6 +301,21 @@ export const VoterContactUpdate: React.FC = () => {
             </p>
           </div>
 
+          {/* Portal Locked Alert Banner */}
+          {isPortalLocked && (
+            <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border-2 border-red-400 dark:border-red-800 flex items-start gap-3 shadow-md animate-scale-in">
+              <span className="material-symbols-outlined text-red-600 text-3xl shrink-0">lock</span>
+              <div>
+                <h3 className="font-bold text-red-900 dark:text-red-200 text-base">
+                  Portal Currently Closed
+                </h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-0.5">
+                  {lockMessage || 'The Voter Contact Update portal is currently closed by the election administration. Registration and updating of voter contact details are temporarily disabled.'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Alerts */}
           {error && (
             <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3 text-red-600 dark:text-red-400 animate-scale-in">
@@ -332,7 +361,7 @@ export const VoterContactUpdate: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={loading || !username.trim()}
+                disabled={loading || isPortalLocked || !username.trim()}
                 className="w-full btn-primary flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50"
               >
                 {loading ? (

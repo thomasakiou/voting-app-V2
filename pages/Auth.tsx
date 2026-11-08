@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authAPI, votingTimeAPI, VotingTimeOut, APIError } from '../api';
+import { authAPI, votingTimeAPI, portalLocksAPI, VotingTimeOut, APIError } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { getDeviceId } from '../utils/device';
 
@@ -122,6 +122,8 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [votingStatus, setVotingStatus] = useState<VotingTimeOut | null>(null);
+  const [isElectionPortalLocked, setIsElectionPortalLocked] = useState(false);
+  const [electionLockMessage, setElectionLockMessage] = useState('');
   const [error, setError] = useState('');
 
   // Check election status on mount
@@ -132,8 +134,20 @@ export const Login: React.FC = () => {
   const checkStatus = async () => {
     try {
       setCheckingStatus(true);
-      const status = await votingTimeAPI.getStatus();
-      setVotingStatus(status);
+      const [status, locks] = await Promise.all([
+        votingTimeAPI.getStatus().catch(() => null),
+        portalLocksAPI.getStatus().catch(() => null),
+      ]);
+      if (status) setVotingStatus(status);
+      if (locks?.election?.is_locked) {
+        setIsElectionPortalLocked(true);
+        setElectionLockMessage(
+          locks.election.message ||
+            'The Election portal is currently closed by the election administrator.'
+        );
+      } else {
+        setIsElectionPortalLocked(false);
+      }
     } catch (err) {
       console.error('Failed to check voting status:', err);
     } finally {
@@ -181,8 +195,21 @@ export const Login: React.FC = () => {
 
       {error && <AuthError error={error} />}
 
+      {/* PORTAL LOCKED ALERT BANNER */}
+      {isElectionPortalLocked && (
+        <div className="p-6 rounded-2xl bg-red-50 dark:bg-red-950/40 border-2 border-red-400 dark:border-red-800 space-y-2 shadow-md animate-scale-in">
+          <div className="flex items-center gap-3 text-red-700 dark:text-red-300 font-bold text-lg">
+            <span className="material-symbols-outlined text-2xl">lock</span>
+            Election Portal Currently Closed
+          </div>
+          <p className="text-sm text-red-800 dark:text-red-200 leading-relaxed">
+            {electionLockMessage || 'The Election portal is currently closed by the election administrator. Voting and ballot access are temporarily disabled.'}
+          </p>
+        </div>
+      )}
+
       {/* LOCKED STATUS BANNER */}
-      {!checkingStatus && !isVotingOpen && (
+      {!checkingStatus && !isVotingOpen && !isElectionPortalLocked && (
         <div className="p-6 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800 space-y-3">
           <div className="flex items-center gap-3 text-amber-700 dark:text-amber-400 font-bold text-lg">
             <span className="material-symbols-outlined text-2xl">lock</span>
@@ -218,7 +245,7 @@ export const Login: React.FC = () => {
 
         <button
           type="submit"
-          disabled={loading || !username.trim() || (!checkingStatus && !isVotingOpen)}
+          disabled={loading || !username.trim() || (!checkingStatus && !isVotingOpen) || isElectionPortalLocked}
           className="w-full btn-primary flex items-center justify-center gap-2 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
