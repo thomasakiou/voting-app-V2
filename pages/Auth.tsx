@@ -15,18 +15,33 @@ const getErrorMessage = (err: unknown, fallback: string) => {
 
 const AuthError: React.FC<{ error: string }> = ({ error }) => {
   const isDeviceMismatch = error.toLowerCase().includes('device mismatch');
+  const isSessionConflict =
+    error.toLowerCase().includes('already running on another device') ||
+    error.toLowerCase().includes('active administrator session');
+
   return (
     <div className={`p-4 rounded-2xl border flex items-start gap-3 animate-scale-in ${
-      isDeviceMismatch
+      isSessionConflict || isDeviceMismatch
         ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200'
         : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'
     }`}>
       <span className="material-symbols-outlined mt-0.5">
-        {isDeviceMismatch ? 'phonelink_lock' : 'error'}
+        {isSessionConflict ? 'devices' : isDeviceMismatch ? 'phonelink_lock' : 'error'}
       </span>
       <div className="text-sm font-medium leading-relaxed">
-        <p className="font-semibold">{isDeviceMismatch ? 'Device Security Lock' : 'Authentication Error'}</p>
+        <p className="font-semibold">
+          {isSessionConflict
+            ? 'Single Active Session Enforced'
+            : isDeviceMismatch
+            ? 'Device Security Lock'
+            : 'Authentication Error'}
+        </p>
         <p className="mt-0.5">{error}</p>
+        {isSessionConflict && (
+          <p className="mt-2 text-xs opacity-90">
+            For security, this administrator account is currently active on another device. The existing session has priority and cannot be interrupted. Please log out from that device to access the admin portal here.
+          </p>
+        )}
         {isDeviceMismatch && (
           <p className="mt-2 text-xs opacity-90">
             For security, voting is strictly restricted to the physical device and browser used during your accreditation. If your device was damaged or replaced, an administrator can reverse your accreditation to let you re-register a new device.
@@ -269,10 +284,16 @@ export const Login: React.FC = () => {
 // ============================================================
 export const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
-  const { adminLogin } = useAuth();
+  const { user, isAuthenticated, adminLogin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && (user?.role === 'admin' || user?.role === 'super-admin')) {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
