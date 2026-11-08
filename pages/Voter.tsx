@@ -13,7 +13,7 @@ import {
     MyStatsResponse,
     resolveImageUrl,
 } from '../api';
-import { LoadingSpinner, ErrorAlert, TablePagination, usePagination, Modal } from '../components/UIComponents';
+import { LoadingSpinner, ErrorAlert, TablePagination, usePagination, Modal, CandidateAvatar } from '../components/UIComponents';
 
 export const VoterDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -425,18 +425,12 @@ const CandidateInspectModal: React.FC<{
             <div className="flex flex-col items-center text-center space-y-5">
                 {/* Large Portrait */}
                 <div className="relative w-full max-w-xs aspect-square rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800 border-4 border-indigo-100 dark:border-indigo-900/50 shadow-xl flex items-center justify-center">
-                    {resolvedUrl ? (
-                        <img
-                            src={resolvedUrl}
-                            alt={candidate.name}
-                            className="size-full object-cover"
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center text-slate-400 p-8">
-                            <span className="material-symbols-outlined text-8xl">person</span>
-                            <span className="text-xs font-semibold mt-2">No Photo Provided</span>
-                        </div>
-                    )}
+                    <CandidateAvatar
+                        src={resolvedUrl}
+                        name={candidate.name}
+                        iconClassName="text-8xl"
+                        textClassName="text-base font-bold mt-2"
+                    />
                     {isSelected && (
                         <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold shadow-lg flex items-center gap-1">
                             <span className="material-symbols-outlined text-sm">check</span>
@@ -662,20 +656,12 @@ export const VoteCandidate: React.FC = () => {
                                         className="relative size-20 sm:size-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 group-hover/photo:border-indigo-500 group-hover/photo:scale-105 transition-all shadow-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                         title="Click photo to inspect candidate"
                                     >
-                                        {resolvedUrl ? (
-                                            <img
-                                                src={resolvedUrl}
-                                                alt={cand.name}
-                                                className="size-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center text-slate-400">
-                                                <span className="material-symbols-outlined text-3xl">person</span>
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">
-                                                    {cand.name.slice(0, 2).toUpperCase()}
-                                                </span>
-                                            </div>
-                                        )}
+                                        <CandidateAvatar
+                                            src={resolvedUrl}
+                                            name={cand.name}
+                                            iconClassName="text-3xl"
+                                            textClassName="text-[10px]"
+                                        />
                                         <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[11px] font-semibold gap-0.5">
                                             <span className="material-symbols-outlined text-xl">zoom_in</span>
                                             <span>Click photo</span>
@@ -740,15 +726,12 @@ export const VoteCandidate: React.FC = () => {
                 <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-800 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-indigo-500/5">
                     <div className="flex items-center gap-3">
                         <div className="size-14 rounded-2xl overflow-hidden bg-white dark:bg-slate-800 border-2 border-indigo-500 shadow-sm flex items-center justify-center flex-shrink-0">
-                            {selectedCandidate.image_url ? (
-                                <img
-                                    src={resolveImageUrl(selectedCandidate.image_url)}
-                                    alt={selectedCandidate.name}
-                                    className="size-full object-cover"
-                                />
-                            ) : (
-                                <span className="material-symbols-outlined text-indigo-600 text-2xl">person</span>
-                            )}
+                            <CandidateAvatar
+                                src={selectedCandidate.image_url ? resolveImageUrl(selectedCandidate.image_url) : ''}
+                                name={selectedCandidate.name}
+                                iconClassName="text-2xl"
+                                textClassName="text-[10px]"
+                            />
                         </div>
                         <div>
                             <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
@@ -833,10 +816,11 @@ export const VoteSuccess: React.FC = () => {
                     {receipt.candidate_image_url && (
                         <div className="flex justify-center pb-2">
                             <div className="size-24 rounded-2xl overflow-hidden border-2 border-green-500 shadow-md">
-                                <img
+                                <CandidateAvatar
                                     src={resolveImageUrl(receipt.candidate_image_url)}
-                                    alt={receipt.candidate_name}
-                                    className="size-full object-cover"
+                                    name={receipt.candidate_name || 'Candidate'}
+                                    iconClassName="text-4xl"
+                                    textClassName="text-xs"
                                 />
                             </div>
                         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { candidatesAPI, officesAPI, CandidateResponse, OfficeResponse, resolveImageUrl } from '../api';
-import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
+import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination, CandidateAvatar } from '../components/UIComponents';
 
 const compressImage = (file: File, maxWidth = 800, quality = 0.85): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -58,18 +58,12 @@ export const PhotoLightboxModal: React.FC<{
         <Modal isOpen={isOpen} onClose={onClose} title={`Candidate Photo: ${candidate.name}`}>
             <div className="flex flex-col items-center text-center space-y-4">
                 <div className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 shadow-lg flex items-center justify-center">
-                    {resolvedUrl ? (
-                        <img
-                            src={resolvedUrl}
-                            alt={candidate.name}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center text-slate-400 p-8">
-                            <span className="material-symbols-outlined text-8xl">person</span>
-                            <span className="text-sm font-semibold mt-2">No Photo Provided</span>
-                        </div>
-                    )}
+                    <CandidateAvatar
+                        src={resolvedUrl}
+                        name={candidate.name}
+                        iconClassName="text-7xl"
+                        textClassName="text-base font-bold mt-2"
+                    />
                 </div>
 
                 <div className="w-full text-left bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl space-y-2 border border-slate-200 dark:border-slate-700">
@@ -185,15 +179,12 @@ const EditCandidateModal: React.FC<{
                     <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">Candidate Photo</label>
                     <div className="flex items-center gap-4 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                         <div className="relative size-16 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center border border-slate-300 dark:border-slate-600">
-                            {resolvedDisplayUrl ? (
-                                <img
-                                    src={resolvedDisplayUrl}
-                                    alt="Candidate Preview"
-                                    className="size-full object-cover"
-                                />
-                            ) : (
-                                <span className="material-symbols-outlined text-slate-400 text-3xl">person</span>
-                            )}
+                            <CandidateAvatar
+                                src={resolvedDisplayUrl}
+                                name={name || 'Candidate'}
+                                iconClassName="text-3xl"
+                                textClassName="text-xs"
+                            />
                             {uploadingImage && (
                                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                                     <span className="material-symbols-outlined text-white text-lg animate-spin">progress_activity</span>
@@ -472,17 +463,12 @@ export const CandidateManagement: React.FC = () => {
                                                     className="group relative size-11 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 shadow-sm transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                                     title="Click to view candidate photo"
                                                 >
-                                                    {candidate.image_url ? (
-                                                        <img
-                                                            src={resolveImageUrl(candidate.image_url)}
-                                                            alt={candidate.name}
-                                                            className="size-full object-cover group-hover:scale-110 transition-transform"
-                                                        />
-                                                    ) : (
-                                                        <span className="material-symbols-outlined text-slate-400 group-hover:text-indigo-600 transition-colors text-xl">
-                                                            person
-                                                        </span>
-                                                    )}
+                                                    <CandidateAvatar
+                                                        src={candidate.image_url ? resolveImageUrl(candidate.image_url) : ''}
+                                                        name={candidate.name}
+                                                        iconClassName="text-xl"
+                                                        textClassName="text-[10px]"
+                                                    />
                                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                                                         <span className="material-symbols-outlined text-xs">zoom_in</span>
                                                     </div>
@@ -718,17 +704,12 @@ export const CreateCandidate: React.FC = () => {
                         </label>
                         <div className="p-4 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 flex flex-col sm:flex-row items-center gap-4">
                             <div className="relative size-24 rounded-2xl overflow-hidden bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 shadow-sm flex items-center justify-center flex-shrink-0">
-                                {resolvedDisplayUrl ? (
-                                    <img
-                                        src={resolvedDisplayUrl}
-                                        alt="Preview"
-                                        className="size-full object-cover"
-                                    />
-                                ) : (
-                                    <span className="material-symbols-outlined text-slate-300 dark:text-slate-500 text-4xl">
-                                        add_a_photo
-                                    </span>
-                                )}
+                                <CandidateAvatar
+                                    src={resolvedDisplayUrl}
+                                    name="Candidate"
+                                    iconClassName="text-4xl"
+                                    textClassName="text-xs"
+                                />
                                 {uploadingImage && (
                                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                                         <span className="material-symbols-outlined text-white text-2xl animate-spin">

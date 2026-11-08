@@ -322,3 +322,51 @@ export function usePagination<T>(items: T[], initialPageSize: number = 10) {
         paginatedItems,
     };
 }
+
+// Reusable Candidate Avatar with Graceful Fallback
+export const CandidateAvatar: React.FC<{
+    src?: string | null;
+    name: string;
+    className?: string;
+    iconClassName?: string;
+    textClassName?: string;
+}> = ({ src, name, className = '', iconClassName = 'text-2xl', textClassName = 'text-[10px]' }) => {
+    const [hasError, setHasError] = useState(false);
+
+    useEffect(() => {
+        setHasError(false);
+    }, [src]);
+
+    const initials = name
+        ? name
+              .split(' ')
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((n) => n[0])
+              .join('')
+              .toUpperCase()
+        : 'C';
+
+    const hasImage = Boolean(src && !hasError);
+
+    if (!hasImage) {
+        return (
+            <div className={`size-full bg-slate-100 dark:bg-slate-800 flex flex-col items-center justify-center text-slate-400 select-none ${className}`}>
+                <span className={`material-symbols-outlined ${iconClassName}`}>person</span>
+                <span className={`font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 ${textClassName}`}>
+                    {initials}
+                </span>
+            </div>
+        );
+    }
+
+    return (
+        <img
+            src={src!}
+            alt={name}
+            className={`size-full object-cover select-none ${className}`}
+            onError={() => setHasError(true)}
+            loading="lazy"
+        />
+    );
+};

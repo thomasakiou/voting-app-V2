@@ -901,12 +901,26 @@ export const candidatesAPI = {
 };
 
 export function resolveImageUrl(url?: string | null): string {
-  if (!url) return '';
-  if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
+  if (!url || typeof url !== 'string' || !url.trim()) return '';
+  const trimmed = url.trim();
+
+  // Full URL or data URL
+  if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
   }
-  const base = API_BASE_URL.replace(/\/api\/?$/, '');
-  return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+
+  const cleanBase = API_BASE_URL.replace(/\/+$/, '');
+
+  // If already prefixed with /candidates/images/
+  if (trimmed.startsWith('/candidates/images/')) {
+    return `${cleanBase}${trimmed}`;
+  }
+
+  // Extract filename from paths like /uploads/candidates/cand_123.jpg or cand_123.jpg
+  const filename = trimmed.split('/').pop()?.split('?')[0];
+  if (!filename) return '';
+
+  return `${cleanBase}/candidates/images/${filename}`;
 }
 
 // Votes API
