@@ -38,6 +38,7 @@ export interface AdminLoginRequest {
   username: string;
   password: string;
   device_id?: string;
+  force?: boolean;
 }
 
 export interface UserCreate {
@@ -387,7 +388,19 @@ async function apiFetch<T>(
 
 // Authentication API
 export const authAPI = {
-  async adminLogin(username: string, password: string, deviceId?: string): Promise<TokenResponse> {
+  async getAdminSessionStatus(): Promise<{ has_active_session: boolean; message?: string }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/session-status`);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch {
+      // Ignore network errors
+    }
+    return { has_active_session: false };
+  },
+
+  async adminLogin(username: string, password: string, deviceId?: string, force?: boolean): Promise<TokenResponse> {
     const resolvedDeviceId = deviceId || getDeviceId();
     const response = await fetch(`${API_BASE_URL}/admin/login`, {
       method: 'POST',
@@ -398,6 +411,7 @@ export const authAPI = {
         username,
         password,
         device_id: resolvedDeviceId,
+        force: Boolean(force),
       }),
     });
 

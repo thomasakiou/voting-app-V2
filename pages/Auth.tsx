@@ -288,12 +288,32 @@ export const AdminLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [hasActiveSession, setHasActiveSession] = useState(false);
+  const [sessionMessage, setSessionMessage] = useState('');
 
   useEffect(() => {
     if (isAuthenticated && (user?.role === 'admin' || user?.role === 'super-admin')) {
       navigate('/admin/dashboard', { replace: true });
     }
+    checkActiveSession();
   }, [isAuthenticated, user, navigate]);
+
+  const checkActiveSession = async () => {
+    try {
+      const res = await authAPI.getAdminSessionStatus();
+      if (res?.has_active_session) {
+        setHasActiveSession(true);
+        setSessionMessage(
+          res.message ||
+            'Another admin session is currently logged in. You cannot log in until that session logs out.'
+        );
+      } else {
+        setHasActiveSession(false);
+      }
+    } catch {
+      // Ignore network errors on passive check
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -305,8 +325,25 @@ export const AdminLogin: React.FC = () => {
     try {
       await adminLogin(username, password);
       navigate('/admin/dashboard', { replace: true });
-    } catch (err) {
-      setError(getErrorMessage(err, 'Invalid administrator credentials.'));
+    } catch (err: any) {
+      const msg = getErrorMessage(err, 'Invalid administrator credentials.');
+      setError(msg);
+
+      // Check if rejection was due to another active admin session
+      const isSessionConflict =
+        msg.toLowerCase().includes('another admin') ||
+        msg.toLowerCase().includes('already logged in') ||
+        msg.toLowerCase().includes('already running on another') ||
+        msg.toLowerCase().includes('another device');
+
+      if (isSessionConflict) {
+        setHasActiveSession(true);
+        // Alert the user as requested so they are unmistakably notified
+        alert(
+          'ACCESS DENIED: Another administrator session is currently logged in to this portal.\n\n' +
+          'Only one admin can be logged in at a time. You cannot log in until the active administrator logs out.'
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -324,6 +361,22 @@ export const AdminLogin: React.FC = () => {
           Enter your administrative credentials to manage election parameters.
         </p>
       </div>
+
+      {/* ACTIVE SESSION WARNING BANNER */}
+      {hasActiveSession && (
+        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-400 dark:border-amber-700 space-y-1.5 shadow-md animate-scale-in">
+          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-base">
+            <span className="material-symbols-outlined text-2xl text-amber-600 dark:text-amber-400">
+              admin_panel_settings
+            </span>
+            <span>Another Admin Session Is Currently Logged In</span>
+          </div>
+          <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed font-medium">
+            {sessionMessage ||
+              'An administrator is currently active on the portal. Only one administrator can be logged in at a time. You cannot log in until that session logs out.'}
+          </p>
+        </div>
+      )}
 
       {error && <AuthError error={error} />}
 

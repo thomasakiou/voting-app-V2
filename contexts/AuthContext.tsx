@@ -7,7 +7,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (username: string, phone: string) => Promise<void>;
-    adminLogin: (username: string, password: string) => Promise<void>;
+    adminLogin: (username: string, password: string, force?: boolean) => Promise<void>;
     verifyOTP: (username: string, otpCode: string, deviceId?: string) => Promise<UserOut>;
     logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
@@ -62,8 +62,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // OTP delivery is handled by the auth API; this method is retained for compatibility.
     };
 
-    const adminLogin = async (username: string, _password: string) => {
-        const loginResponse = await authAPI.adminLogin(username, _password);
+    const adminLogin = async (username: string, _password: string, force?: boolean) => {
+        const loginResponse = await authAPI.adminLogin(username, _password, undefined, force);
         localStorage.setItem('voting_username', username);
         localStorage.setItem('voting_fullname', loginResponse.fullname || username);
         localStorage.setItem('voting_auth_role', 'admin');
