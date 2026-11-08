@@ -11,8 +11,9 @@ import {
     VotingTimeOut,
     MyVoteResponse,
     MyStatsResponse,
+    resolveImageUrl,
 } from '../api';
-import { LoadingSpinner, ErrorAlert, TablePagination, usePagination } from '../components/UIComponents';
+import { LoadingSpinner, ErrorAlert, TablePagination, usePagination, Modal } from '../components/UIComponents';
 
 export const VoterDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -156,87 +157,97 @@ export const VoterDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Eligibility Verification Card */}
-                <div className="card p-6 flex flex-col justify-center items-center text-center bg-gradient-to-b from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
-                    <div className="size-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-3 text-emerald-600 dark:text-emerald-400 shadow-md shadow-emerald-500/10">
-                        <span className="material-symbols-outlined text-3xl">verified_user</span>
+                {/* Status Card */}
+                <div className="card p-6 flex flex-col justify-between">
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Election Status</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Official real-time poll status</p>
                     </div>
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-1">Accredited Voter</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
-                        Your identity has been confirmed for the NECO MCS election. Your ballot is strictly anonymous and encrypted.
-                    </p>
+
+                    <div className="my-6">
+                        {isVotingActive ? (
+                            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+                                <div className="flex items-center gap-3">
+                                    <span className="relative flex size-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full size-3 bg-emerald-500"></span>
+                                    </span>
+                                    <span className="font-extrabold text-emerald-700 dark:text-emerald-400 text-sm">
+                                        VOTING IN PROGRESS
+                                    </span>
+                                </div>
+                                <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-2">
+                                    All accredited voters are authorized to cast their ballots now.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                <div className="flex items-center gap-3">
+                                    <span className="size-3 rounded-full bg-slate-400"></span>
+                                    <span className="font-extrabold text-slate-700 dark:text-slate-300 text-sm">
+                                        POLLS CURRENTLY CLOSED
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2">
+                                    Voting has concluded or not yet commenced.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+                        <span>MCS Voting Portal</span>
+                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">v2.0-SECURE</span>
+                    </div>
                 </div>
             </div>
 
-            {/* My Cast Votes & Cryptographic Receipts */}
-            <div className="card p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Your Cast Votes & Receipts</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Verified voting confirmations for your records.
+            {/* Quick Actions / Guide */}
+            <div className="card p-6">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">How Voting Works</h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-2">
+                        <div className="size-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                            1
+                        </div>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Inspect Candidates</h4>
+                        <p className="text-xs text-slate-500">
+                            View candidates and their photos. Click any candidate's photo to enlarge and verify their profile before voting.
                         </p>
                     </div>
-                    <Link
-                        to="/voter/history"
-                        className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
-                    >
-                        View Full Details
-                        <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                    </Link>
-                </div>
 
-                {myVotes.length === 0 ? (
-                    <div className="p-8 text-center text-slate-400 border border-dashed rounded-2xl border-slate-200 dark:border-slate-700">
-                        <p className="mb-3">You have not cast any votes yet.</p>
-                        {isVotingActive && (
-                            <Link to="/voter/ballot" className="btn-primary inline-flex items-center gap-2 text-sm font-semibold">
-                                Cast Your First Vote
-                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                            </Link>
-                        )}
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-2">
+                        <div className="size-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                            2
+                        </div>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Cast Your Ballot</h4>
+                        <p className="text-xs text-slate-500">
+                            Select one candidate per office category. Each category is locked once submitted to guarantee tamper resistance.
+                        </p>
                     </div>
-                ) : (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {myVotes.map((vote) => (
-                            <div
-                                key={vote.id}
-                                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-2"
-                            >
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold uppercase text-indigo-600 dark:text-indigo-400">
-                                        {vote.office_name}
-                                    </span>
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600">
-                                        <span className="material-symbols-outlined text-xs">check</span>
-                                        Voted
-                                    </span>
-                                </div>
-                                <div className="text-base font-bold text-slate-900 dark:text-white">
-                                    {vote.candidate_name}
-                                </div>
-                                <div className="pt-2 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs">
-                                    <span className="text-slate-400 font-mono">Receipt:</span>
-                                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                                        {vote.receipt_hash || 'MCS-RECORDED'}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
+
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-2">
+                        <div className="size-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                            3
+                        </div>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">Cryptographic Receipt</h4>
+                        <p className="text-xs text-slate-500">
+                            Receive an instant SHA-256 cryptographic verification receipt confirming your ballot was securely counted.
+                        </p>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
 };
 
 // ============================================================
-// SELECT OFFICE (BALLOT PAGE - REQUIREMENT 4)
+// BALLOT VIEW (LIST OF ALL CONTESTS/OFFICES)
 // ============================================================
-export const SelectOffice: React.FC = () => {
+export const BallotView: React.FC = () => {
     const [offices, setOffices] = useState<OfficeResponse[]>([]);
-    const [myVotes, setMyVotes] = useState<MyVoteResponse[]>([]);
     const [votingStatus, setVotingStatus] = useState<VotingTimeOut | null>(null);
+    const [myVotes, setMyVotes] = useState<MyVoteResponse[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -300,7 +311,6 @@ export const SelectOffice: React.FC = () => {
                     const isDisqualified = office.is_disqualified;
 
                     if (isVoted) {
-                        // Already Voted Category (Requirement 4)
                         return (
                             <div
                                 key={office.id}
@@ -378,7 +388,7 @@ export const SelectOffice: React.FC = () => {
                                         {office.description}
                                     </h3>
                                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                                        Click to view candidates and cast vote
+                                        Click to view candidates, inspect photos, and cast vote
                                     </p>
                                 </div>
                             </div>
@@ -391,6 +401,104 @@ export const SelectOffice: React.FC = () => {
                 })}
             </div>
         </div>
+    );
+};
+
+export const SelectOffice = BallotView;
+
+// ============================================================
+// CANDIDATE INSPECT MODAL (ENLARGED PHOTO & DETAILS)
+// ============================================================
+const CandidateInspectModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    candidate: CandidateResponse | null;
+    officeDescription?: string;
+    isSelected: boolean;
+    onSelectAndVote: () => void;
+}> = ({ isOpen, onClose, candidate, officeDescription, isSelected, onSelectAndVote }) => {
+    if (!isOpen || !candidate) return null;
+    const resolvedUrl = candidate.image_url ? resolveImageUrl(candidate.image_url) : '';
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title={`Candidate: ${candidate.name}`}>
+            <div className="flex flex-col items-center text-center space-y-5">
+                {/* Large Portrait */}
+                <div className="relative w-full max-w-xs aspect-square rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800 border-4 border-indigo-100 dark:border-indigo-900/50 shadow-xl flex items-center justify-center">
+                    {resolvedUrl ? (
+                        <img
+                            src={resolvedUrl}
+                            alt={candidate.name}
+                            className="size-full object-cover"
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-slate-400 p-8">
+                            <span className="material-symbols-outlined text-8xl">person</span>
+                            <span className="text-xs font-semibold mt-2">No Photo Provided</span>
+                        </div>
+                    )}
+                    {isSelected && (
+                        <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold shadow-lg flex items-center gap-1">
+                            <span className="material-symbols-outlined text-sm">check</span>
+                            Currently Selected
+                        </div>
+                    )}
+                </div>
+
+                {/* Candidate Info Card */}
+                <div className="w-full bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl space-y-3 border border-slate-200 dark:border-slate-700 text-left">
+                    <div>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                            Electoral Candidate Profile
+                        </span>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">
+                            {candidate.name}
+                        </h2>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200 dark:border-slate-700 text-sm">
+                        <div>
+                            <span className="text-xs text-slate-400 font-semibold block">Contested Office</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">
+                                {officeDescription || candidate.office?.description || 'N/A'}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-xs text-slate-400 font-semibold block">Candidate Code</span>
+                            <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                                #{candidate.candidate_code}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-xs text-indigo-800 dark:text-indigo-300 font-medium">
+                        You are previewing this candidate. You can vote for this candidate below.
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="w-full flex flex-col sm:flex-row gap-3 pt-1">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex-1 py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                        Close Preview
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            onSelectAndVote();
+                            onClose();
+                        }}
+                        className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
+                    >
+                        <span className="material-symbols-outlined text-xl">how_to_vote</span>
+                        {isSelected ? 'Keep As Selection' : `Vote For ${candidate.name.split(' ')[0]}`}
+                    </button>
+                </div>
+            </div>
+        </Modal>
     );
 };
 
@@ -408,6 +516,7 @@ export const VoteCandidate: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
+    const [inspectCandidate, setInspectCandidate] = useState<CandidateResponse | null>(null);
 
     useEffect(() => {
         if (officeId) {
@@ -483,6 +592,8 @@ export const VoteCandidate: React.FC = () => {
         );
     }
 
+    const selectedCandidate = candidates.find((c) => c.candidate_code === selected);
+
     return (
         <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-fade-in">
             <div className="flex items-center justify-between">
@@ -497,7 +608,9 @@ export const VoteCandidate: React.FC = () => {
                     <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                         {office?.description || 'Contest'}
                     </h1>
-                    <p className="text-sm text-slate-500">Select one candidate to cast your vote.</p>
+                    <p className="text-sm text-slate-500">
+                        Inspect candidates and their photos. Click any candidate or photo to choose who you are voting for.
+                    </p>
                 </div>
             </div>
 
@@ -508,15 +621,21 @@ export const VoteCandidate: React.FC = () => {
                 {candidates.map((cand) => {
                     const isDisqualified = cand.is_disqualified;
                     const isSelected = selected === cand.candidate_code;
+                    const resolvedUrl = cand.image_url ? resolveImageUrl(cand.image_url) : '';
 
                     if (isDisqualified) {
                         return (
                             <div
                                 key={cand.id}
-                                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed"
+                                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 opacity-60 cursor-not-allowed flex items-center gap-4"
                             >
-                                <span className="text-xs font-bold text-red-500 uppercase">Disqualified</span>
-                                <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">{cand.name}</h3>
+                                <div className="size-16 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 flex-shrink-0">
+                                    <span className="material-symbols-outlined text-2xl">block</span>
+                                </div>
+                                <div>
+                                    <span className="text-xs font-bold text-red-500 uppercase">Disqualified</span>
+                                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">{cand.name}</h3>
+                                </div>
                             </div>
                         );
                     }
@@ -525,55 +644,162 @@ export const VoteCandidate: React.FC = () => {
                         <div
                             key={cand.id}
                             onClick={() => setSelected(cand.candidate_code)}
-                            className={`p-6 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                            className={`group p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                                 isSelected
-                                    ? 'border-indigo-600 bg-indigo-50/30 dark:bg-indigo-950/30 shadow-lg shadow-indigo-500/10'
-                                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300'
+                                    ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/40 shadow-xl shadow-indigo-500/10 ring-2 ring-indigo-500/20'
+                                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-indigo-300 hover:shadow-lg'
                             }`}
                         >
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <span className="text-xs font-mono font-semibold text-slate-400">
-                                        #{cand.candidate_code}
+                            <div className="flex items-start gap-4">
+                                {/* Candidate Photo with click to inspect / enlarge */}
+                                <div className="relative group/photo flex-shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setInspectCandidate(cand);
+                                        }}
+                                        className="relative size-20 sm:size-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 group-hover/photo:border-indigo-500 group-hover/photo:scale-105 transition-all shadow-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        title="Click photo to inspect candidate"
+                                    >
+                                        {resolvedUrl ? (
+                                            <img
+                                                src={resolvedUrl}
+                                                alt={cand.name}
+                                                className="size-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center text-slate-400">
+                                                <span className="material-symbols-outlined text-3xl">person</span>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">
+                                                    {cand.name.slice(0, 2).toUpperCase()}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[11px] font-semibold gap-0.5">
+                                            <span className="material-symbols-outlined text-xl">zoom_in</span>
+                                            <span>Click photo</span>
+                                        </div>
+                                    </button>
+                                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shadow-sm whitespace-nowrap pointer-events-none">
+                                        Click Photo
                                     </span>
-                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-1">
-                                        {cand.name}
-                                    </h3>
                                 </div>
-                                <div className={`size-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                    isSelected
-                                        ? 'border-indigo-600 bg-indigo-600 text-white'
-                                        : 'border-slate-300 dark:border-slate-600'
-                                }`}>
-                                    {isSelected && <span className="material-symbols-outlined text-sm font-bold">check</span>}
+
+                                {/* Candidate Details */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div>
+                                            <span className="inline-block text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                                                #{cand.candidate_code}
+                                            </span>
+                                            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1 leading-snug">
+                                                {cand.name}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                Candidate for {office?.description}
+                                            </p>
+                                        </div>
+                                        <div
+                                            className={`size-7 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                                                isSelected
+                                                    ? 'border-indigo-600 bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                                                    : 'border-slate-300 dark:border-slate-600 group-hover:border-indigo-400'
+                                            }`}
+                                        >
+                                            {isSelected && <span className="material-symbols-outlined text-base font-bold">check</span>}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <p className="text-xs text-slate-400 mt-4">
-                                Tap to select this candidate for {office?.description}
-                            </p>
+                            {/* Bottom Card Bar */}
+                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setInspectCandidate(cand);
+                                    }}
+                                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-sm">visibility</span>
+                                    View Full Profile & Photo
+                                </button>
+                                <span className={`text-xs font-bold ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
+                                    {isSelected ? '✓ Selected to Vote' : 'Click to Select'}
+                                </span>
+                            </div>
                         </div>
                     );
                 })}
             </div>
 
-            {/* Submit Action */}
-            <div className="pt-4 flex justify-end">
-                <button
-                    onClick={handleCastVote}
-                    disabled={!selected || submitting}
-                    className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-extrabold text-lg rounded-2xl shadow-xl shadow-indigo-500/20 flex items-center gap-2 transition-all"
-                >
-                    {submitting ? (
-                        <div className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                        <>
-                            Cast Vote for Selected Candidate
-                            <span className="material-symbols-outlined text-2xl">how_to_vote</span>
-                        </>
-                    )}
-                </button>
-            </div>
+            {/* Submit Action Area with Selected Candidate Banner */}
+            {selectedCandidate ? (
+                <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-800 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-indigo-500/5">
+                    <div className="flex items-center gap-3">
+                        <div className="size-14 rounded-2xl overflow-hidden bg-white dark:bg-slate-800 border-2 border-indigo-500 shadow-sm flex items-center justify-center flex-shrink-0">
+                            {selectedCandidate.image_url ? (
+                                <img
+                                    src={resolveImageUrl(selectedCandidate.image_url)}
+                                    alt={selectedCandidate.name}
+                                    className="size-full object-cover"
+                                />
+                            ) : (
+                                <span className="material-symbols-outlined text-indigo-600 text-2xl">person</span>
+                            )}
+                        </div>
+                        <div>
+                            <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
+                                You Are Voting For:
+                            </span>
+                            <h4 className="text-lg font-black text-slate-900 dark:text-white">
+                                {selectedCandidate.name}
+                            </h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                                #{selectedCandidate.candidate_code} • {office?.description}
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleCastVote}
+                        disabled={submitting}
+                        className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-extrabold text-base rounded-2xl shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all"
+                    >
+                        {submitting ? (
+                            <>
+                                <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                Submitting Vote...
+                            </>
+                        ) : (
+                            <>
+                                Cast Vote for {selectedCandidate.name.split(' ')[0]}
+                                <span className="material-symbols-outlined text-xl">how_to_vote</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            ) : (
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 text-center text-slate-500 text-sm">
+                    Select a candidate above to inspect their profile and cast your ballot.
+                </div>
+            )}
+
+            {/* Candidate Inspection Modal */}
+            <CandidateInspectModal
+                isOpen={!!inspectCandidate}
+                onClose={() => setInspectCandidate(null)}
+                candidate={inspectCandidate}
+                officeDescription={office?.description}
+                isSelected={selected === inspectCandidate?.candidate_code}
+                onSelectAndVote={() => {
+                    if (inspectCandidate) {
+                        setSelected(inspectCandidate.candidate_code);
+                    }
+                }}
+            />
         </div>
     );
 };
@@ -604,6 +830,17 @@ export const VoteSuccess: React.FC = () => {
 
             {receipt && (
                 <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-left space-y-3">
+                    {receipt.candidate_image_url && (
+                        <div className="flex justify-center pb-2">
+                            <div className="size-24 rounded-2xl overflow-hidden border-2 border-green-500 shadow-md">
+                                <img
+                                    src={resolveImageUrl(receipt.candidate_image_url)}
+                                    alt={receipt.candidate_name}
+                                    className="size-full object-cover"
+                                />
+                            </div>
+                        </div>
+                    )}
                     <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700/60 pb-2">
                         <span className="text-slate-500">Contest</span>
                         <span className="font-bold text-slate-900 dark:text-white">{receipt.office_name}</span>

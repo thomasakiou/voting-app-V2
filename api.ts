@@ -107,12 +107,14 @@ export interface CandidateCreate {
   candidate_code: string;
   name: string;
   office_code: string;
+  image_url?: string;
 }
 
 export interface CandidateResponse {
   id: number;
   candidate_code: string;
   name: string;
+  image_url?: string;
   is_disqualified?: boolean;
   created_at: string;
   office: {
@@ -133,6 +135,7 @@ export interface VoteResponse {
   office_name: string;
   office_code?: string;
   candidate_code?: string;
+  candidate_image_url?: string;
   receipt_hash?: string;
   created_at: string;
 }
@@ -875,7 +878,36 @@ export const candidatesAPI = {
   async delete(id: number): Promise<void> {
     await apiFetch(`/candidates/${id}`, { method: 'DELETE' });
   },
+
+  async uploadImage(file: File): Promise<{ image_url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = TokenManager.getToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_BASE_URL}/candidates/upload-image`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
+  },
 };
+
+export function resolveImageUrl(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const base = API_BASE_URL.replace(/\/api\/?$/, '');
+  return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+}
 
 // Votes API
 export const votesAPI = {

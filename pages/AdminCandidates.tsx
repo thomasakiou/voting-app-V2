@@ -1,7 +1,114 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { candidatesAPI, officesAPI, CandidateResponse, OfficeResponse } from '../api';
+import { candidatesAPI, officesAPI, CandidateResponse, OfficeResponse, resolveImageUrl } from '../api';
 import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
+
+const compressImage = (file: File, maxWidth = 800, quality = 0.85): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    resolve(e.target?.result as string);
+                    return;
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = reject;
+            img.src = e.target?.result as string;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
+const uploadCandidatePhoto = async (file: File): Promise<string> => {
+    try {
+        const res = await candidatesAPI.uploadImage(file);
+        if (res && res.image_url) {
+            return res.image_url;
+        }
+    } catch (err) {
+        console.warn('Backend image upload endpoint failed, falling back to compressed data URL:', err);
+    }
+    return await compressImage(file, 800, 0.85);
+};
+
+export const PhotoLightboxModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    candidate: CandidateResponse | null;
+}> = ({ isOpen, onClose, candidate }) => {
+    if (!isOpen || !candidate) return null;
+    const resolvedUrl = candidate.image_url ? resolveImageUrl(candidate.image_url) : '';
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title={`Candidate Photo: ${candidate.name}`}>
+            <div className="flex flex-col items-center text-center space-y-4">
+                <div className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 shadow-lg flex items-center justify-center">
+                    {resolvedUrl ? (
+                        <img
+                            src={resolvedUrl}
+                            alt={candidate.name}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-slate-400 p-8">
+                            <span className="material-symbols-outlined text-8xl">person</span>
+                            <span className="text-sm font-semibold mt-2">No Photo Provided</span>
+                        </div>
+                    )}
+                </div>
+
+                <div className="w-full text-left bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl space-y-2 border border-slate-200 dark:border-slate-700">
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-semibold">Candidate Code</span>
+                        <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                            {candidate.candidate_code}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-semibold">Office</span>
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                            {candidate.office?.description || 'N/A'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-semibold">Status</span>
+                        <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                                candidate.is_disqualified
+                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                    : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            }`}
+                        >
+                            {candidate.is_disqualified ? 'Disqualified' : 'Approved Candidate'}
+                        </span>
+                    </div>
+                </div>
+
+                <button
+                    onClick={onClose}
+                    className="w-full py-2.5 text-sm font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                >
+                    Close Preview
+                </button>
+            </div>
+        </Modal>
+    );
+};
 
 const EditCandidateModal: React.FC<{
     isOpen: boolean;
@@ -11,14 +118,40 @@ const EditCandidateModal: React.FC<{
     onUpdate: () => void;
 }> = ({ isOpen, onClose, candidate, offices, onUpdate }) => {
     const [loading, setLoading] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
     const [error, setError] = useState('');
     const [name, setName] = useState(candidate.name);
     const [officeCode, setOfficeCode] = useState(candidate.office.office_code);
+    const [imageUrl, setImageUrl] = useState<string>(candidate.image_url || '');
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setName(candidate.name);
         setOfficeCode(candidate.office.office_code);
+        setImageUrl(candidate.image_url || '');
+        setError('');
     }, [candidate]);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            setError('Please select a valid image file (JPG, PNG, WEBP).');
+            return;
+        }
+
+        try {
+            setUploadingImage(true);
+            setError('');
+            const url = await uploadCandidatePhoto(file);
+            setImageUrl(url);
+        } catch (err: any) {
+            setError('Failed to process image. Please try another image.');
+        } finally {
+            setUploadingImage(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,7 +162,8 @@ const EditCandidateModal: React.FC<{
             await candidatesAPI.update(candidate.id, {
                 candidate_code: candidate.candidate_code.trim(),
                 name: name.trim(),
-                office_code: officeCode
+                office_code: officeCode,
+                image_url: imageUrl || undefined,
             });
             onUpdate();
             onClose();
@@ -40,10 +174,67 @@ const EditCandidateModal: React.FC<{
         }
     };
 
+    const resolvedDisplayUrl = imageUrl ? resolveImageUrl(imageUrl) : '';
+
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Edit Candidate">
             {error && <div className="mb-4"><ErrorAlert message={error} /></div>}
             <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Photo Upload & Preview */}
+                <div>
+                    <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">Candidate Photo</label>
+                    <div className="flex items-center gap-4 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                        <div className="relative size-16 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center border border-slate-300 dark:border-slate-600">
+                            {resolvedDisplayUrl ? (
+                                <img
+                                    src={resolvedDisplayUrl}
+                                    alt="Candidate Preview"
+                                    className="size-full object-cover"
+                                />
+                            ) : (
+                                <span className="material-symbols-outlined text-slate-400 text-3xl">person</span>
+                            )}
+                            {uploadingImage && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-white text-lg animate-spin">progress_activity</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex-1 space-y-1">
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                                className="hidden"
+                            />
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    disabled={uploadingImage}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors flex items-center gap-1 shadow-sm"
+                                >
+                                    <span className="material-symbols-outlined text-sm">photo_camera</span>
+                                    {imageUrl ? 'Change Photo' : 'Upload Photo'}
+                                </button>
+                                {imageUrl && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setImageUrl('')}
+                                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-red-100 hover:text-red-700 transition-colors flex items-center gap-1"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">delete</span>
+                                        Remove
+                                    </button>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-slate-500">Supports JPG, PNG, WEBP (portrait recommended)</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div>
                     <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">Candidate Code</label>
                     <input
@@ -89,7 +280,7 @@ const EditCandidateModal: React.FC<{
                     </button>
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || uploadingImage}
                         className="px-6 py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                         {loading ? (
@@ -128,6 +319,7 @@ export const CandidateManagement: React.FC = () => {
     const [editModal, setEditModal] = useState<{ isOpen: boolean; candidate?: CandidateResponse }>({
         isOpen: false,
     });
+    const [lightboxCandidate, setLightboxCandidate] = useState<CandidateResponse | null>(null);
 
     useEffect(() => {
         loadData();
@@ -199,7 +391,7 @@ export const CandidateManagement: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-4 no-print">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Candidate Management</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Manage candidates for all offices.</p>
+                    <p className="text-slate-500 dark:text-slate-400">Manage candidates and photos for all offices.</p>
                 </div>
                 <div className="flex gap-3">
                     <button
@@ -260,6 +452,7 @@ export const CandidateManagement: React.FC = () => {
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
                                     <tr>
+                                        <th className="px-6 py-3">Photo</th>
                                         <th className="px-6 py-3">Candidate Code</th>
                                         <th className="px-6 py-3">Name</th>
                                         <th className="px-6 py-3">Office</th>
@@ -271,8 +464,41 @@ export const CandidateManagement: React.FC = () => {
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {paginatedCandidates.map((candidate) => (
                                         <tr key={candidate.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                            <td className="px-6 py-4 font-mono text-slate-500">{candidate.candidate_code}</td>
-                                            <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{candidate.name}</td>
+                                            {/* Photo column with click to preview */}
+                                            <td className="px-6 py-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setLightboxCandidate(candidate)}
+                                                    className="group relative size-11 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 shadow-sm transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                    title="Click to view candidate photo"
+                                                >
+                                                    {candidate.image_url ? (
+                                                        <img
+                                                            src={resolveImageUrl(candidate.image_url)}
+                                                            alt={candidate.name}
+                                                            className="size-full object-cover group-hover:scale-110 transition-transform"
+                                                        />
+                                                    ) : (
+                                                        <span className="material-symbols-outlined text-slate-400 group-hover:text-indigo-600 transition-colors text-xl">
+                                                            person
+                                                        </span>
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                        <span className="material-symbols-outlined text-xs">zoom_in</span>
+                                                    </div>
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 font-mono text-slate-500 font-semibold">{candidate.candidate_code}</td>
+                                            <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                                                <div className="flex items-center gap-2">
+                                                    <span>{candidate.name}</span>
+                                                    {candidate.image_url && (
+                                                        <span className="material-symbols-outlined text-xs text-indigo-500" title="Photo attached">
+                                                            image
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-4">{candidate.office.description}</td>
                                             <td className="px-6 py-4">
                                                 <button
@@ -390,6 +616,13 @@ export const CandidateManagement: React.FC = () => {
                     }}
                 />
             )}
+
+            {/* Photo Lightbox Preview */}
+            <PhotoLightboxModal
+                isOpen={!!lightboxCandidate}
+                onClose={() => setLightboxCandidate(null)}
+                candidate={lightboxCandidate}
+            />
         </div>
     );
 };
@@ -397,8 +630,11 @@ export const CandidateManagement: React.FC = () => {
 export const CreateCandidate: React.FC = () => {
     const [offices, setOffices] = useState<OfficeResponse[]>([]);
     const [loading, setLoading] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [imageUrl, setImageUrl] = useState<string>('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         loadOffices();
@@ -410,6 +646,27 @@ export const CreateCandidate: React.FC = () => {
             setOffices(data);
         } catch (err) {
             setError('Failed to load offices');
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            setError('Please select a valid image file (JPG, PNG, WEBP).');
+            return;
+        }
+
+        try {
+            setUploadingImage(true);
+            setError('');
+            const url = await uploadCandidatePhoto(file);
+            setImageUrl(url);
+        } catch (err: any) {
+            setError('Failed to process image. Please try another image.');
+        } finally {
+            setUploadingImage(false);
         }
     };
 
@@ -427,10 +684,12 @@ export const CreateCandidate: React.FC = () => {
             await candidatesAPI.create({
                 candidate_code,
                 name,
-                office_code
+                office_code,
+                image_url: imageUrl || undefined,
             });
             setSuccess('Candidate created successfully!');
             form.reset();
+            setImageUrl('');
         } catch (err: any) {
             setError(err?.data?.detail || 'Failed to create candidate');
         } finally {
@@ -438,11 +697,13 @@ export const CreateCandidate: React.FC = () => {
         }
     };
 
+    const resolvedDisplayUrl = imageUrl ? resolveImageUrl(imageUrl) : '';
+
     return (
         <div className="max-w-2xl mx-auto">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Create New Candidate</h1>
-                <p className="text-slate-500">Add a new candidate to an electoral office.</p>
+                <p className="text-slate-500">Add a new candidate with photo to an electoral office.</p>
             </div>
 
             {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
@@ -450,6 +711,69 @@ export const CreateCandidate: React.FC = () => {
 
             <div className="bg-white dark:bg-[#1a1d29] p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Candidate Photo Uploader */}
+                    <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                            Candidate Photo (Optional)
+                        </label>
+                        <div className="p-4 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 flex flex-col sm:flex-row items-center gap-4">
+                            <div className="relative size-24 rounded-2xl overflow-hidden bg-white dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 shadow-sm flex items-center justify-center flex-shrink-0">
+                                {resolvedDisplayUrl ? (
+                                    <img
+                                        src={resolvedDisplayUrl}
+                                        alt="Preview"
+                                        className="size-full object-cover"
+                                    />
+                                ) : (
+                                    <span className="material-symbols-outlined text-slate-300 dark:text-slate-500 text-4xl">
+                                        add_a_photo
+                                    </span>
+                                )}
+                                {uploadingImage && (
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-white text-2xl animate-spin">
+                                            progress_activity
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex-1 text-center sm:text-left space-y-2">
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    className="hidden"
+                                />
+                                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={uploadingImage}
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white transition-colors flex items-center gap-1.5 shadow-sm"
+                                    >
+                                        <span className="material-symbols-outlined text-base">upload</span>
+                                        {imageUrl ? 'Change Photo' : 'Select Photo'}
+                                    </button>
+                                    {imageUrl && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setImageUrl('')}
+                                            className="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-red-100 hover:text-red-700 transition-colors flex items-center gap-1"
+                                        >
+                                            <span className="material-symbols-outlined text-base">delete</span>
+                                            Remove
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-400">
+                                    Upload portrait picture (JPG, PNG, WEBP). Voters will see this photo on their ballots.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Candidate Code</label>
                         <input
@@ -489,7 +813,7 @@ export const CreateCandidate: React.FC = () => {
                         >
                             Cancel
                         </Link>
-                        <button type="submit" disabled={loading} className="btn-primary disabled:opacity-50">
+                        <button type="submit" disabled={loading || uploadingImage} className="btn-primary disabled:opacity-50">
                             {loading ? 'Creating...' : 'Create Candidate'}
                         </button>
                     </div>
