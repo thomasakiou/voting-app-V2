@@ -226,6 +226,10 @@
 }
 
 /* Print Styles for PDF Export */
+.print-only {
+  display: none !important;
+}
+
 @media print {
   @page {
     margin: 1cm;

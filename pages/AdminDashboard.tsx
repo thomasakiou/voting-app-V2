@@ -10,7 +10,7 @@ import {
   UserStatsOut,
   PortalLocksStatus,
 } from '../api';
-import { LoadingSpinner, SuccessAlert, ErrorAlert, TablePagination, usePagination } from '../components/UIComponents';
+import { LoadingSpinner, SuccessAlert, ErrorAlert, TablePagination } from '../components/UIComponents';
 
 // ============================================================
 // CUSTOM ELECTION CONFIRMATION MODAL
@@ -133,135 +133,264 @@ const VotingConfirmModal: React.FC<VotingConfirmModalProps> = ({
   return createPortal(modalContent, document.body);
 };
 
-// ============================================================
-// CUSTOM PORTAL LOCK CONFIRMATION MODAL
-// ============================================================
-interface PortalLockConfirmModalProps {
-  isOpen: boolean;
-  portal: 'contact_update' | 'accreditation' | 'election';
-  currentLocked: boolean;
-  loading: boolean;
-  onConfirm: () => void;
-  onClose: () => void;
-}
-
-const PortalLockConfirmModal: React.FC<PortalLockConfirmModalProps> = ({
-  isOpen,
-  portal,
-  currentLocked,
-  loading,
-  onConfirm,
-  onClose,
-}) => {
-  if (!isOpen) return null;
-
-  const isLocking = !currentLocked;
-  const portalName =
-    portal === 'contact_update'
-      ? 'Contact Update'
-      : portal === 'accreditation'
-      ? 'Accreditation'
-      : 'Election Voting';
-
-  const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div
-        className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header Ribbon */}
-        <div className="p-6 pb-2 flex items-start gap-4">
-          <div className={`size-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
-            isLocking
-              ? 'bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 shadow-red-500/20'
-              : 'bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 shadow-emerald-500/20'
-          }`}>
-            <span className="material-symbols-outlined text-3xl">
-              {isLocking ? 'lock' : 'lock_open'}
-            </span>
-          </div>
-
-          <div className="flex-1">
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 ${
-              isLocking
-                ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
-                : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
-            }`}>
-              <span className={`size-1.5 rounded-full ${isLocking ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
-              Portal Access & URL Control
-            </span>
-            <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">
-              {isLocking ? `Lock ${portalName} URL?` : `Unlock & Open ${portalName}?`}
-            </h3>
-          </div>
-        </div>
-
-        {/* Modal Body */}
-        <div className="p-6 space-y-4">
-          <p className="text-slate-600 dark:text-slate-300 text-base leading-relaxed">
-            {isLocking
-              ? `You are about to LOCK the ${portalName} portal URL. Any voter visiting this URL will be immediately blocked and shown a customized alert notifying them that the portal is currently closed.`
-              : `You are about to UNLOCK and OPEN the ${portalName} portal URL. Voters will be permitted to access this page normally.`}
-          </p>
-
-          <div className={`p-4 rounded-2xl border text-sm leading-relaxed ${
-            isLocking
-              ? 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300'
-              : 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300'
-          }`}>
-            <div className="flex items-center gap-2 font-bold mb-1">
-              <span className="material-symbols-outlined text-base">
-                {isLocking ? 'warning' : 'verified'}
-              </span>
-              {isLocking ? 'Immediate Restriction Notice' : 'Portal Available for Voters'}
-            </div>
-            <p className="text-xs">
-              {isLocking
-                ? 'No voter can proceed past this URL until you choose to unlock it again.'
-                : 'Voters can now visit this URL and perform their actions.'}
-            </p>
-          </div>
-        </div>
-
-        {/* Modal Actions */}
-        <div className="p-6 pt-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
-          <button
-            type="button"
-            disabled={loading}
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={onConfirm}
-            className={`px-6 py-2.5 rounded-xl text-white font-bold text-sm flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition-all ${
-              isLocking
-                ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-red-500/30'
-                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/30'
-            }`}
-          >
-            {loading ? (
-              <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-lg">
-                  {isLocking ? 'lock' : 'lock_open'}
-                </span>
-                {isLocking ? `Yes, Lock ${portalName}` : `Yes, Unlock ${portalName}`}
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  return createPortal(modalContent, document.body);
-};
-
+// ============================================================
+
+// CUSTOM PORTAL LOCK CONFIRMATION MODAL
+
+// ============================================================
+
+interface PortalLockConfirmModalProps {
+
+  isOpen: boolean;
+
+  portal: 'contact_update' | 'accreditation' | 'election';
+
+  currentLocked: boolean;
+
+  loading: boolean;
+
+  onConfirm: () => void;
+
+  onClose: () => void;
+
+}
+
+
+
+const PortalLockConfirmModal: React.FC<PortalLockConfirmModalProps> = ({
+
+  isOpen,
+
+  portal,
+
+  currentLocked,
+
+  loading,
+
+  onConfirm,
+
+  onClose,
+
+}) => {
+
+  if (!isOpen) return null;
+
+
+
+  const isLocking = !currentLocked;
+
+  const portalName =
+
+    portal === 'contact_update'
+
+      ? 'Contact Update'
+
+      : portal === 'accreditation'
+
+      ? 'Accreditation'
+
+      : 'Election Voting';
+
+
+
+  const modalContent = (
+
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+
+      <div
+
+        className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-in"
+
+        onClick={(e) => e.stopPropagation()}
+
+      >
+
+        {/* Header Ribbon */}
+
+        <div className="p-6 pb-2 flex items-start gap-4">
+
+          <div className={`size-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
+
+            isLocking
+
+              ? 'bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 shadow-red-500/20'
+
+              : 'bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 shadow-emerald-500/20'
+
+          }`}>
+
+            <span className="material-symbols-outlined text-3xl">
+
+              {isLocking ? 'lock' : 'lock_open'}
+
+            </span>
+
+          </div>
+
+
+
+          <div className="flex-1">
+
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 ${
+
+              isLocking
+
+                ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+
+                : 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+
+            }`}>
+
+              <span className={`size-1.5 rounded-full ${isLocking ? 'bg-red-500' : 'bg-emerald-500'}`}></span>
+
+              Portal Access & URL Control
+
+            </span>
+
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">
+
+              {isLocking ? `Lock ${portalName} URL?` : `Unlock & Open ${portalName}?`}
+
+            </h3>
+
+          </div>
+
+        </div>
+
+
+
+        {/* Modal Body */}
+
+        <div className="p-6 space-y-4">
+
+          <p className="text-slate-600 dark:text-slate-300 text-base leading-relaxed">
+
+            {isLocking
+
+              ? `You are about to LOCK the ${portalName} portal URL. Any voter visiting this URL will be immediately blocked and shown a customized alert notifying them that the portal is currently closed.`
+
+              : `You are about to UNLOCK and OPEN the ${portalName} portal URL. Voters will be permitted to access this page normally.`}
+
+          </p>
+
+
+
+          <div className={`p-4 rounded-2xl border text-sm leading-relaxed ${
+
+            isLocking
+
+              ? 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300'
+
+              : 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300'
+
+          }`}>
+
+            <div className="flex items-center gap-2 font-bold mb-1">
+
+              <span className="material-symbols-outlined text-base">
+
+                {isLocking ? 'warning' : 'verified'}
+
+              </span>
+
+              {isLocking ? 'Immediate Restriction Notice' : 'Portal Available for Voters'}
+
+            </div>
+
+            <p className="text-xs">
+
+              {isLocking
+
+                ? 'No voter can proceed past this URL until you choose to unlock it again.'
+
+                : 'Voters can now visit this URL and perform their actions.'}
+
+            </p>
+
+          </div>
+
+        </div>
+
+
+
+        {/* Modal Actions */}
+
+        <div className="p-6 pt-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+
+          <button
+
+            type="button"
+
+            disabled={loading}
+
+            onClick={onClose}
+
+            className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+
+          >
+
+            Cancel
+
+          </button>
+
+          <button
+
+            type="button"
+
+            disabled={loading}
+
+            onClick={onConfirm}
+
+            className={`px-6 py-2.5 rounded-xl text-white font-bold text-sm flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition-all ${
+
+              isLocking
+
+                ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 shadow-red-500/30'
+
+                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/30'
+
+            }`}
+
+          >
+
+            {loading ? (
+
+              <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+
+            ) : (
+
+              <>
+
+                <span className="material-symbols-outlined text-lg">
+
+                  {isLocking ? 'lock' : 'lock_open'}
+
+                </span>
+
+                {isLocking ? `Yes, Lock ${portalName}` : `Yes, Unlock ${portalName}`}
+
+              </>
+
+            )}
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  );
+
+
+
+  return createPortal(modalContent, document.body);
+
+};
+
+
+
 // ============================================================
 // CUSTOM ELECTION NOTIFICATION ALERT MODAL
 // ============================================================
@@ -345,31 +474,39 @@ export const AdminDashboard: React.FC = () => {
   const [portalLocks, setPortalLocks] = useState<PortalLocksStatus | null>(null);
   const [togglingLock, setTogglingLock] = useState<string | null>(null);
 
-  // Live votes pagination
-  const {
-    currentPage: livePage,
-    setCurrentPage: setLivePage,
-    pageSize: livePageSize,
-    setPageSize: setLivePageSize,
-    totalPages: liveTotalPages,
-    totalItems: liveTotalItems,
-    paginatedItems: paginatedLiveVotes,
-  } = usePagination(liveVotes.recent_votes || [], 10);
+  // Live votes server-side pagination state
+  const [livePage, setLivePage] = useState(1);
+  const [livePageSize, setLivePageSize] = useState(10);
+  const [liveTotalItems, setLiveTotalItems] = useState(0);
+  const liveTotalPages = Math.max(1, Math.ceil(liveTotalItems / livePageSize));
+  const handleLivePageSizeChange = (newSize: number) => {
+    setLivePageSize(newSize);
+    setLivePage(1);
+  };
 
   // Custom modal states
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; action: 'start' | 'stop' }>({
     isOpen: false,
     action: 'start',
   });
-  const [portalLockConfirm, setPortalLockConfirm] = useState<{
-    isOpen: boolean;
-    portal: 'contact_update' | 'accreditation' | 'election';
-    currentLocked: boolean;
-  }>({
-    isOpen: false,
-    portal: 'contact_update',
-    currentLocked: false,
-  });
+  const [portalLockConfirm, setPortalLockConfirm] = useState<{
+
+    isOpen: boolean;
+
+    portal: 'contact_update' | 'accreditation' | 'election';
+
+    currentLocked: boolean;
+
+  }>({
+
+    isOpen: false,
+
+    portal: 'contact_update',
+
+    currentLocked: false,
+
+  });
+
   const [customAlert, setCustomAlert] = useState<{
     isOpen: boolean;
     type: 'success' | 'danger';
@@ -389,7 +526,7 @@ export const AdminDashboard: React.FC = () => {
       fetchLiveStream();
     }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [livePage, livePageSize]);
 
   const loadAllData = async () => {
     try {
@@ -397,12 +534,13 @@ export const AdminDashboard: React.FC = () => {
       const [analysisData, statusData, liveData, locksData] = await Promise.all([
         usersAPI.getAnalysis(),
         votingTimeAPI.getStatus(),
-        votesAPI.getLive().catch(() => ({ total_votes_cast: 0, recent_votes: [] })),
+        votesAPI.getLive(livePage, livePageSize).catch(() => ({ total_votes_cast: 0, total_items: 0, page: 1, page_size: 10, recent_votes: [] })),
         portalLocksAPI.getStatus().catch(() => null),
       ]);
       setStats(analysisData);
       setVotingStatus(statusData);
       setLiveVotes(liveData);
+      setLiveTotalItems(liveData.total_items || 0);
       if (locksData) setPortalLocks(locksData);
     } catch (err: any) {
       console.error('Failed to load dashboard data:', err);
@@ -417,10 +555,13 @@ export const AdminDashboard: React.FC = () => {
   const fetchLiveStream = async () => {
     try {
       const [liveData, statusData] = await Promise.all([
-        votesAPI.getLive().catch(() => null),
+        votesAPI.getLive(livePage, livePageSize).catch(() => null),
         votingTimeAPI.getStatus().catch(() => null),
       ]);
-      if (liveData) setLiveVotes(liveData);
+      if (liveData) {
+        setLiveVotes(liveData);
+        setLiveTotalItems(liveData.total_items || 0);
+      }
       if (statusData) setVotingStatus(statusData);
     } catch (err) {
       // quiet poll error
@@ -498,59 +639,112 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleTogglePortalLock = (
-    portal: 'contact_update' | 'accreditation' | 'election',
-    currentLocked: boolean
-  ) => {
-    setPortalLockConfirm({
-      isOpen: true,
-      portal,
-      currentLocked,
-    });
-  };
-
-  const executeTogglePortalLock = async () => {
-    const { portal, currentLocked } = portalLockConfirm;
-    const portalName =
-      portal === 'contact_update'
-        ? 'Contact Update'
-        : portal === 'accreditation'
-        ? 'Accreditation'
-        : 'Election';
-    const willLock = !currentLocked;
-
-    setTogglingLock(portal);
-    setError('');
-    try {
-      const res = await portalLocksAPI.toggle(portal, willLock);
-      setPortalLocks(res);
-      setPortalLockConfirm((prev) => ({ ...prev, isOpen: false }));
-
-      const successMsg = `${portalName} portal URL is now ${
-        willLock
-          ? 'LOCKED. Any voter visiting that page will see an alert that it is closed.'
-          : 'UNLOCKED and open for voters.'
-      }`;
-      setSuccess(successMsg);
-      setCustomAlert({
-        isOpen: true,
-        type: willLock ? 'danger' : 'success',
-        title: willLock ? `${portalName} Portal Locked` : `${portalName} Portal Unlocked`,
-        message: successMsg,
-      });
-    } catch (err: any) {
-      const errMsg = err?.data?.detail || err?.message || `Failed to update ${portalName} portal lock.`;
-      setError(errMsg);
-      setPortalLockConfirm((prev) => ({ ...prev, isOpen: false }));
-      setCustomAlert({
-        isOpen: true,
-        type: 'danger',
-        title: 'Lock Update Failed',
-        message: errMsg,
-      });
-    } finally {
-      setTogglingLock(null);
-    }
+  const handleTogglePortalLock = (
+
+    portal: 'contact_update' | 'accreditation' | 'election',
+
+    currentLocked: boolean
+
+  ) => {
+
+    setPortalLockConfirm({
+
+      isOpen: true,
+
+      portal,
+
+      currentLocked,
+
+    });
+
+  };
+
+
+
+  const executeTogglePortalLock = async () => {
+
+    const { portal, currentLocked } = portalLockConfirm;
+
+    const portalName =
+
+      portal === 'contact_update'
+
+        ? 'Contact Update'
+
+        : portal === 'accreditation'
+
+        ? 'Accreditation'
+
+        : 'Election';
+
+    const willLock = !currentLocked;
+
+
+
+    setTogglingLock(portal);
+
+    setError('');
+
+    try {
+
+      const res = await portalLocksAPI.toggle(portal, willLock);
+
+      setPortalLocks(res);
+
+      setPortalLockConfirm((prev) => ({ ...prev, isOpen: false }));
+
+
+
+      const successMsg = `${portalName} portal URL is now ${
+
+        willLock
+
+          ? 'LOCKED. Any voter visiting that page will see an alert that it is closed.'
+
+          : 'UNLOCKED and open for voters.'
+
+      }`;
+
+      setSuccess(successMsg);
+
+      setCustomAlert({
+
+        isOpen: true,
+
+        type: willLock ? 'danger' : 'success',
+
+        title: willLock ? `${portalName} Portal Locked` : `${portalName} Portal Unlocked`,
+
+        message: successMsg,
+
+      });
+
+    } catch (err: any) {
+
+      const errMsg = err?.data?.detail || err?.message || `Failed to update ${portalName} portal lock.`;
+
+      setError(errMsg);
+
+      setPortalLockConfirm((prev) => ({ ...prev, isOpen: false }));
+
+      setCustomAlert({
+
+        isOpen: true,
+
+        type: 'danger',
+
+        title: 'Lock Update Failed',
+
+        message: errMsg,
+
+      });
+
+    } finally {
+
+      setTogglingLock(null);
+
+    }
+
   };
 
   // Download Voters CSV
@@ -596,16 +790,26 @@ export const AdminDashboard: React.FC = () => {
         onClose={() => setConfirmModal({ isOpen: false, action: confirmModal.action })}
       />
 
-      {/* CUSTOM PORTAL LOCK CONFIRMATION MODAL */}
-      <PortalLockConfirmModal
-        isOpen={portalLockConfirm.isOpen}
-        portal={portalLockConfirm.portal}
-        currentLocked={portalLockConfirm.currentLocked}
-        loading={togglingLock === portalLockConfirm.portal}
-        onConfirm={executeTogglePortalLock}
-        onClose={() => setPortalLockConfirm((prev) => ({ ...prev, isOpen: false }))}
-      />
-
+      {/* CUSTOM PORTAL LOCK CONFIRMATION MODAL */}
+
+      <PortalLockConfirmModal
+
+        isOpen={portalLockConfirm.isOpen}
+
+        portal={portalLockConfirm.portal}
+
+        currentLocked={portalLockConfirm.currentLocked}
+
+        loading={togglingLock === portalLockConfirm.portal}
+
+        onConfirm={executeTogglePortalLock}
+
+        onClose={() => setPortalLockConfirm((prev) => ({ ...prev, isOpen: false }))}
+
+      />
+
+
+
       {/* CUSTOM NOTIFICATION ALERT (Branded popup for action results) */}
       <VotingNotificationAlert
         isOpen={customAlert.isOpen}
@@ -977,7 +1181,7 @@ export const AdminDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {paginatedLiveVotes.map((vote: any) => (
+                    {(liveVotes.recent_votes || []).map((vote: any) => (
                       <tr key={vote.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
                         <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{vote.user_name}</td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{vote.office_name}</td>
@@ -1003,7 +1207,7 @@ export const AdminDashboard: React.FC = () => {
                   totalItems={liveTotalItems}
                   pageSize={livePageSize}
                   onPageChange={setLivePage}
-                  onPageSizeChange={setLivePageSize}
+                  onPageSizeChange={handleLivePageSizeChange}
                   pageSizeOptions={[5, 10, 25, 50]}
                   itemName="ballots"
                 />

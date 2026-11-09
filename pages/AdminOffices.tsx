@@ -166,13 +166,6 @@ export const OfficeManagement: React.FC = () => {
                     <p className="text-slate-500 dark:text-slate-400">Manage electoral offices and positions.</p>
                 </div>
                 <div className="flex gap-3">
-                    <button
-                        onClick={() => window.print()}
-                        className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
-                    >
-                        <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-                        Download Offices List
-                    </button>
                     <Link
                         to="/admin/offices/create"
                         className="px-4 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-blue-700 flex items-center gap-2"
@@ -283,35 +276,6 @@ export const OfficeManagement: React.FC = () => {
                         />
                     </>
                 )}
-            </div>
-
-            {/* Print View */}
-            <div className="print-only">
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold mb-2">Offices List</h1>
-                    <p className="text-sm text-slate-500">Generated on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</p>
-                </div>
-                <table className="w-full text-left text-sm border-collapse border border-slate-300">
-                    <thead>
-                        <tr className="bg-slate-100">
-                            <th className="border border-slate-300 px-4 py-2">Code</th>
-                            <th className="border border-slate-300 px-4 py-2">Description</th>
-                            <th className="border border-slate-300 px-4 py-2">Date Added</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {offices.map((office) => (
-                            <tr key={office.id}>
-                                <td className="border border-slate-300 px-4 py-2">{office.office_code}</td>
-                                <td className="border border-slate-300 px-4 py-2">{office.description}</td>
-                                <td className="border border-slate-300 px-4 py-2">{new Date(office.created_at).toLocaleDateString()}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <div className="mt-8 text-xs text-slate-400 text-center">
-                    SecureVote System - Confidential Document
-                </div>
             </div>
 
             <ConfirmDialog

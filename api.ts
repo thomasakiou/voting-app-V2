@@ -937,8 +937,8 @@ export const votesAPI = {
     return apiFetch<MyStatsResponse>('/votes/my-stats');
   },
 
-  async getLive(): Promise<{ total_votes_cast: number; recent_votes: any[] }> {
-    return apiFetch<{ total_votes_cast: number; recent_votes: any[] }>('/votes/live');
+  async getLive(page: number = 1, pageSize: number = 10): Promise<{ total_votes_cast: number; total_items: number; page: number; page_size: number; recent_votes: any[] }> {
+    return apiFetch<{ total_votes_cast: number; total_items: number; page: number; page_size: number; recent_votes: any[] }>(`/votes/live?page=${page}&page_size=${pageSize}`);
   },
 
   async getByUserId(userId: number): Promise<VoteResponse[]> {

@@ -561,37 +561,6 @@ export const UserList: React.FC = () => {
         )}
       </div>
 
-      {/* Print View - Voters Only */}
-      <div className="print-only">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2">Registered Voters List</h1>
-          <p className="text-sm text-slate-500">Generated on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</p>
-        </div>
-        <table className="w-full text-left text-sm border-collapse border border-slate-300">
-          <thead>
-            <tr className="bg-slate-100">
-              <th className="border border-slate-300 px-4 py-2">ID</th>
-              <th className="border border-slate-300 px-4 py-2">Username</th>
-              <th className="border border-slate-300 px-4 py-2">Full Name</th>
-              <th className="border border-slate-300 px-4 py-2">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.filter(u => u.role === 'voter').map((user) => (
-              <tr key={user.id}>
-                <td className="border border-slate-300 px-4 py-2">{user.id}</td>
-                <td className="border border-slate-300 px-4 py-2">{user.username}</td>
-                <td className="border border-slate-300 px-4 py-2">{user.full_name}</td>
-                <td className="border border-slate-300 px-4 py-2">{user.is_active ? 'Active' : 'Inactive'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="mt-8 text-xs text-slate-400 text-center">
-          SecureVote System - Confidential Document
-        </div>
-      </div>
-
       <ConfirmDialog
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ isOpen: false })}
