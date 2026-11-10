@@ -317,16 +317,6 @@ export const Accreditation: React.FC = () => {
                   </>
                 )}
               </button>
-
-              <div className="text-center pt-2">
-                <Link
-                  to="/contact-update"
-                  className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline inline-flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-[14px]">edit_note</span>
-                  Need to register or update your email / phone number? Click here
-                </Link>
-              </div>
             </form>
           )}
 
