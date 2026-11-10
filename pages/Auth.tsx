@@ -61,6 +61,45 @@ const LegalLinks: React.FC = () => (
   </p>
 );
 
+// Portal navigation links shown at the bottom of login pages
+// showAdmin=true only on the admin login page (never on voter pages)
+interface PortalNavProps {
+  exclude?: 'election' | 'accreditation' | 'contact' | 'admin';
+  showAdmin?: boolean;
+}
+const PortalNav: React.FC<PortalNavProps> = ({ exclude, showAdmin = false }) => {
+  const links = [
+    { to: '/election',      label: 'Election Portal',         icon: 'how_to_vote',      show: exclude !== 'election' },
+    { to: '/accreditation', label: 'Accreditation Portal',    icon: 'how_to_reg',       show: exclude !== 'accreditation' },
+    { to: '/contact-update',label: 'Contact Update Portal',   icon: 'manage_accounts',  show: exclude !== 'contact' },
+    { to: '/admin/login',   label: 'Admin Portal',            icon: 'admin_panel_settings', show: showAdmin },
+  ].filter(l => l.show);
+
+  if (links.length === 0) return null;
+
+  return (
+    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+      <p className="text-center text-xs text-slate-400 dark:text-slate-500 mb-2">Other portals</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        {links.map(l => (
+          <Link
+            key={l.to}
+            to={l.to}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
+                       bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-900/30
+                       text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400
+                       border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700
+                       transition-colors"
+          >
+            <span className="material-symbols-outlined text-[14px]">{l.icon}</span>
+            {l.label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const AuthField: React.FC<{ id: string; name: string; label: string; icon: string; type: string; placeholder: string; value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }> = ({ id, name, label, icon, type, placeholder, value, onChange }) => (
   <div className="space-y-2">
     <label htmlFor={id} className="block text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">{label}</label>
@@ -275,6 +314,7 @@ export const Login: React.FC = () => {
       </form>
 
       <LegalLinks />
+      <PortalNav exclude="election" />
     </AuthShell>
   );
 };
@@ -422,6 +462,7 @@ export const AdminLogin: React.FC = () => {
       </form>
 
       <LegalLinks />
+      <PortalNav showAdmin={false} />
     </AuthShell>
   );
 };

@@ -578,6 +578,30 @@ export const Accreditation: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Portal navigation — links to other voter portals (no admin link) */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+          <p className="text-center text-xs text-slate-400 dark:text-slate-500 mb-2">Other portals</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {[
+              { to: '/election',       label: 'Election Portal',       icon: 'how_to_vote' },
+              { to: '/contact-update', label: 'Contact Update Portal', icon: 'manage_accounts' },
+            ].map(l => (
+              <Link
+                key={l.to}
+                to={l.to}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
+                           bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-900/30
+                           text-slate-600 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400
+                           border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-700
+                           transition-colors"
+              >
+                <span className="material-symbols-outlined text-[14px]">{l.icon}</span>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
