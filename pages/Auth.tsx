@@ -330,6 +330,8 @@ export const AdminLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [hasActiveSession, setHasActiveSession] = useState(false);
   const [sessionMessage, setSessionMessage] = useState('');
+  const [canForceLogin, setCanForceLogin] = useState(false);
+  const [pendingCredentials, setPendingCredentials] = useState<{ username: string; password: string } | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && (user?.role === 'admin' || user?.role === 'super-admin')) {
@@ -349,9 +351,24 @@ export const AdminLogin: React.FC = () => {
         );
       } else {
         setHasActiveSession(false);
+        setCanForceLogin(false);
       }
     } catch {
       // Ignore network errors on passive check
+    }
+  };
+
+  const handleForceReclaim = async () => {
+    if (!pendingCredentials) return;
+    setLoading(true);
+    setError('');
+    try {
+      await adminLogin(pendingCredentials.username, pendingCredentials.password, true);
+      navigate('/admin/dashboard', { replace: true });
+    } catch (err: any) {
+      setError(getErrorMessage(err, 'Failed to reclaim administrator session.'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -378,11 +395,8 @@ export const AdminLogin: React.FC = () => {
 
       if (isSessionConflict) {
         setHasActiveSession(true);
-        // Alert the user as requested so they are unmistakably notified
-        alert(
-          'ACCESS DENIED: Another administrator session is currently logged in to this portal.\n\n' +
-          'Only one admin can be logged in at a time. You cannot log in until the active administrator logs out.'
-        );
+        setCanForceLogin(true);
+        setPendingCredentials({ username, password });
       }
     } finally {
       setLoading(false);
@@ -415,6 +429,34 @@ export const AdminLogin: React.FC = () => {
             {sessionMessage ||
               'An administrator is currently active on the portal. Only one administrator can be logged in at a time. You cannot log in until that session logs out.'}
           </p>
+        </div>
+      )}
+
+      {/* RECLAIM ABANDONED SESSION OPTION */}
+      {canForceLogin && (
+        <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border-2 border-indigo-300 dark:border-indigo-700 space-y-3 shadow-md animate-scale-in">
+          <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold text-sm">
+            <span className="material-symbols-outlined text-xl text-indigo-600 dark:text-indigo-400">restart_alt</span>
+            <span>Are you the administrator who left this session open?</span>
+          </div>
+          <p className="text-xs text-indigo-800 dark:text-indigo-200 leading-relaxed">
+            If you mistakenly left your previous admin tab or closed your browser, you can terminate the old session and reclaim administrative access immediately.
+          </p>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleForceReclaim}
+            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+          >
+            {loading ? (
+              <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-lg">lock_open</span>
+                Terminate Previous Session & Sign In
+              </>
+            )}
+          </button>
         </div>
       )}
 
