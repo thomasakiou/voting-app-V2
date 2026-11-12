@@ -16,22 +16,45 @@ export const LoadingSpinner: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size =
     );
 };
 
+export const formatAlertMessage = (msg: any): string => {
+    if (!msg) return '';
+    if (typeof msg === 'string') return msg;
+    if (Array.isArray(msg)) {
+        return msg.map((item) => formatAlertMessage(item)).filter(Boolean).join('; ');
+    }
+    if (typeof msg === 'object') {
+        if (typeof msg.msg === 'string') return msg.msg;
+        if (typeof msg.detail === 'string') return msg.detail;
+        if (typeof msg.message === 'string') return msg.message;
+        try {
+            return JSON.stringify(msg);
+        } catch {
+            return String(msg);
+        }
+    }
+    return String(msg);
+};
+
 // Error Alert Component
-export const ErrorAlert: React.FC<{ message: string; onDismiss?: () => void }> = ({ message, onDismiss }) => (
-    <div className="alert alert-error">
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">error</span>
-                <span>{message}</span>
+export const ErrorAlert: React.FC<{ message: any; onDismiss?: () => void }> = ({ message, onDismiss }) => {
+    const text = formatAlertMessage(message);
+    if (!text) return null;
+    return (
+        <div className="alert alert-error">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm">error</span>
+                    <span>{text}</span>
+                </div>
+                {onDismiss && (
+                    <button onClick={onDismiss} className="ml-4">
+                        <span className="material-symbols-outlined text-sm">close</span>
+                    </button>
+                )}
             </div>
-            {onDismiss && (
-                <button onClick={onDismiss} className="ml-4">
-                    <span className="material-symbols-outlined text-sm">close</span>
-                </button>
-            )}
         </div>
-    </div>
-);
+    );
+};
 
 // Success Alert Component
 export const SuccessAlert: React.FC<{ message: string; onDismiss?: () => void }> = ({ message, onDismiss }) => (

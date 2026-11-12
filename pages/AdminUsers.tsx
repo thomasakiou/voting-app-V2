@@ -788,16 +788,32 @@ export const CreateUser: React.FC = () => {
 
     const form = e.target as HTMLFormElement;
     const username = (form.elements.namedItem('username') as HTMLInputElement).value.trim();
+    if (!username) {
+      setError('Username is required');
+      setLoading(false);
+      return;
+    }
     try {
       if (role === 'admin') {
-        await usersAPI.createAdmin({ username });
+        await usersAPI.createAdmin({ username, password: 'admin123' });
       } else {
-        await usersAPI.createVoter({ username });
+        await usersAPI.createVoter({ username, password: 'voter123' });
       }
-      setSuccess('User created successfully!');
+      setSuccess(`${role === 'admin' ? 'Administrator' : 'Voter'} created successfully!`);
       form.reset();
     } catch (err: any) {
-      setError(err?.data?.detail || 'Failed to create user');
+      const detail = err?.data?.detail;
+      let msg = 'Failed to create user';
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail)) {
+        msg = detail.map((d: any) => d.msg || JSON.stringify(d)).join('; ');
+      } else if (typeof detail === 'object' && detail?.msg) {
+        msg = detail.msg;
+      } else if (err?.message) {
+        msg = err.message;
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
