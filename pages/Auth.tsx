@@ -489,8 +489,8 @@ export const AdminLogin: React.FC = () => {
         </div>
         <button
           type="submit"
-          disabled={loading}
-          className="w-full btn-primary flex items-center justify-center gap-2 group text-lg font-bold"
+          disabled={loading || hasActiveSession}
+          className="w-full btn-primary flex items-center justify-center gap-2 group text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
             <div className="size-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
