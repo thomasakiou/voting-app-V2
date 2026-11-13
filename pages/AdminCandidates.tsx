@@ -114,14 +114,14 @@ const EditCandidateModal: React.FC<{
     const [loading, setLoading] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [error, setError] = useState('');
-    const [name, setName] = useState(candidate.name);
-    const [officeCode, setOfficeCode] = useState(candidate.office.office_code);
+    const [name, setName] = useState(candidate.name || '');
+    const [officeCode, setOfficeCode] = useState(candidate.office?.office_code || '');
     const [imageUrl, setImageUrl] = useState<string>(candidate.image_url || '');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        setName(candidate.name);
-        setOfficeCode(candidate.office.office_code);
+        setName(candidate.name || '');
+        setOfficeCode(candidate.office?.office_code || '');
         setImageUrl(candidate.image_url || '');
         setError('');
     }, [candidate]);
@@ -254,9 +254,9 @@ const EditCandidateModal: React.FC<{
                         className="input-field"
                         required
                     >
-                        {offices.map((office) => (
+                        {offices.map((office) => office && (
                             <option key={office.id} value={office.office_code}>
-                                {office.description}
+                                {office.description || office.office_code}
                             </option>
                         ))}
                     </select>
@@ -355,11 +355,13 @@ export const CandidateManagement: React.FC = () => {
     };
 
     const filteredCandidates = candidates.filter((c) => {
-        const matchesOffice = officeFilter === 'all' || c.office.office_code === officeFilter;
+        const matchesOffice = officeFilter === 'all' || c.office?.office_code === officeFilter;
+        const searchLower = (searchTerm || '').toLowerCase();
         const matchesSearch =
-            c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.candidate_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.office.description.toLowerCase().includes(searchTerm.toLowerCase());
+            (c.name || '').toLowerCase().includes(searchLower) ||
+            (c.candidate_code || '').toLowerCase().includes(searchLower) ||
+            (c.office?.description || '').toLowerCase().includes(searchLower) ||
+            (c.office?.office_code || '').toLowerCase().includes(searchLower);
         return matchesOffice && matchesSearch;
     });
 
@@ -416,9 +418,9 @@ export const CandidateManagement: React.FC = () => {
                         className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     >
                         <option value="all">All Offices</option>
-                        {offices.map((office) => (
+                        {offices.map((office) => office && (
                             <option key={office.id} value={office.office_code}>
-                                {office.description}
+                                {office.description || office.office_code}
                             </option>
                         ))}
                     </select>
@@ -478,7 +480,7 @@ export const CandidateManagement: React.FC = () => {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">{candidate.office.description}</td>
+                                            <td className="px-6 py-4">{candidate.office?.description || candidate.office?.office_code || 'N/A'}</td>
                                             <td className="px-6 py-4">
                                                 <button
                                                     onClick={() => handleToggleDisqualify(candidate.id, candidate.is_disqualified ?? false)}
@@ -742,9 +744,9 @@ export const CreateCandidate: React.FC = () => {
                         <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Office</label>
                         <select name="office_code" required className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none">
                             <option value="">Select an office</option>
-                            {offices.map((office) => (
+                            {offices.map((office) => office && (
                                 <option key={office.id} value={office.office_code}>
-                                    {office.description}
+                                    {office.description || office.office_code}
                                 </option>
                             ))}
                         </select>

@@ -117,10 +117,10 @@ export interface CandidateResponse {
   image_url?: string;
   is_disqualified?: boolean;
   created_at: string;
-  office: {
+  office?: {
     office_code: string;
     description: string;
-  };
+  } | null;
 }
 
 export interface VoteCreate {

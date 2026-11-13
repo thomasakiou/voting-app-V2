@@ -1173,7 +1173,7 @@ export const AdminDashboard: React.FC = () => {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold text-xs uppercase">
                     <tr>
-                      <th className="px-4 py-2.5">Voter Name</th>
+                      <th className="px-4 py-2.5">Username</th>
                       <th className="px-4 py-2.5">Contested Office</th>
                       <th className="px-4 py-2.5">Candidate Voted</th>
                       <th className="px-4 py-2.5">Receipt Hash</th>
@@ -1183,7 +1183,9 @@ export const AdminDashboard: React.FC = () => {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {(liveVotes.recent_votes || []).map((vote: any) => (
                       <tr key={vote.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                        <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{vote.user_name}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white font-mono">
+                          {vote.username || vote.user_name}
+                        </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{vote.office_name}</td>
                         <td className="px-4 py-3 font-medium text-indigo-600 dark:text-indigo-400">
                           {vote.candidate_name}
