@@ -87,12 +87,14 @@ export interface UserStatsOut {
 export interface OfficeCreate {
   office_code: string;
   description: string;
+  max_votes?: number;
 }
 
 export interface OfficeResponse {
   id: number;
   office_code: string;
   description: string;
+  max_votes?: number;
   is_disqualified?: boolean;
   created_at: string;
 }
@@ -100,6 +102,7 @@ export interface OfficeResponse {
 export interface OfficeUpdate {
   office_code?: string;
   description?: string;
+  max_votes?: number;
   is_disqualified?: boolean;
 }
 
@@ -124,7 +127,8 @@ export interface CandidateResponse {
 }
 
 export interface VoteCreate {
-  candidate_code: string;
+  candidate_code?: string;
+  candidate_codes?: string[];
   office_code: string;
 }
 

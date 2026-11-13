@@ -52,7 +52,8 @@ export const VoterDashboard: React.FC = () => {
 
     const isVotingActive = votingStatus?.is_active && votingStatus?.status === 'ACTIVE';
     const totalOffices = offices.length;
-    const votedCount = myVotes.length;
+    const votedOfficesSet = new Set(myVotes.map((v) => v.office_code));
+    const votedCount = votedOfficesSet.size;
     const allVoted = totalOffices > 0 && votedCount >= totalOffices;
 
     return (
@@ -275,10 +276,12 @@ export const BallotView: React.FC = () => {
 
     if (loading) return <LoadingSpinner />;
 
-    // Build voted offices lookup map
-    const votedOfficesMap = new Map<string, MyVoteResponse>();
+    // Build voted offices lookup map (supports multiple candidate votes per office)
+    const votedOfficesMap = new Map<string, MyVoteResponse[]>();
     myVotes.forEach((v) => {
-        votedOfficesMap.set(v.office_code, v);
+        const list = votedOfficesMap.get(v.office_code) || [];
+        list.push(v);
+        votedOfficesMap.set(v.office_code, list);
     });
 
     const isVotingActive = votingStatus?.is_active && votingStatus.status === 'ACTIVE';
@@ -307,7 +310,7 @@ export const BallotView: React.FC = () => {
             <div className="grid gap-4">
                 {offices.map((office) => {
                     const isVoted = votedOfficesMap.has(office.office_code);
-                    const voteInfo = votedOfficesMap.get(office.office_code);
+                    const officeVotes = votedOfficesMap.get(office.office_code) || [];
                     const isDisqualified = office.is_disqualified;
 
                     if (isVoted) {
@@ -326,14 +329,14 @@ export const BallotView: React.FC = () => {
                                                 {office.description}
                                             </h3>
                                             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                                                Voted
+                                                Voted ({officeVotes.length} {officeVotes.length === 1 ? 'candidate' : 'candidates'})
                                             </span>
                                         </div>
                                         <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
-                                            Voted for: {voteInfo?.candidate_name}
+                                            Voted for: {officeVotes.map((v) => v.candidate_name).join(', ')}
                                         </p>
-                                        <p className="text-xs font-mono text-slate-400 mt-0.5">
-                                            Receipt: {voteInfo?.receipt_hash || 'MCS-VERIFIED'}
+                                        <p className="text-xs font-mono text-slate-400 mt-0.5 truncate max-w-md">
+                                            Receipt(s): {officeVotes.map((v) => v.receipt_hash || 'MCS-VERIFIED').join(' • ')}
                                         </p>
                                     </div>
                                 </div>
@@ -387,9 +390,23 @@ export const BallotView: React.FC = () => {
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors truncate">
                                         {office.description}
                                     </h3>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                                        Click to view candidates, inspect photos, and cast vote
-                                    </p>
+                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                            office.max_votes && office.max_votes > 1
+                                                ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
+                                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                                        }`}>
+                                            <span className="material-symbols-outlined text-[13px]">
+                                                {office.max_votes && office.max_votes > 1 ? 'groups' : 'how_to_vote'}
+                                            </span>
+                                            {office.max_votes && office.max_votes > 1
+                                                ? `Pick up to ${office.max_votes} candidates`
+                                                : 'Single Choice (1 candidate)'}
+                                        </span>
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                                            Click to inspect & vote
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -415,8 +432,10 @@ const CandidateInspectModal: React.FC<{
     candidate: CandidateResponse | null;
     officeDescription?: string;
     isSelected: boolean;
-    onSelectAndVote: () => void;
-}> = ({ isOpen, onClose, candidate, officeDescription, isSelected, onSelectAndVote }) => {
+    isMulti?: boolean;
+    canSelectMore?: boolean;
+    onToggleSelect: () => void;
+}> = ({ isOpen, onClose, candidate, officeDescription, isSelected, isMulti, canSelectMore = true, onToggleSelect }) => {
     if (!isOpen || !candidate) return null;
     const resolvedUrl = candidate.image_url ? resolveImageUrl(candidate.image_url) : '';
 
@@ -434,7 +453,7 @@ const CandidateInspectModal: React.FC<{
                     {isSelected && (
                         <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold shadow-lg flex items-center gap-1">
                             <span className="material-symbols-outlined text-sm">check</span>
-                            Currently Selected
+                            Selected
                         </div>
                     )}
                 </div>
@@ -466,7 +485,9 @@ const CandidateInspectModal: React.FC<{
                     </div>
 
                     <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-xs text-indigo-800 dark:text-indigo-300 font-medium">
-                        You are previewing this candidate. You can vote for this candidate below.
+                        {isMulti
+                            ? 'This contest allows selecting multiple candidates. Click the button below to add or remove this candidate from your choices.'
+                            : 'You are previewing this candidate. You can vote for this candidate below.'}
                     </div>
                 </div>
 
@@ -481,14 +502,25 @@ const CandidateInspectModal: React.FC<{
                     </button>
                     <button
                         type="button"
+                        disabled={!isSelected && !canSelectMore}
                         onClick={() => {
-                            onSelectAndVote();
+                            onToggleSelect();
                             onClose();
                         }}
-                        className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
+                        className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 ${
+                            isSelected
+                                ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/25'
+                                : !canSelectMore
+                                    ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed shadow-none'
+                                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-500/25'
+                        }`}
                     >
-                        <span className="material-symbols-outlined text-xl">how_to_vote</span>
-                        {isSelected ? 'Keep As Selection' : `Vote For ${candidate.name.split(' ')[0]}`}
+                        <span className="material-symbols-outlined text-xl">
+                            {isSelected ? 'remove_circle' : 'how_to_vote'}
+                        </span>
+                        {isSelected
+                            ? (isMulti ? 'Deselect Candidate' : 'Selected')
+                            : (!canSelectMore ? 'Limit Reached' : `Select ${candidate.name.split(' ')[0]}`)}
                     </button>
                 </div>
             </div>
@@ -504,9 +536,9 @@ export const VoteCandidate: React.FC = () => {
     const { officeId } = useParams<{ officeId: string }>();
     const [office, setOffice] = useState<OfficeResponse | null>(null);
     const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
-    const [selected, setSelected] = useState<string | null>(null);
+    const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
     const [alreadyVoted, setAlreadyVoted] = useState(false);
-    const [existingVote, setExistingVote] = useState<MyVoteResponse | null>(null);
+    const [existingVotes, setExistingVotes] = useState<MyVoteResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -531,10 +563,10 @@ export const VoteCandidate: React.FC = () => {
             setCandidates(candData);
 
             // Check if already voted
-            const found = myVotes.find((v) => v.office_code === officeId);
-            if (found) {
+            const matchingVotes = myVotes.filter((v) => v.office_code === officeId);
+            if (matchingVotes.length > 0) {
                 setAlreadyVoted(true);
-                setExistingVote(found);
+                setExistingVotes(matchingVotes);
             }
         } catch (err) {
             setError('Failed to load candidate information.');
@@ -543,15 +575,37 @@ export const VoteCandidate: React.FC = () => {
         }
     };
 
+    const maxAllowed = office?.max_votes && office.max_votes > 0 ? office.max_votes : 1;
+    const isMulti = maxAllowed > 1;
+
+    const handleToggleCandidate = (code: string, candName: string) => {
+        setError('');
+        if (!isMulti) {
+            setSelectedCodes((prev) => (prev.includes(code) ? [] : [code]));
+            return;
+        }
+
+        if (selectedCodes.includes(code)) {
+            setSelectedCodes((prev) => prev.filter((c) => c !== code));
+        } else {
+            if (selectedCodes.length >= maxAllowed) {
+                setError(`You can select a maximum of ${maxAllowed} candidates for this contest. Please deselect a candidate first if you wish to choose ${candName}.`);
+                return;
+            }
+            setSelectedCodes((prev) => [...prev, code]);
+        }
+    };
+
     const handleCastVote = async () => {
-        if (!selected || !officeId) return;
+        if (selectedCodes.length === 0 || !officeId) return;
 
         setSubmitting(true);
         setError('');
 
         try {
             const result = await votesAPI.cast({
-                candidate_code: selected,
+                candidate_code: selectedCodes[0],
+                candidate_codes: selectedCodes,
                 office_code: officeId,
             });
             sessionStorage.setItem('last_vote_receipt', JSON.stringify(result));
@@ -575,9 +629,16 @@ export const VoteCandidate: React.FC = () => {
                 <p className="text-sm text-slate-500">
                     You have already cast your ballot for <b>{office?.description || officeId}</b>.
                 </p>
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-600 dark:text-slate-300">
-                    Candidate: {existingVote?.candidate_name}<br />
-                    Receipt: {existingVote?.receipt_hash || 'MCS-VERIFIED'}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs font-mono text-slate-600 dark:text-slate-300 text-left space-y-2">
+                    <div className="font-bold text-slate-900 dark:text-white text-sm">
+                        Candidates Voted ({existingVotes.length}):
+                    </div>
+                    {existingVotes.map((v, i) => (
+                        <div key={v.id || i} className="pb-1.5 border-b border-slate-200 dark:border-slate-700 last:border-0 last:pb-0">
+                            <span className="font-semibold text-indigo-600 dark:text-indigo-400">{v.candidate_name}</span>
+                            <span className="block text-[11px] text-slate-400">Receipt: {v.receipt_hash || 'MCS-VERIFIED'}</span>
+                        </div>
+                    ))}
                 </div>
                 <Link to="/voter/ballot" className="btn-primary w-full inline-block text-center font-bold">
                     Return to Ballot
@@ -586,11 +647,11 @@ export const VoteCandidate: React.FC = () => {
         );
     }
 
-    const selectedCandidate = candidates.find((c) => c.candidate_code === selected);
+    const selectedCandidates = candidates.filter((c) => selectedCodes.includes(c.candidate_code));
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-fade-in">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <Link
                         to="/voter/ballot"
@@ -602,9 +663,37 @@ export const VoteCandidate: React.FC = () => {
                     <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                         {office?.description || 'Contest'}
                     </h1>
-                    <p className="text-sm text-slate-500">
-                        Inspect candidates and their photos. Click any candidate or photo to choose who you are voting for.
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                            isMulti
+                                ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
+                                : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                        }`}>
+                            <span className="material-symbols-outlined text-sm">
+                                {isMulti ? 'groups' : 'how_to_vote'}
+                            </span>
+                            {isMulti
+                                ? `Multi-Candidate Contest: Select up to ${maxAllowed} candidates`
+                                : 'Single Choice: Select 1 candidate'}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                            {isMulti
+                                ? `You can pick 1, 2, or up to ${maxAllowed} candidates.`
+                                : 'Click any candidate card to select.'}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Real-time selection badge */}
+                <div className="flex items-center gap-2 self-start sm:self-auto px-4 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Selected:
+                    </span>
+                    <span className={`text-base font-black ${
+                        selectedCodes.length > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'
+                    }`}>
+                        {selectedCodes.length} / {maxAllowed}
+                    </span>
                 </div>
             </div>
 
@@ -614,8 +703,9 @@ export const VoteCandidate: React.FC = () => {
             <div className="grid sm:grid-cols-2 gap-4">
                 {candidates.map((cand) => {
                     const isDisqualified = cand.is_disqualified;
-                    const isSelected = selected === cand.candidate_code;
+                    const isSelected = selectedCodes.includes(cand.candidate_code);
                     const resolvedUrl = cand.image_url ? resolveImageUrl(cand.image_url) : '';
+                    const selectionIndex = selectedCodes.indexOf(cand.candidate_code);
 
                     if (isDisqualified) {
                         return (
@@ -637,7 +727,7 @@ export const VoteCandidate: React.FC = () => {
                     return (
                         <div
                             key={cand.id}
-                            onClick={() => setSelected(cand.candidate_code)}
+                            onClick={() => handleToggleCandidate(cand.candidate_code, cand.name)}
                             className={`group p-5 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                                 isSelected
                                     ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/40 shadow-xl shadow-indigo-500/10 ring-2 ring-indigo-500/20'
@@ -686,8 +776,10 @@ export const VoteCandidate: React.FC = () => {
                                                 Candidate for {office?.description}
                                             </p>
                                         </div>
+
+                                        {/* Selection Checkbox / Radio indicator */}
                                         <div
-                                            className={`size-7 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                                            className={`size-7 ${isMulti ? 'rounded-lg' : 'rounded-full'} border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
                                                 isSelected
                                                     ? 'border-indigo-600 bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
                                                     : 'border-slate-300 dark:border-slate-600 group-hover:border-indigo-400'
@@ -713,7 +805,9 @@ export const VoteCandidate: React.FC = () => {
                                     View Full Profile & Photo
                                 </button>
                                 <span className={`text-xs font-bold ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
-                                    {isSelected ? '✓ Selected to Vote' : 'Click to Select'}
+                                    {isSelected
+                                        ? (isMulti ? `✓ Selected (#${selectionIndex + 1})` : '✓ Selected to Vote')
+                                        : (isMulti ? '+ Click to Select' : 'Click to Select')}
                                 </span>
                             </div>
                         </div>
@@ -722,26 +816,33 @@ export const VoteCandidate: React.FC = () => {
             </div>
 
             {/* Submit Action Area with Selected Candidate Banner */}
-            {selectedCandidate ? (
+            {selectedCandidates.length > 0 ? (
                 <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border-2 border-indigo-200 dark:border-indigo-800 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-indigo-500/5">
-                    <div className="flex items-center gap-3">
-                        <div className="size-14 rounded-2xl overflow-hidden bg-white dark:bg-slate-800 border-2 border-indigo-500 shadow-sm flex items-center justify-center flex-shrink-0">
-                            <CandidateAvatar
-                                src={selectedCandidate.image_url ? resolveImageUrl(selectedCandidate.image_url) : ''}
-                                name={selectedCandidate.name}
-                                iconClassName="text-2xl"
-                                textClassName="text-[10px]"
-                            />
-                        </div>
-                        <div>
+                    <div className="flex items-center gap-3 min-w-0">
+                        {selectedCandidates.length === 1 ? (
+                            <div className="size-14 rounded-2xl overflow-hidden bg-white dark:bg-slate-800 border-2 border-indigo-500 shadow-sm flex items-center justify-center flex-shrink-0">
+                                <CandidateAvatar
+                                    src={selectedCandidates[0].image_url ? resolveImageUrl(selectedCandidates[0].image_url) : ''}
+                                    name={selectedCandidates[0].name}
+                                    iconClassName="text-2xl"
+                                    textClassName="text-[10px]"
+                                />
+                            </div>
+                        ) : (
+                            <div className="size-14 rounded-2xl bg-indigo-600 text-white flex flex-col items-center justify-center shadow-md shadow-indigo-500/20 flex-shrink-0">
+                                <span className="material-symbols-outlined text-2xl">groups</span>
+                                <span className="text-[11px] font-black">{selectedCandidates.length} Picked</span>
+                            </div>
+                        )}
+                        <div className="min-w-0">
                             <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
-                                You Are Voting For:
+                                You Are Voting For ({selectedCandidates.length} of {maxAllowed} Allowed):
                             </span>
-                            <h4 className="text-lg font-black text-slate-900 dark:text-white">
-                                {selectedCandidate.name}
+                            <h4 className="text-lg font-black text-slate-900 dark:text-white truncate">
+                                {selectedCandidates.map((c) => c.name).join(', ')}
                             </h4>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                                #{selectedCandidate.candidate_code} • {office?.description}
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
+                                {office?.description} • {selectedCandidates.map((c) => `#${c.candidate_code}`).join(', ')}
                             </p>
                         </div>
                     </div>
@@ -749,7 +850,7 @@ export const VoteCandidate: React.FC = () => {
                     <button
                         onClick={handleCastVote}
                         disabled={submitting}
-                        className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-extrabold text-base rounded-2xl shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all"
+                        className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-extrabold text-base rounded-2xl shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all flex-shrink-0"
                     >
                         {submitting ? (
                             <>
@@ -758,7 +859,9 @@ export const VoteCandidate: React.FC = () => {
                             </>
                         ) : (
                             <>
-                                Cast Vote for {selectedCandidate.name.split(' ')[0]}
+                                {isMulti
+                                    ? `Cast Vote (${selectedCandidates.length} Candidate${selectedCandidates.length > 1 ? 's' : ''})`
+                                    : `Cast Vote for ${selectedCandidates[0].name.split(' ')[0]}`}
                                 <span className="material-symbols-outlined text-xl">how_to_vote</span>
                             </>
                         )}
@@ -766,7 +869,9 @@ export const VoteCandidate: React.FC = () => {
                 </div>
             ) : (
                 <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 text-center text-slate-500 text-sm">
-                    Select a candidate above to inspect their profile and cast your ballot.
+                    {isMulti
+                        ? `Select up to ${maxAllowed} candidates above to cast your ballot.`
+                        : 'Select a candidate above to inspect their profile and cast your ballot.'}
                 </div>
             )}
 
@@ -776,10 +881,12 @@ export const VoteCandidate: React.FC = () => {
                 onClose={() => setInspectCandidate(null)}
                 candidate={inspectCandidate}
                 officeDescription={office?.description}
-                isSelected={selected === inspectCandidate?.candidate_code}
-                onSelectAndVote={() => {
+                isSelected={selectedCodes.includes(inspectCandidate?.candidate_code || '')}
+                isMulti={isMulti}
+                canSelectMore={selectedCodes.length < maxAllowed}
+                onToggleSelect={() => {
                     if (inspectCandidate) {
-                        setSelected(inspectCandidate.candidate_code);
+                        handleToggleCandidate(inspectCandidate.candidate_code, inspectCandidate.name);
                     }
                 }}
             />
@@ -829,9 +936,11 @@ export const VoteSuccess: React.FC = () => {
                         <span className="text-slate-500">Contest</span>
                         <span className="font-bold text-slate-900 dark:text-white">{receipt.office_name}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm border-b border-slate-100 dark:border-slate-700/60 pb-2">
-                        <span className="text-slate-500">Candidate Selected</span>
-                        <span className="font-semibold text-indigo-600 dark:text-indigo-400">{receipt.candidate_name}</span>
+                    <div className="flex justify-between items-start text-sm border-b border-slate-100 dark:border-slate-700/60 pb-2">
+                        <span className="text-slate-500">Candidate(s) Selected</span>
+                        <span className="font-semibold text-indigo-600 dark:text-indigo-400 text-right max-w-[65%]">
+                            {receipt.candidate_name}
+                        </span>
                     </div>
                     <div className="space-y-1 pt-1">
                         <span className="text-xs text-slate-400 font-mono block">Cryptographic Verification Hash:</span>

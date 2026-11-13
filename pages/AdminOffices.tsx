@@ -12,9 +12,11 @@ const EditOfficeModal: React.FC<{
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [description, setDescription] = useState(office.description);
+    const [maxVotes, setMaxVotes] = useState<number>(office.max_votes || 1);
 
     useEffect(() => {
         setDescription(office.description);
+        setMaxVotes(office.max_votes || 1);
     }, [office]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +25,11 @@ const EditOfficeModal: React.FC<{
         setError('');
 
         try {
-            await officesAPI.update(office.id, { office_code: office.office_code, description });
+            await officesAPI.update(office.id, {
+                office_code: office.office_code,
+                description,
+                max_votes: Number(maxVotes) || 1,
+            });
             onUpdate();
             onClose();
         } catch (err: any) {
@@ -56,6 +62,23 @@ const EditOfficeModal: React.FC<{
                         placeholder="e.g. President"
                         required
                     />
+                </div>
+                <div>
+                    <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                        Allowed Candidate Selections (Max Votes)
+                    </label>
+                    <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={maxVotes}
+                        onChange={(e) => setMaxVotes(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
+                        required
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                        How many unique candidates a voter can pick for this contest. Default is 1 for single-winner offices (e.g. President), or 2+ for committee/trustee seats.
+                    </p>
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
                     <button
@@ -207,6 +230,7 @@ export const OfficeManagement: React.FC = () => {
                                     <tr>
                                         <th className="px-6 py-3">Office Code</th>
                                         <th className="px-6 py-3">Description</th>
+                                        <th className="px-6 py-3">Max Selections</th>
                                         <th className="px-6 py-3">Status</th>
                                         <th className="px-6 py-3">Created</th>
                                         <th className="px-6 py-3 text-right">Actions</th>
@@ -218,7 +242,13 @@ export const OfficeManagement: React.FC = () => {
                                             <td className="px-6 py-4 font-mono text-slate-900 dark:text-white font-medium">
                                                 {office.office_code}
                                             </td>
-                                            <td className="px-6 py-4">{office.description}</td>
+                                            <td className="px-6 py-4 font-semibold text-slate-900 dark:text-white">{office.description}</td>
+                                            <td className="px-6 py-4">
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                                    <span className="material-symbols-outlined text-[14px]">how_to_vote</span>
+                                                    {office.max_votes && office.max_votes > 1 ? `Up to ${office.max_votes} candidates` : '1 candidate (Single)'}
+                                                </span>
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <button
                                                     onClick={() => handleToggleDisqualify(office.id, office.is_disqualified ?? false)}
@@ -316,9 +346,10 @@ export const CreateOffice: React.FC = () => {
         const form = e.target as HTMLFormElement;
         const office_code = (form.elements.namedItem('office_code') as HTMLInputElement).value.trim();
         const description = (form.elements.namedItem('description') as HTMLInputElement).value.trim();
+        const max_votes = parseInt((form.elements.namedItem('max_votes') as HTMLInputElement)?.value || '1', 10) || 1;
 
         try {
-            await officesAPI.create({ office_code, description });
+            await officesAPI.create({ office_code, description, max_votes });
             setSuccess('Office created successfully!');
             form.reset();
         } catch (err: any) {
@@ -360,6 +391,23 @@ export const CreateOffice: React.FC = () => {
                             className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
                             placeholder="e.g. President, Governor, Senator"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                            Allowed Candidate Selections (Max Votes)
+                        </label>
+                        <input
+                            type="number"
+                            name="max_votes"
+                            min="1"
+                            max="20"
+                            defaultValue="1"
+                            required
+                            className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                            How many unique candidates a voter can pick for this contest. Set 1 for single-winner offices (e.g. President) or 2+ for multi-winner seats (e.g. Trustees, Committee Members).
+                        </p>
                     </div>
                     <div className="flex justify-end gap-3 pt-4">
                         <Link
