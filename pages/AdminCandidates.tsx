@@ -498,7 +498,7 @@ export const CandidateManagement: React.FC = () => {
                                                 </button>
                                             </td>
                                             <td className="px-6 py-4 text-slate-500">
-                                                {new Date(candidate.created_at).toLocaleDateString()}
+                                                {candidate.created_at ? new Date(candidate.created_at).toLocaleDateString() : '—'}
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-1">
