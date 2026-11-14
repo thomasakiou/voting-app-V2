@@ -601,6 +601,36 @@ export const AdminLogin: React.FC = () => {
         </button>
       </form>
 
+      {/* Contestant Agent Live Monitor Portal Link */}
+      <div className="pt-2">
+        <Link
+          to="/agents/live"
+          className="group flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 transition-all shadow-sm"
+        >
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-xl">monitoring</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  Contestants' Agents Portal
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                  Live
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Live observation stream & tally for accredited candidate agents
+              </p>
+            </div>
+          </div>
+          <span className="material-symbols-outlined text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all text-xl">
+            arrow_forward
+          </span>
+        </Link>
+      </div>
+
       <LegalLinks />
       <PortalNav showAdmin={false} />
     </AuthShell>
