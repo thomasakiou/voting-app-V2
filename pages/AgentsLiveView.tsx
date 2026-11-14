@@ -122,57 +122,57 @@ export const AgentsLiveView: React.FC = () => {
   // Unauthenticated: Show Agent Login Card
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 selection:bg-indigo-500 selection:text-white">
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-900 dark:text-slate-100 flex flex-col justify-center items-center p-4 selection:bg-indigo-500 selection:text-white transition-colors duration-300">
         <div className="w-full max-w-md">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
             <div className="text-center space-y-2">
-              <div className="size-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 mx-auto flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <div className="size-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 mx-auto flex items-center justify-center shadow-lg shadow-indigo-500/25">
                 <span className="material-symbols-outlined text-white text-3xl">verified_user</span>
               </div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">Agent Observer Portal</h1>
-              <p className="text-xs text-slate-400">
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Agent Observer Portal</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Sign in with your assigned agent credentials to observe live election voting proceedings.
               </p>
             </div>
 
             {loginError && (
-              <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-800 text-red-200 text-xs flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-red-400 text-base">error</span>
+              <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 text-xs flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-red-500 dark:text-red-400 text-base">error</span>
                 <span>{loginError}</span>
               </div>
             )}
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                   Agent Username
                 </label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3.5 top-3 text-slate-500 text-lg">badge</span>
+                  <span className="material-symbols-outlined absolute left-3.5 top-3 text-slate-400 text-lg">badge</span>
                   <input
                     type="text"
                     value={loginUsername}
                     onChange={(e) => setLoginUsername(e.target.value)}
                     required
                     placeholder="Enter agent username"
-                    className="w-full pl-11 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                    className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
                   Password
                 </label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3.5 top-3 text-slate-500 text-lg">lock</span>
+                  <span className="material-symbols-outlined absolute left-3.5 top-3 text-slate-400 text-lg">lock</span>
                   <input
                     type="password"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     required
                     placeholder="Enter password"
-                    className="w-full pl-11 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                    className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                   />
                 </div>
               </div>
@@ -180,7 +180,7 @@ export const AgentsLiveView: React.FC = () => {
               <button
                 type="submit"
                 disabled={loginLoading}
-                className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {loginLoading ? (
                   <>
@@ -196,10 +196,17 @@ export const AgentsLiveView: React.FC = () => {
               </button>
             </form>
 
-            <div className="pt-2 border-t border-slate-800 text-center">
-              <p className="text-[11px] text-slate-500 leading-relaxed">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-center space-y-3">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                 Ballot privacy guaranteed: Live observer view presents real-time aggregate tallies and cryptographic receipts with zero disclosure of voter identities.
               </p>
+              <Link
+                to="/admin/login"
+                className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">arrow_back</span>
+                Return to Admin Login
+              </Link>
             </div>
           </div>
         </div>
@@ -209,11 +216,11 @@ export const AgentsLiveView: React.FC = () => {
 
   if (loading && !data) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-900 dark:text-slate-100 flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <div className="size-14 border-4 border-indigo-400/30 border-t-indigo-500 rounded-full animate-spin mx-auto" />
-          <h2 className="text-xl font-bold text-white">Loading Election Monitor...</h2>
-          <p className="text-sm text-slate-400">Connecting to secure live vote feed</p>
+          <div className="size-14 border-4 border-indigo-500/30 border-t-indigo-600 rounded-full animate-spin mx-auto" />
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Loading Election Monitor...</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Connecting to secure live vote feed</p>
         </div>
       </div>
     );
@@ -257,24 +264,24 @@ export const AgentsLiveView: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] text-slate-900 dark:text-slate-100 font-sans selection:bg-indigo-500 selection:text-white transition-colors duration-300">
       {/* Top Header Bar */}
-      <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-xl">
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="size-11 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <div className="size-11 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
               <span className="material-symbols-outlined text-white text-2xl">monitoring</span>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white">
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                   Contestants' Agents Live Portal
                 </h1>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
                   Live View Only
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 NECO MCS Cooperative Election — Real-Time Process Observer
               </p>
             </div>
@@ -282,10 +289,10 @@ export const AgentsLiveView: React.FC = () => {
 
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {/* Current Agent Info Badge */}
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
-              <span className="material-symbols-outlined text-indigo-400 text-base">person</span>
-              <span className="font-medium text-white">{currentUser.fullname || currentUser.username}</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-500/20 text-indigo-300">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300">
+              <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400 text-base">person</span>
+              <span className="font-semibold text-slate-900 dark:text-white">{currentUser.fullname || currentUser.username}</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
                 {currentUser.role}
               </span>
             </div>
@@ -293,8 +300,8 @@ export const AgentsLiveView: React.FC = () => {
             {/* Status indicator */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${
               isVotingActive && statusLabel === 'ACTIVE'
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/30'
+                : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30'
             }`}>
               <span className={`size-2 rounded-full ${isVotingActive && statusLabel === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
               {isVotingActive && statusLabel === 'ACTIVE' ? 'VOTING LIVE' : statusLabel}
@@ -305,8 +312,8 @@ export const AgentsLiveView: React.FC = () => {
               onClick={() => setAutoRefresh(!autoRefresh)}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                 autoRefresh
-                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                  ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-transparent shadow-md shadow-indigo-500/20'
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
               }`}
             >
               <span className="material-symbols-outlined text-[15px]">{autoRefresh ? 'sync' : 'sync_disabled'}</span>
@@ -316,7 +323,7 @@ export const AgentsLiveView: React.FC = () => {
             {/* Manual refresh button */}
             <button
               onClick={() => loadData(feedPage)}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+              className="p-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors"
               title="Refresh now"
             >
               <span className="material-symbols-outlined text-lg">refresh</span>
@@ -325,7 +332,7 @@ export const AgentsLiveView: React.FC = () => {
             {/* Sign Out Button */}
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-red-950/40 hover:text-red-300 hover:border-red-800/60 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-300 hover:border-red-200 dark:hover:border-red-800/60 transition-colors cursor-pointer"
               title="Sign out of Agent Portal"
             >
               <span className="material-symbols-outlined text-[15px]">logout</span>
@@ -338,86 +345,86 @@ export const AgentsLiveView: React.FC = () => {
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {error && (
-          <div className="p-4 rounded-xl bg-red-950/50 border border-red-800 text-red-200 text-sm flex items-center gap-3">
-            <span className="material-symbols-outlined text-red-400">error</span>
+          <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-200 text-sm flex items-center gap-3 shadow-sm">
+            <span className="material-symbols-outlined text-red-500 dark:text-red-400">error</span>
             <span>{error}</span>
           </div>
         )}
 
         {/* Anonymity Banner */}
-        <div className="p-4 rounded-xl bg-slate-900 border border-indigo-500/30 flex items-start sm:items-center justify-between gap-4">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-500/30 shadow-sm flex items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="size-9 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+            <div className="size-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-xl">shield</span>
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-white">Ballot Secrecy & Voter Privacy Protected</h2>
-              <p className="text-xs text-slate-400">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Ballot Secrecy & Voter Privacy Protected</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 In compliance with election regulations, voter names and MCS numbers are strictly hidden. Only anonymized cryptographic ballot receipts are displayed.
               </p>
             </div>
           </div>
-          <div className="text-right text-xs text-slate-400 shrink-0 hidden md:block">
-            Last Updated: <span className="font-mono text-slate-200">{lastRefreshed.toLocaleTimeString()}</span>
+          <div className="text-right text-xs text-slate-500 dark:text-slate-400 shrink-0 hidden md:block">
+            Last Updated: <span className="font-mono font-semibold text-slate-700 dark:text-slate-200">{lastRefreshed.toLocaleTimeString()}</span>
           </div>
         </div>
 
         {/* KPI Overview Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-md">
-            <div className="flex items-center gap-2 text-slate-400 text-xs uppercase tracking-wider font-semibold mb-2">
-              <span className="material-symbols-outlined text-base text-indigo-400">groups</span>
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold mb-2">
+              <span className="material-symbols-outlined text-base text-indigo-600 dark:text-indigo-400">groups</span>
               Eligible Voters
             </div>
-            <div className="text-2xl sm:text-3xl font-bold font-mono text-white">
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-white">
               {totalEligible.toLocaleString()}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Official registered members</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Official registered members</p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-md">
-            <div className="flex items-center gap-2 text-slate-400 text-xs uppercase tracking-wider font-semibold mb-2">
-              <span className="material-symbols-outlined text-base text-blue-400">how_to_reg</span>
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold mb-2">
+              <span className="material-symbols-outlined text-base text-blue-600 dark:text-blue-400">how_to_reg</span>
               Accredited
             </div>
-            <div className="text-2xl sm:text-3xl font-bold font-mono text-blue-400">
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-blue-600 dark:text-blue-400">
               {totalAccredited.toLocaleString()}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Successfully verified</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Successfully verified</p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-md">
-            <div className="flex items-center gap-2 text-slate-400 text-xs uppercase tracking-wider font-semibold mb-2">
-              <span className="material-symbols-outlined text-base text-emerald-400">how_to_vote</span>
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold mb-2">
+              <span className="material-symbols-outlined text-base text-emerald-600 dark:text-emerald-400">how_to_vote</span>
               Total Votes Cast
             </div>
-            <div className="text-2xl sm:text-3xl font-bold font-mono text-emerald-400">
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
               {totalVotesCast.toLocaleString()}
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Confirmed ballots cast</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Confirmed ballots cast</p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-md">
-            <div className="flex items-center gap-2 text-slate-400 text-xs uppercase tracking-wider font-semibold mb-2">
-              <span className="material-symbols-outlined text-base text-violet-400">trending_up</span>
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold mb-2">
+              <span className="material-symbols-outlined text-base text-violet-600 dark:text-violet-400">trending_up</span>
               Voter Turnout
             </div>
-            <div className="text-2xl sm:text-3xl font-bold font-mono text-violet-400">
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-violet-600 dark:text-violet-400">
               {turnoutPercentage.toFixed(1)}%
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">Votes per eligible voter</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Votes per eligible voter</p>
           </div>
         </div>
 
         {/* Election Session Timing */}
-        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+            <div className="size-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <span className="material-symbols-outlined text-xl">schedule</span>
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-medium">Session Status</p>
-              <p className="text-sm font-bold text-white">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Session Status</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">
                 {isVotingActive && statusLabel === 'ACTIVE'
                   ? 'Voting Session in Progress'
                   : `Status: ${statusLabel}`}
@@ -426,9 +433,9 @@ export const AgentsLiveView: React.FC = () => {
           </div>
 
           {timeRemainingVal !== null && timeRemainingVal !== undefined && timeRemainingVal > 0 && (
-            <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800">
-              <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Time Remaining:</span>
-              <span className="font-mono text-lg font-bold text-indigo-400">
+            <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800">
+              <span className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">Time Remaining:</span>
+              <span className="font-mono text-lg font-bold text-indigo-600 dark:text-indigo-400">
                 {formatSecondsToTime(timeRemainingVal)}
               </span>
             </div>
@@ -439,11 +446,11 @@ export const AgentsLiveView: React.FC = () => {
         <section className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-indigo-400">leaderboard</span>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400">leaderboard</span>
                 Live Office Standings
               </h2>
-              <p className="text-xs text-slate-400">Real-time vote tallies for all contested positions</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Real-time vote tallies for all contested positions</p>
             </div>
             <div className="relative min-w-[200px]">
               <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400 text-sm">search</span>
@@ -452,13 +459,13 @@ export const AgentsLiveView: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Filter by office or candidate..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               />
             </div>
           </div>
 
           {filteredOffices.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 bg-slate-900 rounded-2xl border border-slate-800">
+            <div className="p-8 text-center text-slate-500 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
               {searchQuery ? 'No offices match your search criteria.' : 'No office standings available.'}
             </div>
           ) : (
@@ -474,28 +481,28 @@ export const AgentsLiveView: React.FC = () => {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <span className="material-symbols-outlined text-emerald-400">dynamic_feed</span>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="material-symbols-outlined text-emerald-600 dark:text-emerald-400">dynamic_feed</span>
                 Anonymized Live Ballot Feed
               </h2>
-              <p className="text-xs text-slate-400">Stream of ballots recorded by the election system</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Stream of ballots recorded by the election system</p>
             </div>
-            <span className="text-xs text-slate-400 font-mono">
-              Total Ballots: {totalBallotsCount.toLocaleString()}
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-mono">
+              Total Ballots: <strong className="text-slate-900 dark:text-white">{totalBallotsCount.toLocaleString()}</strong>
             </span>
           </div>
 
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
             {ballotsList.length === 0 ? (
-              <div className="p-10 text-center text-slate-500">
-                <span className="material-symbols-outlined text-4xl mb-2 text-slate-600 block">hourglass_empty</span>
+              <div className="p-10 text-center text-slate-400">
+                <span className="material-symbols-outlined text-4xl mb-2 text-slate-300 dark:text-slate-600 block">hourglass_empty</span>
                 No votes recorded yet. The live stream will populate as ballots are cast.
               </div>
             ) : (
               <>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-950 text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-800">
+                    <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
                       <tr>
                         <th className="px-5 py-3">Receipt Hash</th>
                         <th className="px-5 py-3">Contest / Office</th>
@@ -504,23 +511,23 @@ export const AgentsLiveView: React.FC = () => {
                         <th className="px-5 py-3 text-right">Verification</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                       {ballotsList.map((ballot) => (
-                        <tr key={ballot.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="px-5 py-3 text-indigo-400 font-semibold font-mono">
+                        <tr key={ballot.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="px-5 py-3 text-indigo-600 dark:text-indigo-400 font-semibold font-mono">
                             {ballot.receipt_hash}
                           </td>
-                          <td className="px-5 py-3 font-sans font-medium text-slate-200">
+                          <td className="px-5 py-3 font-sans font-medium text-slate-700 dark:text-slate-300">
                             {ballot.office_name}
                           </td>
-                          <td className="px-5 py-3 font-sans font-semibold text-white">
+                          <td className="px-5 py-3 font-sans font-bold text-slate-900 dark:text-white">
                             {ballot.candidate_name}
                           </td>
-                          <td className="px-5 py-3 text-slate-400 font-mono">
+                          <td className="px-5 py-3 text-slate-500 dark:text-slate-400 font-mono">
                             {ballot.created_at ? new Date(ballot.created_at).toLocaleTimeString() : '—'}
                           </td>
                           <td className="px-5 py-3 text-right font-sans">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
                               <span className="material-symbols-outlined text-[12px]">verified</span>
                               RECORDED
                             </span>
@@ -532,23 +539,23 @@ export const AgentsLiveView: React.FC = () => {
                 </div>
 
                 {/* Pagination Controls */}
-                <div className="px-5 py-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                <div className="px-5 py-3.5 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                   <span>
-                    Page <strong className="text-white">{currentPage}</strong> of{' '}
-                    <strong className="text-white">{totalPages}</strong>
+                    Page <strong className="text-slate-900 dark:text-white">{currentPage}</strong> of{' '}
+                    <strong className="text-slate-900 dark:text-white">{totalPages}</strong>
                   </span>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setFeedPage(Math.max(1, feedPage - 1))}
                       disabled={currentPage <= 1}
-                      className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
                     >
                       Previous
                     </button>
                     <button
                       onClick={() => setFeedPage(feedPage + 1)}
                       disabled={currentPage >= totalPages}
-                      className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium shadow-sm"
                     >
                       Next
                     </button>
@@ -561,7 +568,7 @@ export const AgentsLiveView: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="mt-12 py-6 border-t border-slate-800 text-center text-xs text-slate-500">
+      <footer className="mt-12 py-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400">
         NECO MCS Cooperative Election Monitoring System • Real-Time Agents Observation Portal
       </footer>
     </div>
@@ -580,23 +587,23 @@ const OfficeCard: React.FC<{ office: AgentsLiveOfficeTally }> = ({ office }) => 
   });
 
   return (
-    <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-md space-y-4">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+    <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
         <div>
-          <h3 className="text-base font-bold text-white">{officeName}</h3>
-          <p className="text-xs text-slate-400">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">{officeName}</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {(office.total_votes ?? 0)} total vote{(office.total_votes ?? 0) !== 1 ? 's' : ''} cast
             {office.max_votes > 1 && ` (up to ${office.max_votes} selections per voter)`}
           </p>
         </div>
-        <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+        <div className="size-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
           <span className="material-symbols-outlined text-lg">how_to_vote</span>
         </div>
       </div>
 
       <div className="space-y-3.5">
         {sortedCandidates.length === 0 ? (
-          <p className="text-xs text-slate-500 italic">No candidates registered for this office</p>
+          <p className="text-xs text-slate-400 italic">No candidates registered for this office</p>
         ) : (
           sortedCandidates.map((cand, idx) => {
             const candName = cand.candidate_name || cand.name || cand.candidate_code;
@@ -611,28 +618,28 @@ const OfficeCard: React.FC<{ office: AgentsLiveOfficeTally }> = ({ office }) => 
                   <div className="flex items-center gap-2 truncate">
                     <span className={`size-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                       idx === 0 && candVotes > 0
-                        ? 'bg-amber-400 text-slate-950 shadow-sm shadow-amber-400/50'
-                        : 'bg-slate-800 text-slate-400'
+                        ? 'bg-amber-400 text-slate-950 shadow-sm shadow-amber-400/40'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                     }`}>
                       {idx + 1}
                     </span>
-                    <span className="text-slate-200 truncate">{candName}</span>
+                    <span className="text-slate-800 dark:text-slate-200 truncate">{candName}</span>
                   </div>
-                  <div className="font-mono text-white text-right shrink-0 ml-2">
+                  <div className="font-mono text-slate-900 dark:text-white text-right shrink-0 ml-2">
                     <span>{candVotes.toLocaleString()}</span>
-                    <span className="text-[11px] text-slate-400 ml-1.5 font-sans">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-1.5 font-sans font-normal">
                       ({candPercentage.toFixed(1)}%)
                     </span>
                   </div>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       idx === 0 && candVotes > 0
-                        ? 'bg-gradient-to-r from-amber-400 to-indigo-500'
-                        : 'bg-indigo-600'
+                        ? 'bg-gradient-to-r from-amber-400 to-indigo-600'
+                        : 'bg-indigo-600 dark:bg-indigo-500'
                     }`}
                     style={{ width: `${Math.max((candVotes / maxVotes) * 100, candVotes > 0 ? 3 : 0)}%` }}
                   />
