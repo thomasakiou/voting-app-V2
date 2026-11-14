@@ -299,15 +299,18 @@ export interface ElectionVoterLookupResponse {
 
 export interface AgentsLiveCandidateTally {
   candidate_code: string;
-  name: string;
-  votes: number;
-  percentage: number;
+  name?: string;
+  candidate_name?: string;
+  votes?: number;
+  vote_count?: number;
+  percentage?: number;
   image_url?: string;
 }
 
 export interface AgentsLiveOfficeTally {
   office_code: string;
-  office_name: string;
+  office_name?: string;
+  description?: string;
   max_votes: number;
   total_votes: number;
   candidates: AgentsLiveCandidateTally[];
@@ -322,26 +325,35 @@ export interface AgentsLiveBallotFeedItem {
 }
 
 export interface AgentsLiveMonitorResponse {
-  election_status: {
-    is_active: boolean;
-    status: string;
+  status?: string;
+  is_active?: boolean;
+  end_time?: string | null;
+  start_time?: string | null;
+  time_remaining?: number | null;
+  total_votes_cast?: number;
+  total_voters?: number;
+  accredited_voters?: number;
+  turnout_percentage?: number;
+  page?: number;
+  page_size?: number;
+  total_ballots?: number;
+  recent_ballots?: AgentsLiveBallotFeedItem[];
+  offices_results?: AgentsLiveOfficeTally[];
+  // Backwards compatibility if nested
+  election_status?: {
+    is_active?: boolean;
+    status?: string;
     start_time?: string | null;
     end_time?: string | null;
     time_remaining?: number | null;
   };
-  overview: {
-    total_eligible_voters: number;
-    total_accredited_voters: number;
-    total_votes_cast: number;
-    turnout_percentage: number;
+  overview?: {
+    total_eligible_voters?: number;
+    total_accredited_voters?: number;
+    total_votes_cast?: number;
+    turnout_percentage?: number;
   };
-  offices_tally: AgentsLiveOfficeTally[];
-  recent_ballots: {
-    total: number;
-    page: number;
-    page_size: number;
-    items: AgentsLiveBallotFeedItem[];
-  };
+  offices_tally?: AgentsLiveOfficeTally[];
 }
 
 export interface VoterContactOTPResponse {

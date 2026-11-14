@@ -72,7 +72,6 @@ const PortalNav: React.FC<PortalNavProps> = ({ exclude, showAdmin = false }) => 
     { to: '/election',      label: 'Election Portal',         icon: 'how_to_vote',      show: exclude !== 'election' },
     { to: '/accreditation', label: 'Accreditation Portal',    icon: 'how_to_reg',       show: exclude !== 'accreditation' },
     { to: '/contact-update',label: 'Contact Update Portal',   icon: 'manage_accounts',  show: exclude !== 'contact' },
-    { to: '/agents/live',   label: "Agents' Live Monitor",    icon: 'monitoring',       show: true },
     { to: '/admin/login',   label: 'Admin Portal',            icon: 'admin_panel_settings', show: showAdmin },
   ].filter(l => l.show);
 
