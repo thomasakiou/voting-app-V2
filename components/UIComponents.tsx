@@ -79,24 +79,49 @@ interface ModalProps {
     onClose: () => void;
     title: string;
     children: React.ReactNode;
+    maxWidth?: string;
+    footer?: React.ReactNode;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+export const Modal: React.FC<ModalProps> = ({
+    isOpen,
+    onClose,
+    title,
+    children,
+    maxWidth = 'max-w-2xl',
+    footer,
+}) => {
     if (!isOpen) return null;
 
     const modalContent = (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h3>
+            <div
+                className={`modal-content flex flex-col max-h-[90vh] ${maxWidth} overflow-hidden`}
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Fixed Sticky Header */}
+                <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-200 dark:border-slate-700 shrink-0 bg-white dark:bg-slate-900 sticky top-0 z-20">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white truncate pr-4">{title}</h3>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0"
+                        title="Close"
                     >
-                        <span className="material-symbols-outlined">close</span>
+                        <span className="material-symbols-outlined text-xl">close</span>
                     </button>
                 </div>
-                <div className="p-6">{children}</div>
+
+                {/* Scrollable Modal Body */}
+                <div className="p-5 sm:p-6 overflow-y-auto flex-1 overscroll-contain">
+                    {children}
+                </div>
+
+                {/* Optional Sticky Footer */}
+                {footer && (
+                    <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/95 shrink-0 sticky bottom-0 z-20">
+                        {footer}
+                    </div>
+                )}
             </div>
         </div>
     );

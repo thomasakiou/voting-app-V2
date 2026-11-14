@@ -205,7 +205,7 @@ const EditCandidateModal: React.FC<{
     const resolvedDisplayUrl = imageUrl ? resolveImageUrl(imageUrl) : '';
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Edit Candidate">
+        <Modal isOpen={isOpen} onClose={onClose} title="Edit Candidate" maxWidth="max-w-3xl">
             {error && <div className="mb-4"><ErrorAlert message={error} /></div>}
             <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Photo Upload & Preview */}
@@ -260,15 +260,33 @@ const EditCandidateModal: React.FC<{
                     </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">Candidate Code</label>
-                    <input
-                        type="text"
-                        value={candidate.candidate_code}
-                        disabled
-                        className="input-field opacity-60 cursor-not-allowed"
-                    />
+                <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">Candidate Code</label>
+                        <input
+                            type="text"
+                            value={candidate.candidate_code}
+                            disabled
+                            className="input-field opacity-60 cursor-not-allowed"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">Office</label>
+                        <select
+                            value={officeCode}
+                            onChange={(e) => setOfficeCode(e.target.value)}
+                            className="input-field"
+                            required
+                        >
+                            {offices.map((office) => office && (
+                                <option key={office.id} value={office.office_code}>
+                                    {office.description || office.office_code}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
+
                 <div>
                     <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">Name</label>
                     <input
@@ -279,21 +297,6 @@ const EditCandidateModal: React.FC<{
                         placeholder="e.g. John Doe"
                         required
                     />
-                </div>
-                <div>
-                    <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">Office</label>
-                    <select
-                        value={officeCode}
-                        onChange={(e) => setOfficeCode(e.target.value)}
-                        className="input-field"
-                        required
-                    >
-                        {offices.map((office) => office && (
-                            <option key={office.id} value={office.office_code}>
-                                {office.description || office.office_code}
-                            </option>
-                        ))}
-                    </select>
                 </div>
 
                 {/* Manifesto Title / Bold Header */}
@@ -309,7 +312,7 @@ const EditCandidateModal: React.FC<{
                         placeholder="e.g. A New Era of Member Welfare, Transparency & Innovation"
                     />
                     <p className="text-[11px] text-slate-500 mt-1">
-                        Bold headline displayed prominently above the manifesto.
+                        Bold headline displayed prominently above the candidate's manifesto.
                     </p>
                 </div>
 
@@ -326,8 +329,8 @@ const EditCandidateModal: React.FC<{
                     <textarea
                         value={manifesto}
                         onChange={(e) => setManifesto(e.target.value)}
-                        rows={7}
-                        className="input-field font-sans text-sm"
+                        rows={6}
+                        className="input-field font-sans text-sm leading-relaxed"
                         placeholder={`Type or paste candidate manifesto here...&#10;&#10;Formatting guide:&#10;# Subtitle / Heading&#10;- Bullet point item&#10;1. Numbered agenda item&#10;**Bold keywords** or *italic*`}
                     />
                     <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400 space-y-1 mt-1.5">
@@ -341,7 +344,8 @@ const EditCandidateModal: React.FC<{
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4">
+                {/* Sticky Action Footer */}
+                <div className="sticky bottom-0 -mx-5 sm:-mx-6 -mb-5 sm:-mb-6 p-4 sm:p-5 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-700 backdrop-blur-sm flex justify-end gap-3 z-10 shadow-md">
                     <button
                         type="button"
                         onClick={onClose}
