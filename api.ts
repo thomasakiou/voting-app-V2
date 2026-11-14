@@ -47,7 +47,7 @@ export interface UserCreate {
   full_name?: string;
   email?: string;
   password?: string;
-  role?: 'super-admin' | 'admin' | 'voter';
+  role?: 'super-admin' | 'admin' | 'voter' | 'agent';
   staff_file_no?: string;
   staff_station?: string;
   staff_rank?: string;
@@ -61,7 +61,7 @@ export interface UserOut {
   full_name: string;
   phone?: string | null;
   email?: string | null;
-  role: 'super-admin' | 'admin' | 'voter';
+  role: 'super-admin' | 'admin' | 'voter' | 'agent';
   is_active?: boolean | null;
   is_accredited?: boolean | null;
   accredited_at?: string | null;
@@ -79,7 +79,7 @@ export interface UserUpdate {
   full_name?: string;
   phone?: string;
   email?: string;
-  role?: 'super-admin' | 'admin' | 'voter';
+  role?: 'super-admin' | 'admin' | 'voter' | 'agent';
   is_active?: boolean;
   staff_file_no?: string;
   staff_station?: string;
@@ -405,7 +405,7 @@ export interface AuditLog {
 }
 
 // Token management
-class TokenManager {
+export class TokenManager {
   private static TOKEN_KEY = 'access_token';
 
   static getToken(): string | null {
@@ -778,6 +778,13 @@ export const usersAPI = {
     });
   },
 
+  async createAgent(data: UserCreate): Promise<UserOut> {
+    return apiFetch<UserOut>('/users/agent', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   async createVoter(data: UserCreate): Promise<UserOut> {
     return apiFetch<UserOut>('/users/voter', {
       method: 'POST',
@@ -878,13 +885,14 @@ export const usersAPI = {
     await apiFetch('/users/enable-voters', { method: 'PATCH' });
   },
 
-  async downloadCSV(filters?: { search?: string; role?: string; status?: string; accreditation?: string }): Promise<void> {
+  async downloadCSV(filters?: { search?: string; role?: string; status?: string; accreditation?: string; staff_status?: string }): Promise<void> {
     const token = TokenManager.getToken();
     const params = new URLSearchParams();
     if (filters?.search) params.append('search', filters.search);
     if (filters?.role && filters.role !== 'all') params.append('role', filters.role);
     if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
     if (filters?.accreditation && filters.accreditation !== 'all') params.append('accreditation', filters.accreditation);
+    if (filters?.staff_status && filters.staff_status !== 'all') params.append('staff_status', filters.staff_status);
     const query = params.toString() ? `?${params.toString()}` : '';
 
     const response = await fetch(`${API_BASE_URL}/users/export/csv${query}`, {
@@ -901,13 +909,14 @@ export const usersAPI = {
     a.remove();
   },
 
-  async downloadPDF(filters?: { search?: string; role?: string; status?: string; accreditation?: string }): Promise<void> {
+  async downloadPDF(filters?: { search?: string; role?: string; status?: string; accreditation?: string; staff_status?: string }): Promise<void> {
     const token = TokenManager.getToken();
     const params = new URLSearchParams();
     if (filters?.search) params.append('search', filters.search);
     if (filters?.role && filters.role !== 'all') params.append('role', filters.role);
     if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
     if (filters?.accreditation && filters.accreditation !== 'all') params.append('accreditation', filters.accreditation);
+    if (filters?.staff_status && filters.staff_status !== 'all') params.append('staff_status', filters.staff_status);
     const query = params.toString() ? `?${params.toString()}` : '';
 
     const response = await fetch(`${API_BASE_URL}/users/export/pdf${query}`, {
@@ -1109,12 +1118,52 @@ export const votesAPI = {
   },
 
   async getAgentsLiveMonitor(page: number = 1, pageSize: number = 20): Promise<AgentsLiveMonitorResponse> {
-    const response = await fetch(`${API_BASE_URL}/votes/agents/live?page=${page}&page_size=${pageSize}`);
+    const token = TokenManager.getToken();
+    const response = await fetch(`${API_BASE_URL}/votes/agents/live?page=${page}&page_size=${pageSize}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new APIError(response.status, response.statusText, error);
     }
     return response.json();
+  },
+};
+
+// Agents Authentication API (Username + Password alone)
+export const agentsAPI = {
+  async login(username: string, password: string): Promise<TokenResponse> {
+    const response = await fetch(`${API_BASE_URL}/agents/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: username.trim(),
+        password: password,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+
+    const data: TokenResponse = await response.json();
+    TokenManager.setToken(data.access_token);
+    localStorage.setItem('access_token', data.access_token);
+    if (data.fullname) {
+      localStorage.setItem('fullname', data.fullname);
+      localStorage.setItem('voting_fullname', data.fullname);
+    }
+    if (data.username) {
+      localStorage.setItem('voting_username', data.username);
+    }
+    localStorage.setItem('voting_auth_role', data.role || 'agent');
+    return data;
   },
 };
 

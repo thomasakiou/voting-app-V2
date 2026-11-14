@@ -1,40 +1,211 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { votesAPI, AgentsLiveMonitorResponse, AgentsLiveOfficeTally, AgentsLiveBallotFeedItem } from '../api';
+import {
+  votesAPI,
+  agentsAPI,
+  TokenManager,
+  AgentsLiveMonitorResponse,
+  AgentsLiveOfficeTally,
+  AgentsLiveBallotFeedItem,
+} from '../api';
+
+function getSavedAgentAuth(): { token: string; role: string; username: string; fullname: string } | null {
+  const token = TokenManager.getToken() || localStorage.getItem('access_token') || '';
+  if (!token) return null;
+  const role = localStorage.getItem('voting_auth_role') || '';
+  const username = localStorage.getItem('voting_username') || '';
+  const fullname = localStorage.getItem('voting_fullname') || localStorage.getItem('fullname') || '';
+  try {
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      const payload = JSON.parse(atob(parts[1]));
+      const tokenRole = payload.role || role;
+      if (tokenRole === 'agent' || tokenRole === 'admin' || tokenRole === 'super-admin') {
+        return { token, role: tokenRole, username, fullname };
+      }
+    }
+  } catch (e) {
+    // ignore decoding errors
+  }
+  if (role === 'agent' || role === 'admin' || role === 'super-admin') {
+    return { token, role, username, fullname };
+  }
+  return null;
+}
 
 export const AgentsLiveView: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState(() => getSavedAgentAuth());
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
   const [data, setData] = useState<AgentsLiveMonitorResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [feedPage, setFeedPage] = useState(1);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState('');
 
+  const handleLogout = useCallback(() => {
+    TokenManager.clearToken();
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('voting_auth_role');
+    localStorage.removeItem('voting_username');
+    localStorage.removeItem('voting_fullname');
+    localStorage.removeItem('fullname');
+    setCurrentUser(null);
+    setData(null);
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginUsername.trim() || !loginPassword) {
+      setLoginError('Please enter both agent username and password.');
+      return;
+    }
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      const res = await agentsAPI.login(loginUsername, loginPassword);
+      const auth = getSavedAgentAuth() || {
+        token: res.access_token,
+        role: res.role || 'agent',
+        username: res.username || loginUsername.trim(),
+        fullname: res.fullname || loginUsername.trim(),
+      };
+      setCurrentUser(auth);
+      setFeedPage(1);
+      setLoading(true);
+    } catch (err: any) {
+      setLoginError(err?.data?.detail || err?.message || 'Invalid agent credentials. Please check your username and password.');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   const loadData = useCallback(async (page = 1) => {
+    if (!currentUser) return;
     try {
       const result = await votesAPI.getAgentsLiveMonitor(page, 20);
       setData(result);
       setError('');
       setLastRefreshed(new Date());
     } catch (err: any) {
+      if (err?.status === 401) {
+        handleLogout();
+        setLoginError('Your session has expired or is invalid. Please sign in again.');
+        return;
+      }
       setError(err?.data?.detail || err?.message || 'Failed to load live election monitoring data.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser, handleLogout]);
 
   useEffect(() => {
-    loadData(feedPage);
-  }, [feedPage, loadData]);
+    if (currentUser) {
+      setLoading(true);
+      loadData(feedPage);
+    }
+  }, [currentUser, feedPage, loadData]);
 
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!currentUser || !autoRefresh) return;
     const interval = setInterval(() => {
       loadData(feedPage);
     }, 10000);
     return () => clearInterval(interval);
-  }, [autoRefresh, feedPage, loadData]);
+  }, [currentUser, autoRefresh, feedPage, loadData]);
+
+  // Unauthenticated: Show Agent Login Card
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 selection:bg-indigo-500 selection:text-white">
+        <div className="w-full max-w-md">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div className="text-center space-y-2">
+              <div className="size-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 mx-auto flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <span className="material-symbols-outlined text-white text-3xl">verified_user</span>
+              </div>
+              <h1 className="text-2xl font-bold text-white tracking-tight">Agent Observer Portal</h1>
+              <p className="text-xs text-slate-400">
+                Sign in with your assigned agent credentials to observe live election voting proceedings.
+              </p>
+            </div>
+
+            {loginError && (
+              <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-800 text-red-200 text-xs flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-red-400 text-base">error</span>
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Agent Username
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3.5 top-3 text-slate-500 text-lg">badge</span>
+                  <input
+                    type="text"
+                    value={loginUsername}
+                    onChange={(e) => setLoginUsername(e.target.value)}
+                    required
+                    placeholder="Enter agent username"
+                    className="w-full pl-11 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Password
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3.5 top-3 text-slate-500 text-lg">lock</span>
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                    placeholder="Enter password"
+                    className="w-full pl-11 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {loginLoading ? (
+                  <>
+                    <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-base">login</span>
+                    <span>Enter Observer Portal</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="pt-2 border-t border-slate-800 text-center">
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Ballot privacy guaranteed: Live observer view presents real-time aggregate tallies and cryptographic receipts with zero disclosure of voter identities.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading && !data) {
     return (
@@ -110,6 +281,15 @@ export const AgentsLiveView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            {/* Current Agent Info Badge */}
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
+              <span className="material-symbols-outlined text-indigo-400 text-base">person</span>
+              <span className="font-medium text-white">{currentUser.fullname || currentUser.username}</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-500/20 text-indigo-300">
+                {currentUser.role}
+              </span>
+            </div>
+
             {/* Status indicator */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${
               isVotingActive && statusLabel === 'ACTIVE'
@@ -140,6 +320,16 @@ export const AgentsLiveView: React.FC = () => {
               title="Refresh now"
             >
               <span className="material-symbols-outlined text-lg">refresh</span>
+            </button>
+
+            {/* Sign Out Button */}
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-red-950/40 hover:text-red-300 hover:border-red-800/60 transition-colors cursor-pointer"
+              title="Sign out of Agent Portal"
+            >
+              <span className="material-symbols-outlined text-[15px]">logout</span>
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
         </div>

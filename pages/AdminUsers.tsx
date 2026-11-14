@@ -12,7 +12,7 @@ const EditUserModal: React.FC<{
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fullName, setFullName] = useState(user.full_name);
-  const [role, setRole] = useState<'super-admin' | 'admin' | 'voter'>(user.role);
+  const [role, setRole] = useState<'super-admin' | 'admin' | 'voter' | 'agent'>(user.role);
 
   useEffect(() => {
     setFullName(user.full_name);
@@ -67,6 +67,7 @@ const EditUserModal: React.FC<{
           >
             <option value="voter">Voter</option>
             <option value="admin">Admin</option>
+            <option value="agent">Agent (Observer)</option>
             <option value="super-admin">Super Admin</option>
           </select>
         </div>
@@ -120,6 +121,7 @@ export const UserList: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [accreditationFilter, setAccreditationFilter] = useState<'all' | 'accredited' | 'pending'>('all');
+  const [staffStatusFilter, setStaffStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; userId?: number; username?: string }>({
     isOpen: false,
   });
@@ -265,9 +267,14 @@ export const UserList: React.FC = () => {
         (accreditationFilter === 'accredited' && user.is_accredited) ||
         (accreditationFilter === 'pending' && !user.is_accredited);
 
-      return matchesSearch && matchesRole && matchesStatus && matchesAccreditation;
+      const matchesStaffStatus =
+        staffStatusFilter === 'all' ||
+        (staffStatusFilter === 'active' && user.staff_active !== false) ||
+        (staffStatusFilter === 'inactive' && user.staff_active === false);
+
+      return matchesSearch && matchesRole && matchesStatus && matchesAccreditation && matchesStaffStatus;
     });
-  }, [users, searchTerm, roleFilter, statusFilter, accreditationFilter]);
+  }, [users, searchTerm, roleFilter, statusFilter, accreditationFilter, staffStatusFilter]);
 
   const {
     currentPage,
@@ -281,7 +288,7 @@ export const UserList: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, roleFilter, statusFilter, accreditationFilter, setCurrentPage]);
+  }, [searchTerm, roleFilter, statusFilter, accreditationFilter, staffStatusFilter, setCurrentPage]);
 
   return (
     <div className="space-y-6">
@@ -292,14 +299,14 @@ export const UserList: React.FC = () => {
         </div>
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => usersAPI.downloadCSV({ search: searchTerm, role: roleFilter, status: statusFilter, accreditation: accreditationFilter })}
+            onClick={() => usersAPI.downloadCSV({ search: searchTerm, role: roleFilter, status: statusFilter, accreditation: accreditationFilter, staff_status: staffStatusFilter })}
             className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:border-emerald-500 flex items-center gap-2 text-sm shadow-sm"
           >
             <span className="material-symbols-outlined text-sm text-emerald-600">table_view</span>
             Export CSV
           </button>
           <button
-            onClick={() => usersAPI.downloadPDF({ search: searchTerm, role: roleFilter, status: statusFilter, accreditation: accreditationFilter })}
+            onClick={() => usersAPI.downloadPDF({ search: searchTerm, role: roleFilter, status: statusFilter, accreditation: accreditationFilter, staff_status: staffStatusFilter })}
             className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:border-red-500 flex items-center gap-2 text-sm shadow-sm"
           >
             <span className="material-symbols-outlined text-sm text-red-500">picture_as_pdf</span>
@@ -394,6 +401,20 @@ export const UserList: React.FC = () => {
             />
           </div>
 
+          {/* Filter by Staff Status */}
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:inline">Staff Status:</label>
+            <select
+              value={staffStatusFilter}
+              onChange={(e) => setStaffStatusFilter(e.target.value as any)}
+              className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+            >
+              <option value="all">All Staff Statuses</option>
+              <option value="active">Active Staff Only</option>
+              <option value="inactive">Inactive Staff Only</option>
+            </select>
+          </div>
+
           {/* Filter by Eligibility / Status */}
           <div className="flex items-center gap-1.5">
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:inline">Status:</label>
@@ -432,18 +453,20 @@ export const UserList: React.FC = () => {
             >
               <option value="all">All Roles</option>
               <option value="voter">Voters Only</option>
+              <option value="agent">Agents Only</option>
               <option value="admin">Admin</option>
               <option value="super-admin">Super Admin</option>
             </select>
           </div>
 
-          {(searchTerm || roleFilter !== 'all' || statusFilter !== 'all' || accreditationFilter !== 'all') && (
+          {(searchTerm || roleFilter !== 'all' || statusFilter !== 'all' || accreditationFilter !== 'all' || staffStatusFilter !== 'all') && (
             <button
               onClick={() => {
                 setSearchTerm('');
                 setRoleFilter('all');
                 setStatusFilter('all');
                 setAccreditationFilter('all');
+                setStaffStatusFilter('all');
               }}
               className="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
             >
@@ -459,7 +482,7 @@ export const UserList: React.FC = () => {
               Showing <strong className="font-semibold text-slate-700 dark:text-slate-200">{filteredUsers.length}</strong> of{' '}
               <strong className="font-semibold text-slate-700 dark:text-slate-200">{users.length}</strong> total registered users
             </span>
-            {(statusFilter !== 'all' || accreditationFilter !== 'all' || roleFilter !== 'all') && (
+            {(statusFilter !== 'all' || accreditationFilter !== 'all' || roleFilter !== 'all' || staffStatusFilter !== 'all') && (
               <span className="text-indigo-600 dark:text-indigo-400 font-medium">Filtered View Active</span>
             )}
           </div>
@@ -913,7 +936,9 @@ export const CreateUser: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [role, setRole] = useState<'admin' | 'voter'>('voter');
+  const [role, setRole] = useState<'admin' | 'voter' | 'agent'>('voter');
+  const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -929,12 +954,16 @@ export const CreateUser: React.FC = () => {
     }
     try {
       if (role === 'admin') {
-        await usersAPI.createAdmin({ username, password: 'admin123' });
+        await usersAPI.createAdmin({ username, full_name: fullName || username, password: password || 'admin123' });
+      } else if (role === 'agent') {
+        await usersAPI.createAgent({ username, full_name: fullName || username, password: password || 'agent123', role: 'agent' });
       } else {
-        await usersAPI.createVoter({ username, password: 'voter123' });
+        await usersAPI.createVoter({ username, full_name: fullName || username, password: password || 'voter123' });
       }
-      setSuccess(`${role === 'admin' ? 'Administrator' : 'Voter'} created successfully!`);
+      setSuccess(`${role === 'admin' ? 'Administrator' : role === 'agent' ? 'Contestant Agent' : 'Voter'} created successfully!`);
       form.reset();
+      setPassword('');
+      setFullName('');
     } catch (err: any) {
       const detail = err?.data?.detail;
       let msg = 'Failed to create user';
@@ -957,7 +986,7 @@ export const CreateUser: React.FC = () => {
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Create New User</h1>
-        <p className="text-slate-500">Fill in the details to add a new user to the system.</p>
+        <p className="text-slate-500">Fill in the details to add a new user or agent to the system.</p>
       </div>
 
       {error && (
@@ -997,19 +1026,47 @@ export const CreateUser: React.FC = () => {
               name="username"
               required
               className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
-              placeholder="e.g. 2668"
+              placeholder={role === 'agent' ? 'e.g. agent_apc or agent_mike' : 'e.g. 2668'}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Full Name (Optional)</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
+              placeholder="e.g. Agent John / Candidate Representative"
             />
           </div>
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Role</label>
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value as 'admin' | 'voter')}
+              onChange={(e) => setRole(e.target.value as any)}
               className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
             >
               <option value="voter">Voter</option>
+              <option value="agent">Agent (Live Election Monitor Portal)</option>
               <option value="admin">Admin</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+              Password {role === 'agent' ? '(Username & Password login)' : '(Optional, default assigned)'}
+            </label>
+            <input
+              type="text"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
+              placeholder={role === 'agent' ? 'Set password (e.g. agent2026)' : 'Leave empty for default password'}
+            />
+            {role === 'agent' && (
+              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                Agents can log in to the Live Monitor portal with username and password alone (no OTP required).
+              </p>
+            )}
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Link
