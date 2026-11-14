@@ -353,7 +353,32 @@ export const UserList: React.FC = () => {
         </div>
       </div>
 
-      {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
+      {error && (
+        <div className="space-y-3">
+          <ErrorAlert message={error} onDismiss={() => setError('')} />
+          {(error.toLowerCase().includes('session') ||
+            error.toLowerCase().includes('unauthorized') ||
+            error.toLowerCase().includes('logged in') ||
+            error.toLowerCase().includes('not authenticated') ||
+            error.toLowerCase().includes('credentials')) && (
+            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 flex flex-wrap items-center justify-between gap-4 animate-scale-in">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-2xl">admin_panel_settings</span>
+                <div className="text-sm text-amber-900 dark:text-amber-200">
+                  <p className="font-bold">Admin Authentication Required</p>
+                  <p className="text-xs text-amber-800 dark:text-amber-300">Your administrator session has timed out. Please sign in again to authorize bulk voter registration.</p>
+                </div>
+              </div>
+              <Link
+                to="/admin/login"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shrink-0 shadow-md transition-colors"
+              >
+                Sign In to Admin Portal
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
       {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
 
       <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden no-print">
@@ -935,7 +960,32 @@ export const CreateUser: React.FC = () => {
         <p className="text-slate-500">Fill in the details to add a new user to the system.</p>
       </div>
 
-      {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
+      {error && (
+        <div className="space-y-3">
+          <ErrorAlert message={error} onDismiss={() => setError('')} />
+          {(error.toLowerCase().includes('session') ||
+            error.toLowerCase().includes('unauthorized') ||
+            error.toLowerCase().includes('logged in') ||
+            error.toLowerCase().includes('not authenticated') ||
+            error.toLowerCase().includes('credentials')) && (
+            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 flex flex-wrap items-center justify-between gap-4 animate-scale-in">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-2xl">admin_panel_settings</span>
+                <div className="text-sm text-amber-900 dark:text-amber-200">
+                  <p className="font-bold">Admin Authentication Required</p>
+                  <p className="text-xs text-amber-800 dark:text-amber-300">Your administrator session has timed out. Please sign in again to authorize bulk voter registration.</p>
+                </div>
+              </div>
+              <Link
+                to="/admin/login"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shrink-0 shadow-md transition-colors"
+              >
+                Sign In to Admin Portal
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
       {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
 
       <div className="bg-white dark:bg-[#1a1d29] p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -1077,7 +1127,32 @@ export const BulkUpload: React.FC = () => {
         <p className="text-slate-500">Upload a CSV file containing voter records into the system.</p>
       </div>
 
-      {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
+      {error && (
+        <div className="space-y-3">
+          <ErrorAlert message={error} onDismiss={() => setError('')} />
+          {(error.toLowerCase().includes('session') ||
+            error.toLowerCase().includes('unauthorized') ||
+            error.toLowerCase().includes('logged in') ||
+            error.toLowerCase().includes('not authenticated') ||
+            error.toLowerCase().includes('credentials')) && (
+            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 flex flex-wrap items-center justify-between gap-4 animate-scale-in">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-2xl">admin_panel_settings</span>
+                <div className="text-sm text-amber-900 dark:text-amber-200">
+                  <p className="font-bold">Admin Authentication Required</p>
+                  <p className="text-xs text-amber-800 dark:text-amber-300">Your administrator session has timed out. Please sign in again to authorize bulk voter registration.</p>
+                </div>
+              </div>
+              <Link
+                to="/admin/login"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shrink-0 shadow-md transition-colors"
+              >
+                Sign In to Admin Portal
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
       {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
 
       {/* Info notice for existing voters */}
@@ -1269,7 +1344,32 @@ export const BulkActions: React.FC = () => {
         </p>
       </div>
 
-      {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
+      {error && (
+        <div className="space-y-3">
+          <ErrorAlert message={error} onDismiss={() => setError('')} />
+          {(error.toLowerCase().includes('session') ||
+            error.toLowerCase().includes('unauthorized') ||
+            error.toLowerCase().includes('logged in') ||
+            error.toLowerCase().includes('not authenticated') ||
+            error.toLowerCase().includes('credentials')) && (
+            <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700 flex flex-wrap items-center justify-between gap-4 animate-scale-in">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-2xl">admin_panel_settings</span>
+                <div className="text-sm text-amber-900 dark:text-amber-200">
+                  <p className="font-bold">Admin Authentication Required</p>
+                  <p className="text-xs text-amber-800 dark:text-amber-300">Your administrator session has timed out. Please sign in again to authorize bulk voter registration.</p>
+                </div>
+              </div>
+              <Link
+                to="/admin/login"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shrink-0 shadow-md transition-colors"
+              >
+                Sign In to Admin Portal
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
       {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
 
       {/* SECTION 1: BULK DISQUALIFY VIA CSV (Requirement 5) */}

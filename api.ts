@@ -457,16 +457,16 @@ async function apiFetch<T>(
 
     if (response.status === 401) {
       const detail = typeof errorData === 'object' && errorData?.detail ? errorData.detail : '';
+      TokenManager.clearToken();
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('voting_username');
+      localStorage.removeItem('voting_fullname');
+      localStorage.removeItem('fullname');
+      localStorage.removeItem('voting_auth_role');
       if (typeof detail === 'string' && detail.toLowerCase().includes('admin session expired')) {
-        TokenManager.removeToken();
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('voting_username');
-        localStorage.removeItem('voting_fullname');
-        localStorage.removeItem('fullname');
-        localStorage.removeItem('voting_auth_role');
         alert('Your admin session has expired: A new login was initiated on another device.');
-        window.location.href = '/#/admin/login';
       }
+      window.location.href = '/#/admin/login';
     }
 
     throw new APIError(response.status, response.statusText, errorData);
@@ -774,20 +774,43 @@ export const usersAPI = {
   },
 
   async uploadCSV(file: File): Promise<any> {
+    const token = TokenManager.getToken();
+    if (!token) {
+      TokenManager.clearToken();
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('voting_username');
+      localStorage.removeItem('voting_fullname');
+      localStorage.removeItem('fullname');
+      localStorage.removeItem('voting_auth_role');
+      throw new APIError(401, 'Unauthorized', {
+        detail: 'Your administrator session has expired or you are not logged in. Please sign in again to upload voters.',
+      });
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = TokenManager.getToken();
     const response = await fetch(`${API_BASE_URL}/users/upload-csv`, {
       method: 'POST',
       headers: {
-        ...(token && { Authorization: 'Bearer ' + token }),
+        Authorization: 'Bearer ' + token,
       },
       body: formData,
     });
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        TokenManager.clearToken();
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('voting_username');
+        localStorage.removeItem('voting_fullname');
+        localStorage.removeItem('fullname');
+        localStorage.removeItem('voting_auth_role');
+        throw new APIError(401, 'Unauthorized', {
+          detail: 'Your administrator session has expired. Please sign in again to continue.',
+        });
+      }
       throw new APIError(response.status, response.statusText, error);
     }
 
