@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { candidatesAPI, officesAPI, CandidateResponse, OfficeResponse, resolveImageUrl } from '../api';
 import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination, CandidateAvatar } from '../components/UIComponents';
+import { CandidateManifestoModal } from '../components/CandidateManifestoModal';
 
 const compressImage = (file: File, maxWidth = 800, quality = 0.85): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -50,9 +51,11 @@ export const PhotoLightboxModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
     candidate: CandidateResponse | null;
-}> = ({ isOpen, onClose, candidate }) => {
+    onOpenManifesto?: (candidate: CandidateResponse) => void;
+}> = ({ isOpen, onClose, candidate, onOpenManifesto }) => {
     if (!isOpen || !candidate) return null;
     const resolvedUrl = candidate.image_url ? resolveImageUrl(candidate.image_url) : '';
+    const hasManifesto = Boolean(candidate.manifesto_title || candidate.manifesto);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={`Candidate Photo: ${candidate.name}`}>
@@ -91,7 +94,32 @@ export const PhotoLightboxModal: React.FC<{
                             {candidate.is_disqualified ? 'Disqualified' : 'Approved Candidate'}
                         </span>
                     </div>
+
+                    {candidate.manifesto_title && (
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+                            <span className="text-indigo-600 dark:text-indigo-400 font-bold block mb-0.5 uppercase tracking-wide">
+                                Manifesto Vision
+                            </span>
+                            <p className="font-bold text-slate-800 dark:text-slate-200 italic line-clamp-2">
+                                "{candidate.manifesto_title}"
+                            </p>
+                        </div>
+                    )}
                 </div>
+
+                {onOpenManifesto && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            onClose();
+                            onOpenManifesto(candidate);
+                        }}
+                        className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">menu_book</span>
+                        {hasManifesto ? 'View Candidate Manifesto' : 'Preview Empty Manifesto'}
+                    </button>
+                )}
 
                 <button
                     onClick={onClose}
@@ -117,12 +145,16 @@ const EditCandidateModal: React.FC<{
     const [name, setName] = useState(candidate.name || '');
     const [officeCode, setOfficeCode] = useState(candidate.office?.office_code || '');
     const [imageUrl, setImageUrl] = useState<string>(candidate.image_url || '');
+    const [manifestoTitle, setManifestoTitle] = useState(candidate.manifesto_title || '');
+    const [manifesto, setManifesto] = useState(candidate.manifesto || '');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setName(candidate.name || '');
         setOfficeCode(candidate.office?.office_code || '');
         setImageUrl(candidate.image_url || '');
+        setManifestoTitle(candidate.manifesto_title || '');
+        setManifesto(candidate.manifesto || '');
         setError('');
     }, [candidate]);
 
@@ -158,6 +190,8 @@ const EditCandidateModal: React.FC<{
                 name: name.trim(),
                 office_code: officeCode,
                 image_url: imageUrl || undefined,
+                manifesto_title: manifestoTitle.trim() || undefined,
+                manifesto: manifesto.trim() || undefined,
             });
             onUpdate();
             onClose();
@@ -261,6 +295,52 @@ const EditCandidateModal: React.FC<{
                         ))}
                     </select>
                 </div>
+
+                {/* Manifesto Title / Bold Header */}
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <label className="block text-sm font-semibold mb-1 text-slate-700 dark:text-white">
+                        Manifesto Bold Header / Vision Title
+                    </label>
+                    <input
+                        type="text"
+                        value={manifestoTitle}
+                        onChange={(e) => setManifestoTitle(e.target.value)}
+                        className="input-field font-semibold"
+                        placeholder="e.g. A New Era of Member Welfare, Transparency & Innovation"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                        Bold headline displayed prominently above the manifesto.
+                    </p>
+                </div>
+
+                {/* Manifesto Details */}
+                <div>
+                    <div className="flex items-center justify-between mb-1">
+                        <label className="text-sm font-semibold text-slate-700 dark:text-white">
+                            Candidate Manifesto Body
+                        </label>
+                        <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">
+                            Markdown & Lists Supported
+                        </span>
+                    </div>
+                    <textarea
+                        value={manifesto}
+                        onChange={(e) => setManifesto(e.target.value)}
+                        rows={7}
+                        className="input-field font-sans text-sm"
+                        placeholder={`Type or paste candidate manifesto here...&#10;&#10;Formatting guide:&#10;# Subtitle / Heading&#10;- Bullet point item&#10;1. Numbered agenda item&#10;**Bold keywords** or *italic*`}
+                    />
+                    <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400 space-y-1 mt-1.5">
+                        <div className="font-semibold text-slate-700 dark:text-slate-300">Quick Formatting Tips:</div>
+                        <div className="grid grid-cols-2 gap-1 font-mono text-[10px]">
+                            <span><b className="text-indigo-600 dark:text-indigo-400"># Section</b> &rarr; Subtitle</span>
+                            <span><b className="text-indigo-600 dark:text-indigo-400">- Item</b> &rarr; Bullet Point</span>
+                            <span><b className="text-indigo-600 dark:text-indigo-400">1. Item</b> &rarr; Numbered List</span>
+                            <span><b className="text-indigo-600 dark:text-indigo-400">**bold**</b> &rarr; Bold Text</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex justify-end gap-3 pt-4">
                     <button
                         type="button"
@@ -311,6 +391,7 @@ export const CandidateManagement: React.FC = () => {
         isOpen: false,
     });
     const [lightboxCandidate, setLightboxCandidate] = useState<CandidateResponse | null>(null);
+    const [manifestoModalCandidate, setManifestoModalCandidate] = useState<CandidateResponse | null>(null);
 
     useEffect(() => {
         loadData();
@@ -442,6 +523,7 @@ export const CandidateManagement: React.FC = () => {
                                         <th className="px-6 py-3">Candidate Code</th>
                                         <th className="px-6 py-3">Name</th>
                                         <th className="px-6 py-3">Office</th>
+                                        <th className="px-6 py-3">Manifesto</th>
                                         <th className="px-6 py-3">Status</th>
                                         <th className="px-6 py-3">Created</th>
                                         <th className="px-6 py-3 text-right">Actions</th>
@@ -456,7 +538,7 @@ export const CandidateManagement: React.FC = () => {
                                                     type="button"
                                                     onClick={() => setLightboxCandidate(candidate)}
                                                     className="group relative size-11 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-indigo-500 shadow-sm transition-all flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                    title="Click to view candidate photo"
+                                                    title="Click to view candidate photo & manifesto"
                                                 >
                                                     <CandidateAvatar
                                                         src={candidate.image_url ? resolveImageUrl(candidate.image_url) : ''}
@@ -471,16 +553,41 @@ export const CandidateManagement: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 font-mono text-slate-500 font-semibold">{candidate.candidate_code}</td>
                                             <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
-                                                <div className="flex items-center gap-2">
-                                                    <span>{candidate.name}</span>
-                                                    {candidate.image_url && (
-                                                        <span className="material-symbols-outlined text-xs text-indigo-500" title="Photo attached">
-                                                            image
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-2">
+                                                        <span>{candidate.name}</span>
+                                                        {candidate.image_url && (
+                                                            <span className="material-symbols-outlined text-xs text-indigo-500" title="Photo attached">
+                                                                image
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {candidate.manifesto_title && (
+                                                        <span className="text-[11px] text-indigo-600 dark:text-indigo-400 truncate max-w-xs font-normal">
+                                                            "{candidate.manifesto_title}"
                                                         </span>
                                                     )}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">{candidate.office?.description || candidate.office?.office_code || 'N/A'}</td>
+                                            <td className="px-6 py-4">
+                                                {candidate.manifesto_title || candidate.manifesto ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setManifestoModalCandidate(candidate)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors shadow-sm"
+                                                        title="Read full manifesto"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[15px]">menu_book</span>
+                                                        <span>Manifesto</span>
+                                                    </button>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-xs text-slate-400 italic">
+                                                        <span className="material-symbols-outlined text-xs">edit_note</span>
+                                                        Not set
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4">
                                                 <button
                                                     onClick={() => handleToggleDisqualify(candidate.id, candidate.is_disqualified ?? false)}
@@ -502,6 +609,13 @@ export const CandidateManagement: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-1">
+                                                    <button
+                                                        onClick={() => setManifestoModalCandidate(candidate)}
+                                                        className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded text-indigo-600 dark:text-indigo-400"
+                                                        title="View candidate manifesto"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">menu_book</span>
+                                                    </button>
                                                     <button
                                                         onClick={() => setEditModal({ isOpen: true, candidate })}
                                                         className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded text-blue-600 dark:text-blue-400"
@@ -572,6 +686,15 @@ export const CandidateManagement: React.FC = () => {
                 isOpen={!!lightboxCandidate}
                 onClose={() => setLightboxCandidate(null)}
                 candidate={lightboxCandidate}
+                onOpenManifesto={(c) => setManifestoModalCandidate(c)}
+            />
+
+            {/* Candidate Manifesto Preview Modal */}
+            <CandidateManifestoModal
+                isOpen={!!manifestoModalCandidate}
+                onClose={() => setManifestoModalCandidate(null)}
+                candidate={manifestoModalCandidate}
+                officeName={manifestoModalCandidate?.office?.description}
             />
         </div>
     );
@@ -584,6 +707,8 @@ export const CreateCandidate: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [imageUrl, setImageUrl] = useState<string>('');
+    const [manifestoTitle, setManifestoTitle] = useState('');
+    const [manifesto, setManifesto] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -636,10 +761,14 @@ export const CreateCandidate: React.FC = () => {
                 name,
                 office_code,
                 image_url: imageUrl || undefined,
+                manifesto_title: manifestoTitle.trim() || undefined,
+                manifesto: manifesto.trim() || undefined,
             });
             setSuccess('Candidate created successfully!');
             form.reset();
             setImageUrl('');
+            setManifestoTitle('');
+            setManifesto('');
         } catch (err: any) {
             setError(err?.data?.detail || 'Failed to create candidate');
         } finally {
@@ -650,10 +779,10 @@ export const CreateCandidate: React.FC = () => {
     const resolvedDisplayUrl = imageUrl ? resolveImageUrl(imageUrl) : '';
 
     return (
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Create New Candidate</h1>
-                <p className="text-slate-500">Add a new candidate with photo to an electoral office.</p>
+                <p className="text-slate-500">Add a new candidate with photo, manifesto, and office assignment.</p>
             </div>
 
             {error && <ErrorAlert message={error} onDismiss={() => setError('')} />}
@@ -713,23 +842,37 @@ export const CreateCandidate: React.FC = () => {
                                     )}
                                 </div>
                                 <p className="text-xs text-slate-400">
-                                    Upload portrait picture (JPG, PNG, WEBP). Voters will see this photo on their ballots.
+                                    Upload portrait picture (JPG, PNG, WEBP). Voters will see this photo on their ballots and profile previews.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Candidate Code</label>
-                        <input
-                            type="text"
-                            name="candidate_code"
-                            required
-                            className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
-                            placeholder="e.g. CAND001"
-                        />
-                        <p className="text-xs text-slate-500 mt-1">Unique identifier for this candidate</p>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Candidate Code</label>
+                            <input
+                                type="text"
+                                name="candidate_code"
+                                required
+                                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
+                                placeholder="e.g. CAND001"
+                            />
+                            <p className="text-xs text-slate-500 mt-1">Unique identifier for this candidate</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Office</label>
+                            <select name="office_code" required className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none">
+                                <option value="">Select an office</option>
+                                {offices.map((office) => office && (
+                                    <option key={office.id} value={office.office_code}>
+                                        {office.description || office.office_code}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
+
                     <div>
                         <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Candidate Name</label>
                         <input
@@ -740,17 +883,60 @@ export const CreateCandidate: React.FC = () => {
                             placeholder="e.g. John Doe"
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Office</label>
-                        <select name="office_code" required className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none">
-                            <option value="">Select an office</option>
-                            {offices.map((office) => office && (
-                                <option key={office.id} value={office.office_code}>
-                                    {office.description || office.office_code}
-                                </option>
-                            ))}
-                        </select>
+
+                    {/* Manifesto Header */}
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                            Manifesto Bold Header / Vision Title (Optional)
+                        </label>
+                        <input
+                            type="text"
+                            value={manifestoTitle}
+                            onChange={(e) => setManifestoTitle(e.target.value)}
+                            className="w-full px-4 py-3 text-base font-semibold rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
+                            placeholder="e.g. Empowering Members Through Transparency, Welfare & Modern Innovation"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                            This title is displayed in bold at the top of the candidate's manifesto and ballot card previews.
+                        </p>
                     </div>
+
+                    {/* Manifesto Body */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="text-sm font-semibold text-slate-900 dark:text-white">
+                                Candidate Detailed Manifesto (Optional)
+                            </label>
+                            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                                Supports Subtitles, Bullets, Numbers & Bold
+                            </span>
+                        </div>
+                        <textarea
+                            value={manifesto}
+                            onChange={(e) => setManifesto(e.target.value)}
+                            rows={8}
+                            className="w-full p-4 text-sm font-sans rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none leading-relaxed"
+                            placeholder={`Type or paste candidate manifesto here...
+
+Formatting guide:
+# Subtitle / Key Pillar
+- Bullet point action item
+1. Numbered milestone
+**Bold key points**`}
+                        />
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-500 dark:text-slate-400 space-y-1.5 mt-2">
+                            <div className="font-semibold text-slate-700 dark:text-slate-300">
+                                Formatting syntax:
+                            </div>
+                            <div className="grid sm:grid-cols-2 gap-1.5 font-mono text-[11px]">
+                                <div><b className="text-indigo-600 dark:text-indigo-400"># Heading</b> &rarr; Subtitle heading with bookmark icon</div>
+                                <div><b className="text-indigo-600 dark:text-indigo-400">- Bullet</b> &rarr; Clean colored bullet point list</div>
+                                <div><b className="text-indigo-600 dark:text-indigo-400">1. Number</b> &rarr; Numbered badge list</div>
+                                <div><b className="text-indigo-600 dark:text-indigo-400">**bold**</b> &rarr; Bold keyword emphasis</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="flex justify-end gap-3 pt-4">
                         <Link
                             to="/admin/candidates"

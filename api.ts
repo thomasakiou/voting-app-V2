@@ -127,6 +127,8 @@ export interface CandidateCreate {
   name: string;
   office_code: string;
   image_url?: string;
+  manifesto_title?: string;
+  manifesto?: string;
 }
 
 export interface CandidateResponse {
@@ -135,6 +137,8 @@ export interface CandidateResponse {
   name: string;
   image_url?: string;
   is_disqualified?: boolean;
+  manifesto_title?: string | null;
+  manifesto?: string | null;
   created_at: string;
   office?: {
     office_code: string;

@@ -14,6 +14,7 @@ import {
     resolveImageUrl,
 } from '../api';
 import { LoadingSpinner, ErrorAlert, TablePagination, usePagination, Modal, CandidateAvatar } from '../components/UIComponents';
+import { CandidateManifestoModal } from '../components/CandidateManifestoModal';
 
 export const VoterDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -435,9 +436,11 @@ const CandidateInspectModal: React.FC<{
     isMulti?: boolean;
     canSelectMore?: boolean;
     onToggleSelect: () => void;
-}> = ({ isOpen, onClose, candidate, officeDescription, isSelected, isMulti, canSelectMore = true, onToggleSelect }) => {
+    onOpenManifesto?: (candidate: CandidateResponse) => void;
+}> = ({ isOpen, onClose, candidate, officeDescription, isSelected, isMulti, canSelectMore = true, onToggleSelect, onOpenManifesto }) => {
     if (!isOpen || !candidate) return null;
     const resolvedUrl = candidate.image_url ? resolveImageUrl(candidate.image_url) : '';
+    const hasManifesto = Boolean(candidate.manifesto_title || candidate.manifesto);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={`Candidate: ${candidate.name}`}>
@@ -484,7 +487,33 @@ const CandidateInspectModal: React.FC<{
                         </div>
                     </div>
 
-                    <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-xs text-indigo-800 dark:text-indigo-300 font-medium">
+                    {/* Manifesto Preview Banner in Inspect Modal */}
+                    {candidate.manifesto_title && (
+                        <div className="p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
+                                Manifesto Vision / Key Agenda
+                            </span>
+                            <p className="text-xs font-bold text-slate-900 dark:text-white leading-snug">
+                                "{candidate.manifesto_title}"
+                            </p>
+                        </div>
+                    )}
+
+                    {onOpenManifesto && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onClose();
+                                onOpenManifesto(candidate);
+                            }}
+                            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-500/20"
+                        >
+                            <span className="material-symbols-outlined text-[18px]">menu_book</span>
+                            {hasManifesto ? 'Read Full Manifesto & Agenda' : 'Preview Candidate Manifesto'}
+                        </button>
+                    )}
+
+                    <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs text-slate-600 dark:text-slate-300 font-medium">
                         {isMulti
                             ? 'This contest allows selecting multiple candidates. Click the button below to add or remove this candidate from your choices.'
                             : 'You are previewing this candidate. You can vote for this candidate below.'}
@@ -543,6 +572,7 @@ export const VoteCandidate: React.FC = () => {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [inspectCandidate, setInspectCandidate] = useState<CandidateResponse | null>(null);
+    const [manifestoCandidate, setManifestoCandidate] = useState<CandidateResponse | null>(null);
 
     useEffect(() => {
         if (officeId) {
@@ -735,16 +765,16 @@ export const VoteCandidate: React.FC = () => {
                             }`}
                         >
                             <div className="flex items-start gap-4">
-                                {/* Candidate Photo with click to inspect / enlarge */}
+                                {/* Candidate Photo with click to open Manifesto & Profile */}
                                 <div className="relative group/photo flex-shrink-0">
                                     <button
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setInspectCandidate(cand);
+                                            setManifestoCandidate(cand);
                                         }}
                                         className="relative size-20 sm:size-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 group-hover/photo:border-indigo-500 group-hover/photo:scale-105 transition-all shadow-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        title="Click photo to inspect candidate"
+                                        title="Click photo to read candidate manifesto & profile"
                                     >
                                         <CandidateAvatar
                                             src={resolvedUrl}
@@ -752,29 +782,42 @@ export const VoteCandidate: React.FC = () => {
                                             iconClassName="text-3xl"
                                             textClassName="text-[10px]"
                                         />
-                                        <div className="absolute inset-0 bg-black/45 opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[11px] font-semibold gap-0.5">
-                                            <span className="material-symbols-outlined text-xl">zoom_in</span>
-                                            <span>Click photo</span>
+                                        <div className="absolute inset-0 bg-black/55 opacity-0 group-hover/photo:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-bold gap-0.5">
+                                            <span className="material-symbols-outlined text-lg">menu_book</span>
+                                            <span>Manifesto</span>
                                         </div>
                                     </button>
-                                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shadow-sm whitespace-nowrap pointer-events-none">
-                                        Click Photo
+                                    <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shadow-sm whitespace-nowrap pointer-events-none flex items-center gap-0.5">
+                                        <span className="material-symbols-outlined text-[10px]">menu_book</span>
+                                        Manifesto
                                     </span>
                                 </div>
 
                                 {/* Candidate Details */}
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-2">
-                                        <div>
+                                        <div className="min-w-0 flex-1">
                                             <span className="inline-block text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                                                 #{cand.candidate_code}
                                             </span>
-                                            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1 leading-snug">
+                                            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1 leading-snug truncate">
                                                 {cand.name}
                                             </h3>
                                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                                 Candidate for {office?.description}
                                             </p>
+
+                                            {/* Candidate Manifesto Bold Headline */}
+                                            {cand.manifesto_title && (
+                                                <div className="mt-2 p-2 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/40">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
+                                                        Manifesto Vision:
+                                                    </span>
+                                                    <p className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug">
+                                                        "{cand.manifesto_title}"
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Selection Checkbox / Radio indicator */}
@@ -792,18 +835,35 @@ export const VoteCandidate: React.FC = () => {
                             </div>
 
                             {/* Bottom Card Bar */}
-                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setInspectCandidate(cand);
-                                    }}
-                                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors"
-                                >
-                                    <span className="material-symbols-outlined text-sm">visibility</span>
-                                    View Full Profile & Photo
-                                </button>
+                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setManifestoCandidate(cand);
+                                        }}
+                                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-indigo-500/20 transition-all hover:scale-105"
+                                        title="Read candidate manifesto"
+                                    >
+                                        <span className="material-symbols-outlined text-base">menu_book</span>
+                                        <span>Manifesto</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setInspectCandidate(cand);
+                                        }}
+                                        className="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 transition-colors px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                        title="View candidate photo & profile"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">visibility</span>
+                                        Profile
+                                    </button>
+                                </div>
+
                                 <span className={`text-xs font-bold ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400'}`}>
                                     {isSelected
                                         ? (isMulti ? `✓ Selected (#${selectionIndex + 1})` : '✓ Selected to Vote')
@@ -884,11 +944,28 @@ export const VoteCandidate: React.FC = () => {
                 isSelected={selectedCodes.includes(inspectCandidate?.candidate_code || '')}
                 isMulti={isMulti}
                 canSelectMore={selectedCodes.length < maxAllowed}
+                onOpenManifesto={(cand) => setManifestoCandidate(cand)}
                 onToggleSelect={() => {
                     if (inspectCandidate) {
                         handleToggleCandidate(inspectCandidate.candidate_code, inspectCandidate.name);
                     }
                 }}
+            />
+
+            {/* Candidate Manifesto Modal */}
+            <CandidateManifestoModal
+                isOpen={!!manifestoCandidate}
+                onClose={() => setManifestoCandidate(null)}
+                candidate={manifestoCandidate}
+                officeName={office?.description}
+                isSelected={selectedCodes.includes(manifestoCandidate?.candidate_code || '')}
+                onToggleSelect={() => {
+                    if (manifestoCandidate) {
+                        handleToggleCandidate(manifestoCandidate.candidate_code, manifestoCandidate.name);
+                    }
+                }}
+                canSelectMore={selectedCodes.length < maxAllowed}
+                isMulti={isMulti}
             />
         </div>
     );
