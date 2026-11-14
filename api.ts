@@ -48,6 +48,11 @@ export interface UserCreate {
   email?: string;
   password?: string;
   role?: 'super-admin' | 'admin' | 'voter';
+  staff_file_no?: string;
+  staff_station?: string;
+  staff_rank?: string;
+  staff_conraiss?: string;
+  staff_active?: boolean;
 }
 
 export interface UserOut {
@@ -62,14 +67,25 @@ export interface UserOut {
   accredited_at?: string | null;
   accredited_device_id?: string | null;
   device_info?: string | null;
+  staff_file_no?: string | null;
+  staff_station?: string | null;
+  staff_rank?: string | null;
+  staff_conraiss?: string | null;
+  staff_active?: boolean | null;
 }
 
 export interface UserUpdate {
   username?: string;
   full_name?: string;
+  phone?: string;
   email?: string;
   role?: 'super-admin' | 'admin' | 'voter';
   is_active?: boolean;
+  staff_file_no?: string;
+  staff_station?: string;
+  staff_rank?: string;
+  staff_conraiss?: string;
+  staff_active?: boolean;
 }
 
 export interface UserStatsOut {
@@ -220,6 +236,11 @@ export interface AccreditationValidateResponse {
   email?: string | null;
   masked_phone?: string | null;
   masked_email?: string | null;
+  staff_file_no?: string | null;
+  staff_station?: string | null;
+  staff_rank?: string | null;
+  staff_conraiss?: string | null;
+  staff_active?: boolean | null;
   message?: string;
 }
 
@@ -253,7 +274,74 @@ export interface VoterContactLookupResponse {
   has_phone: boolean;
   is_accredited: boolean;
   is_active: boolean;
+  staff_file_no?: string | null;
+  staff_station?: string | null;
+  staff_rank?: string | null;
+  staff_conraiss?: string | null;
+  staff_active?: boolean | null;
   message?: string;
+}
+
+export interface ElectionVoterLookupResponse {
+  username: string;
+  full_name: string;
+  is_active: boolean;
+  is_accredited: boolean;
+  staff_file_no?: string | null;
+  staff_station?: string | null;
+  staff_rank?: string | null;
+  staff_conraiss?: string | null;
+  staff_active?: boolean | null;
+  masked_phone?: string | null;
+  masked_email?: string | null;
+  message?: string;
+}
+
+export interface AgentsLiveCandidateTally {
+  candidate_code: string;
+  name: string;
+  votes: number;
+  percentage: number;
+  image_url?: string;
+}
+
+export interface AgentsLiveOfficeTally {
+  office_code: string;
+  office_name: string;
+  max_votes: number;
+  total_votes: number;
+  candidates: AgentsLiveCandidateTally[];
+}
+
+export interface AgentsLiveBallotFeedItem {
+  id: number;
+  receipt_hash: string;
+  office_name: string;
+  candidate_name: string;
+  created_at: string;
+}
+
+export interface AgentsLiveMonitorResponse {
+  election_status: {
+    is_active: boolean;
+    status: string;
+    start_time?: string | null;
+    end_time?: string | null;
+    time_remaining?: number | null;
+  };
+  overview: {
+    total_eligible_voters: number;
+    total_accredited_voters: number;
+    total_votes_cast: number;
+    turnout_percentage: number;
+  };
+  offices_tally: AgentsLiveOfficeTally[];
+  recent_ballots: {
+    total: number;
+    page: number;
+    page_size: number;
+    items: AgentsLiveBallotFeedItem[];
+  };
 }
 
 export interface VoterContactOTPResponse {
@@ -487,6 +575,21 @@ export const authAPI = {
     return data;
   },
 
+  async lookupVoterForElection(username: string): Promise<ElectionVoterLookupResponse> {
+    const response = await fetch(`${API_BASE_URL}/election/lookup-voter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+
+    return response.json();
+  },
+
   async logout(): Promise<void> {
     try {
       await apiFetch('/logout', { method: 'POST' });
@@ -709,6 +812,12 @@ export const usersAPI = {
 
   async toggleStatus(userId: number, isActive: boolean): Promise<UserOut> {
     return apiFetch<UserOut>(`/users/${userId}/status?is_active=${isActive}`, {
+      method: 'PATCH',
+    });
+  },
+
+  async toggleStaffActiveStatus(userId: number, staffActive: boolean): Promise<UserOut> {
+    return apiFetch<UserOut>(`/users/${userId}/staff-status?staff_active=${staffActive}`, {
       method: 'PATCH',
     });
   },
@@ -962,6 +1071,15 @@ export const votesAPI = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+
+  async getAgentsLiveMonitor(page: number = 1, pageSize: number = 20): Promise<AgentsLiveMonitorResponse> {
+    const response = await fetch(`${API_BASE_URL}/votes/agents/live?page=${page}&page_size=${pageSize}`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
   },
 };
 

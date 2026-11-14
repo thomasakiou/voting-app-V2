@@ -21,6 +21,11 @@ export const VoterContactUpdate: React.FC = () => {
   // Voter Profile State
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [staffFileNo, setStaffFileNo] = useState('');
+  const [staffStation, setStaffStation] = useState('');
+  const [staffRank, setStaffRank] = useState('');
+  const [staffConraiss, setStaffConraiss] = useState('');
+  const [staffActive, setStaffActive] = useState<boolean | null>(null);
   const [hasEmail, setHasEmail] = useState(false);
   const [hasPhone, setHasPhone] = useState(false);
   const [existingMaskedEmail, setExistingMaskedEmail] = useState('');
@@ -90,6 +95,11 @@ export const VoterContactUpdate: React.FC = () => {
     try {
       const data = await voterContactAPI.lookup(username.trim());
       setFullName(data.full_name);
+      setStaffFileNo(data.staff_file_no || '');
+      setStaffStation(data.staff_station || '');
+      setStaffRank(data.staff_rank || '');
+      setStaffConraiss(data.staff_conraiss || '');
+      setStaffActive(data.staff_active ?? null);
       setHasEmail(data.has_email);
       setHasPhone(data.has_phone);
       setExistingMaskedEmail(data.masked_email || (data.has_email ? 'Registered on file' : ''));
@@ -97,6 +107,12 @@ export const VoterContactUpdate: React.FC = () => {
       setIsAccredited(data.is_accredited);
       setNewEmail('');
       setNewPhone('');
+
+      if (data.staff_active === false) {
+        setError('Your staff status is marked as Inactive. Inactive staff members are not permitted to update contact details. Please contact the election administrator.');
+        return;
+      }
+
       setStep(2);
     } catch (err: any) {
       setError(getErrorMessage(err, 'Failed to find voter record. Please verify your MCS number.'));
@@ -379,15 +395,50 @@ export const VoterContactUpdate: React.FC = () => {
           {/* STEP 2: PROFILE & CONTACT FORM */}
           {step === 2 && (
             <form onSubmit={handleSendOTP} className="space-y-6">
-              {/* Voter Identity Card */}
-              <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 space-y-2">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">MCS Number:</span>
+              {/* Voter Identity & Staff Card */}
+              <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 space-y-2.5">
+                <div className="flex justify-between items-center text-sm border-b border-indigo-100 dark:border-indigo-900/50 pb-2">
+                  <span className="text-slate-500 dark:text-slate-400">MCS Username:</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white">#{username}</span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Voter Full Name:</span>
+                <div className="flex justify-between items-center text-sm border-b border-indigo-100 dark:border-indigo-900/50 pb-2">
+                  <span className="text-slate-500 dark:text-slate-400">Staff Full Name:</span>
                   <span className="font-semibold text-slate-900 dark:text-white">{fullName}</span>
+                </div>
+                {staffFileNo && (
+                  <div className="flex justify-between items-center text-sm border-b border-indigo-100 dark:border-indigo-900/50 pb-2">
+                    <span className="text-slate-500 dark:text-slate-400">Staff File No:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{staffFileNo}</span>
+                  </div>
+                )}
+                {staffStation && (
+                  <div className="flex justify-between items-center text-sm border-b border-indigo-100 dark:border-indigo-900/50 pb-2">
+                    <span className="text-slate-500 dark:text-slate-400">Staff Station:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{staffStation}</span>
+                  </div>
+                )}
+                {staffRank && (
+                  <div className="flex justify-between items-center text-sm border-b border-indigo-100 dark:border-indigo-900/50 pb-2">
+                    <span className="text-slate-500 dark:text-slate-400">Staff Rank:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{staffRank}</span>
+                  </div>
+                )}
+                {staffConraiss && (
+                  <div className="flex justify-between items-center text-sm border-b border-indigo-100 dark:border-indigo-900/50 pb-2">
+                    <span className="text-slate-500 dark:text-slate-400">CONRAISS:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{staffConraiss}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-sm border-b border-indigo-100 dark:border-indigo-900/50 pb-2">
+                  <span className="text-slate-500 dark:text-slate-400">Staff Status:</span>
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                    staffActive !== false
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                  }`}>
+                    <span className="material-symbols-outlined text-[13px]">{staffActive !== false ? 'check_circle' : 'cancel'}</span>
+                    {staffActive !== false ? 'Active' : 'Inactive'}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-500 dark:text-slate-400">Accreditation:</span>

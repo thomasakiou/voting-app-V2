@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authAPI, votingTimeAPI, portalLocksAPI, VotingTimeOut, APIError } from '../api';
+import { authAPI, votingTimeAPI, portalLocksAPI, VotingTimeOut, ElectionVoterLookupResponse, APIError } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { getDeviceId } from '../utils/device';
 
@@ -72,6 +72,7 @@ const PortalNav: React.FC<PortalNavProps> = ({ exclude, showAdmin = false }) => 
     { to: '/election',      label: 'Election Portal',         icon: 'how_to_vote',      show: exclude !== 'election' },
     { to: '/accreditation', label: 'Accreditation Portal',    icon: 'how_to_reg',       show: exclude !== 'accreditation' },
     { to: '/contact-update',label: 'Contact Update Portal',   icon: 'manage_accounts',  show: exclude !== 'contact' },
+    { to: '/agents/live',   label: "Agents' Live Monitor",    icon: 'monitoring',       show: true },
     { to: '/admin/login',   label: 'Admin Portal',            icon: 'admin_panel_settings', show: showAdmin },
   ].filter(l => l.show);
 
@@ -173,6 +174,8 @@ const AuthShell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
+  const [voterDetails, setVoterDetails] = useState<ElectionVoterLookupResponse | null>(null);
+  const [lookingUp, setLookingUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [votingStatus, setVotingStatus] = useState<VotingTimeOut | null>(null);
@@ -184,6 +187,34 @@ export const Login: React.FC = () => {
   useEffect(() => {
     checkStatus();
   }, []);
+
+  const handleLookupVoter = async (val: string) => {
+    const trimmed = val.trim();
+    if (trimmed.length < 3) {
+      setVoterDetails(null);
+      return;
+    }
+    setLookingUp(true);
+    try {
+      const data = await authAPI.lookupVoterForElection(trimmed);
+      setVoterDetails(data);
+      setError('');
+    } catch {
+      setVoterDetails(null);
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setUsername(val);
+    if (val.trim().length >= 3) {
+      handleLookupVoter(val);
+    } else {
+      setVoterDetails(null);
+    }
+  };
 
   const checkStatus = async () => {
     try {
@@ -294,8 +325,76 @@ export const Login: React.FC = () => {
           type="text"
           placeholder="e.g. 2668"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={handleUsernameChange}
         />
+
+        {lookingUp && (
+          <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
+            <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+            Verifying staff credentials...
+          </div>
+        )}
+
+        {voterDetails && (
+          <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 space-y-2 animate-scale-in">
+            <div className="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-900/50 pb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">Staff Identity Verified</span>
+              <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                voterDetails.staff_active !== false
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {voterDetails.staff_active !== false ? 'Staff Active' : 'Staff Inactive'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-500 dark:text-slate-400">Staff Full Name:</span>
+              <span className="font-semibold text-slate-900 dark:text-white">{voterDetails.full_name}</span>
+            </div>
+            {voterDetails.staff_file_no && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Staff File No:</span>
+                <span className="font-medium text-slate-900 dark:text-white">{voterDetails.staff_file_no}</span>
+              </div>
+            )}
+            {voterDetails.staff_station && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Staff Station:</span>
+                <span className="font-medium text-slate-900 dark:text-white">{voterDetails.staff_station}</span>
+              </div>
+            )}
+            {voterDetails.staff_rank && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Staff Rank:</span>
+                <span className="font-medium text-slate-900 dark:text-white">{voterDetails.staff_rank}</span>
+              </div>
+            )}
+            {voterDetails.staff_conraiss && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-slate-500 dark:text-slate-400">CONRAISS:</span>
+                <span className="font-medium text-slate-900 dark:text-white">{voterDetails.staff_conraiss}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-500 dark:text-slate-400">Registered Phone:</span>
+              <span className="font-mono text-xs text-slate-700 dark:text-slate-300">{voterDetails.masked_phone || '—'}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-slate-500 dark:text-slate-400">Registered Email:</span>
+              <span className="font-mono text-xs text-slate-700 dark:text-slate-300">{voterDetails.masked_email || '—'}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm pt-1 border-t border-indigo-100 dark:border-indigo-900/50">
+              <span className="text-slate-500 dark:text-slate-400">Accreditation:</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                voterDetails.is_accredited
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+              }`}>
+                {voterDetails.is_accredited ? 'Accredited' : 'Pending Accreditation'}
+              </span>
+            </div>
+          </div>
+        )}
 
         <button
           type="submit"

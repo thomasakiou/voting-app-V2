@@ -101,6 +101,16 @@ const EditUserModal: React.FC<{
   );
 };
 
+const DetailItem: React.FC<{ label: string; value: string; icon: string }> = ({ label, value, icon }) => (
+  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+    <div className="flex items-center gap-1.5 mb-1">
+      <span className="material-symbols-outlined text-[14px] text-slate-400">{icon}</span>
+      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{label}</p>
+    </div>
+    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 break-all">{value}</p>
+  </div>
+);
+
 export const UserList: React.FC = () => {
   const [users, setUsers] = useState<UserOut[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +134,7 @@ export const UserList: React.FC = () => {
   const [editModal, setEditModal] = useState<{ isOpen: boolean; user?: UserOut }>({
     isOpen: false,
   });
+  const [selectedUserForDrawer, setSelectedUserForDrawer] = useState<UserOut | null>(null);
 
   // Disputes state
   const [disputes, setDisputes] = useState<VoterDisputeOut[]>([]);
@@ -237,7 +248,10 @@ export const UserList: React.FC = () => {
         user.username.toLowerCase().includes(q) ||
         user.full_name.toLowerCase().includes(q) ||
         (user.phone && user.phone.includes(q)) ||
-        (user.email && user.email.toLowerCase().includes(q));
+        (user.email && user.email.toLowerCase().includes(q)) ||
+        (user.staff_file_no && user.staff_file_no.toLowerCase().includes(q)) ||
+        (user.staff_station && user.staff_station.toLowerCase().includes(q)) ||
+        (user.staff_rank && user.staff_rank.toLowerCase().includes(q));
 
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
 
@@ -348,7 +362,7 @@ export const UserList: React.FC = () => {
             <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">search</span>
             <input
               type="text"
-              placeholder="Search by MCS username, full name, phone, or email..."
+              placeholder="Search by MCS username, full name, file no, station, rank..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary outline-none"
@@ -438,77 +452,41 @@ export const UserList: React.FC = () => {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
                   <tr>
-                    <th className="px-5 py-3">ID</th>
                     <th className="px-5 py-3">MCS Username</th>
-                    <th className="px-5 py-3">Full Name</th>
-                    <th className="px-5 py-3">Contact</th>
-                    <th className="px-5 py-3">Accreditation</th>
-                    <th className="px-5 py-3">Eligibility / Status</th>
+                    <th className="px-5 py-3">Staff Full Name</th>
+                    <th className="px-5 py-3">File No</th>
+                    <th className="px-5 py-3">Station</th>
+                    <th className="px-5 py-3">Rank</th>
+                    <th className="px-5 py-3">CONRAISS</th>
+                    <th className="px-5 py-3">Phone</th>
+                    <th className="px-5 py-3">Email</th>
+                    <th className="px-5 py-3">Staff Status</th>
                     <th className="px-5 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {paginatedUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="px-5 py-4 font-mono text-slate-500 text-xs">{user.id}</td>
+                    <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer" onClick={() => setSelectedUserForDrawer(user)}>
                       <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">{user.username}</td>
                       <td className="px-5 py-4 font-medium">{user.full_name}</td>
-                      <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-300">
-                        <div>{user.phone || <span className="text-slate-400 italic">No phone</span>}</div>
-                        <div className="text-slate-400">{user.email || <span className="italic">No email</span>}</div>
-                      </td>
+                      <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{user.staff_file_no || '—'}</td>
+                      <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{user.staff_station || '—'}</td>
+                      <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{user.staff_rank || '—'}</td>
+                      <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{user.staff_conraiss || '—'}</td>
+                      <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-300">{user.phone || '—'}</td>
+                      <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-300 max-w-[160px] truncate">{user.email || '—'}</td>
                       <td className="px-5 py-4">
-                        {user.role === 'voter' ? (
-                          user.is_accredited ? (
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                                <span className="material-symbols-outlined text-[14px]">check</span>
-                                Accredited
-                              </span>
-                              <button
-                                onClick={() =>
-                                  setReverseConfirm({
-                                    isOpen: true,
-                                    userId: user.id,
-                                    username: user.username,
-                                    fullName: user.full_name,
-                                  })
-                                }
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800 transition-colors"
-                                title="Reverse accreditation so this voter can re-accredit"
-                              >
-                                <span className="material-symbols-outlined text-[13px]">replay</span>
-                                Reverse
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                              <span className="material-symbols-outlined text-[14px]">pending</span>
-                              Pending
-                            </span>
-                          )
-                        ) : (
-                          <span className="text-xs text-slate-400 uppercase font-semibold">Admin</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        <button
-                          onClick={() => handleToggleStatus(user.id, user.is_active ?? true)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                            user.is_active
-                              ? 'bg-emerald-100 text-emerald-800 hover:bg-red-100 hover:text-red-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700'
-                              : 'bg-red-100 text-red-800 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-red-900/30 dark:text-red-400 border border-red-300 dark:border-red-700'
-                          }`}
-                          title={user.is_active ? 'Click to Disqualify / Disable voter' : 'Click to Qualify / Enable voter'}
-                        >
-                          <span className="material-symbols-outlined text-[14px]">
-                            {user.is_active ? 'check_circle' : 'block'}
-                          </span>
-                          {user.is_active ? 'Active (Eligible)' : 'Disqualified'}
-                        </button>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                          user.staff_active !== false
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          <span className="material-symbols-outlined text-[14px]">{user.staff_active !== false ? 'check_circle' : 'cancel'}</span>
+                          {user.staff_active !== false ? 'Active' : 'Inactive'}
+                        </span>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           {user.role === 'voter' && user.is_accredited && (
                             <button
                               onClick={() =>
@@ -560,6 +538,137 @@ export const UserList: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Slide-in User Detail Drawer */}
+      {selectedUserForDrawer && (
+        <>
+          {/* Backdrop overlay */}
+          <div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
+            onClick={() => setSelectedUserForDrawer(null)}
+          />
+          {/* Drawer panel */}
+          <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] bg-white dark:bg-[#1a1d29] shadow-2xl z-50 overflow-y-auto animate-slide-in-right">
+            {/* Header */}
+            <div className="sticky top-0 bg-white dark:bg-[#1a1d29] border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400">person</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{selectedUserForDrawer.full_name}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">MCS #{selectedUserForDrawer.username}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedUserForDrawer(null)}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-6">
+              {/* Staff Identity Section */}
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Staff Identity</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <DetailItem label="MCS Username" value={selectedUserForDrawer.username} icon="badge" />
+                  <DetailItem label="Full Name" value={selectedUserForDrawer.full_name} icon="person" />
+                  <DetailItem label="Staff File No" value={selectedUserForDrawer.staff_file_no || '—'} icon="folder_shared" />
+                  <DetailItem label="Station" value={selectedUserForDrawer.staff_station || '—'} icon="location_on" />
+                  <DetailItem label="Rank" value={selectedUserForDrawer.staff_rank || '—'} icon="military_tech" />
+                  <DetailItem label="CONRAISS" value={selectedUserForDrawer.staff_conraiss || '—'} icon="grade" />
+                </div>
+              </div>
+
+              {/* Contact Section */}
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Contact Information</h4>
+                <div className="grid grid-cols-1 gap-4">
+                  <DetailItem label="Phone" value={selectedUserForDrawer.phone || '—'} icon="call" />
+                  <DetailItem label="Email" value={selectedUserForDrawer.email || '—'} icon="mail" />
+                </div>
+              </div>
+
+              {/* Status Section */}
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Status & Role</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Staff Status</p>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      selectedUserForDrawer.staff_active !== false
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    }`}>
+                      <span className="material-symbols-outlined text-[14px]">{selectedUserForDrawer.staff_active !== false ? 'check_circle' : 'cancel'}</span>
+                      {selectedUserForDrawer.staff_active !== false ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Eligibility</p>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      selectedUserForDrawer.is_active
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    }`}>
+                      {selectedUserForDrawer.is_active ? 'Eligible' : 'Disqualified'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Accreditation</p>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      selectedUserForDrawer.is_accredited
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    }`}>
+                      {selectedUserForDrawer.is_accredited ? 'Accredited' : 'Pending'}
+                    </span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Role</p>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase">{selectedUserForDrawer.role}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="space-y-1">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Quick Actions</h4>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => { setEditModal({ isOpen: true, user: selectedUserForDrawer }); setSelectedUserForDrawer(null); }}
+                    className="px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-800 transition-colors flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">edit</span>
+                    Edit User
+                  </button>
+                  <button
+                    onClick={() => { handleToggleStatus(selectedUserForDrawer.id, selectedUserForDrawer.is_active ?? true); setSelectedUserForDrawer(null); }}
+                    className={`px-4 py-2 text-sm font-semibold rounded-lg border transition-colors flex items-center gap-2 ${
+                      selectedUserForDrawer.is_active
+                        ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-100'
+                        : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">{selectedUserForDrawer.is_active ? 'block' : 'check_circle'}</span>
+                    {selectedUserForDrawer.is_active ? 'Disqualify' : 'Enable'}
+                  </button>
+                  <button
+                    onClick={() => { setDeleteConfirm({ isOpen: true, userId: selectedUserForDrawer.id, username: selectedUserForDrawer.username }); setSelectedUserForDrawer(null); }}
+                    className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       <ConfirmDialog
         isOpen={deleteConfirm.isOpen}

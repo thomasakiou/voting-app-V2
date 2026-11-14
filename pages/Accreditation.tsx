@@ -22,6 +22,11 @@ export const Accreditation: React.FC = () => {
   // Form states
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [staffFileNo, setStaffFileNo] = useState('');
+  const [staffStation, setStaffStation] = useState('');
+  const [staffRank, setStaffRank] = useState('');
+  const [staffConraiss, setStaffConraiss] = useState('');
+  const [staffActive, setStaffActive] = useState<boolean | null>(null);
   const [maskedPhone, setMaskedPhone] = useState('');
   const [maskedEmail, setMaskedEmail] = useState('');
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(6).fill(''));
@@ -69,6 +74,11 @@ export const Accreditation: React.FC = () => {
     try {
       const data = await accreditationAPI.validate(username.trim());
       setFullName(data.full_name);
+      setStaffFileNo(data.staff_file_no || '');
+      setStaffStation(data.staff_station || '');
+      setStaffRank(data.staff_rank || '');
+      setStaffConraiss(data.staff_conraiss || '');
+      setStaffActive(data.staff_active ?? null);
       setMaskedPhone(data.masked_phone || data.phone || '');
       setMaskedEmail(data.masked_email || data.email || '');
       setStep(2);
@@ -347,6 +357,50 @@ export const Accreditation: React.FC = () => {
                   />
                 </div>
                 <p className="text-xs text-slate-400 ml-1">This name is matched from the official NECO MCS register.</p>
+              </div>
+
+              {/* Staff Official Record Card */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Staff Official Record</h4>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">MCS Username:</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white">#{username}</span>
+                </div>
+                {staffFileNo && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Staff File No:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{staffFileNo}</span>
+                  </div>
+                )}
+                {staffStation && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Staff Station:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{staffStation}</span>
+                  </div>
+                )}
+                {staffRank && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Staff Rank:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{staffRank}</span>
+                  </div>
+                )}
+                {staffConraiss && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">CONRAISS:</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{staffConraiss}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Staff Status:</span>
+                  <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                    staffActive !== false
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                  }`}>
+                    <span className="material-symbols-outlined text-[13px]">{staffActive !== false ? 'check_circle' : 'cancel'}</span>
+                    {staffActive !== false ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
               </div>
 
               {/* Registered Phone Number - Masked */}

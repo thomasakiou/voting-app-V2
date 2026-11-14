@@ -6,6 +6,7 @@ import { AuthLayout, AdminLayout, VoterLayout } from './components/Layouts';
 import { Login, AdminLogin, VerifyOTP } from './pages/Auth';
 import { Accreditation } from './pages/Accreditation';
 import { VoterContactUpdate } from './pages/VoterContactUpdate';
+import { AgentsLiveView } from './pages/AgentsLiveView';
 import { PrivacyPolicy, TermsOfService } from './pages/Legal';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminAnalysis } from './pages/AdminAnalysis';
@@ -25,6 +26,10 @@ const App: React.FC = () => {
 
           {/* Public Accreditation Route */}
           <Route path="/accreditation" element={<Accreditation />} />
+
+          {/* Public Contestants' Agents Live View */}
+          <Route path="/agents/live" element={<AgentsLiveView />} />
+          <Route path="/agents-live" element={<AgentsLiveView />} />
 
           {/* Public Voter Contact Registration & Verification Route */}
           <Route path="/contact-update" element={<VoterContactUpdate />} />
