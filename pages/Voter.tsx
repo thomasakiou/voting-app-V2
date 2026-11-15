@@ -304,27 +304,27 @@ export const BallotView: React.FC = () => {
     const isVotingActive = votingStatus?.is_active && votingStatus.status === 'ACTIVE';
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-            <div className="text-center space-y-2">
+        <div className="max-w-4xl w-full min-w-0 mx-auto space-y-5 sm:space-y-6 animate-fade-in overflow-hidden">
+            <div className="text-center space-y-2 px-2">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-semibold">
                     <span className="material-symbols-outlined text-sm">ballot</span>
                     Official NECO MCS Election Ballot
                 </div>
-                <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                     Official Election Ballot
                 </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-lg mx-auto">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-lg mx-auto">
                     Select any contested office below to vote. Once you submit your vote for a category, it is permanently locked and you can view only your confirmation statistics.
                 </p>
             </div>
 
             {!isVotingActive && (
-                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-sm font-medium text-center">
+                <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-medium text-center">
                     Voting is currently closed or stopped by administrator. Ballots cannot be submitted at this time.
                 </div>
             )}
 
-            <div className="grid gap-4">
+            <div className="grid gap-3 sm:gap-4 w-full min-w-0">
                 {offices.map((office) => {
                     const isVoted = votedOfficesMap.has(office.office_code);
                     const officeVotes = votedOfficesMap.get(office.office_code) || [];
@@ -335,40 +335,35 @@ export const BallotView: React.FC = () => {
                         return (
                             <div
                                 key={office.id}
-                                className="p-4 sm:p-5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-300 dark:border-emerald-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
+                                className="w-full min-w-0 p-3 sm:p-5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border-2 border-emerald-300 dark:border-emerald-800/60 flex items-center justify-between gap-2.5 sm:gap-4 transition-all"
                             >
-                                <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                                    <div className="size-11 sm:size-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-sm">
+                                <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 overflow-hidden">
+                                    <div className="size-10 sm:size-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-xs">
                                         <span className="material-symbols-outlined text-xl sm:text-2xl">check_circle</span>
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
-                                                {office.description}
-                                            </h3>
-                                            <div className="flex flex-wrap items-center gap-1.5">
-                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 inline-flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[12px]">check</span>
-                                                    Voted ({officeVotes.length})
-                                                </span>
-                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[12px]">groups</span>
-                                                    {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
-                                                </span>
-                                            </div>
+                                        <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-900 dark:text-white break-words whitespace-normal leading-snug">
+                                            {office.description}
+                                        </h3>
+                                        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mt-1">
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 inline-flex items-center gap-1 shrink-0">
+                                                <span className="material-symbols-outlined text-[12px]">check</span>
+                                                Voted ({officeVotes.length})
+                                            </span>
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1 shrink-0">
+                                                <span className="material-symbols-outlined text-[12px]">groups</span>
+                                                {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
+                                            </span>
                                         </div>
-                                        <p className="text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-400 mt-1 truncate">
+                                        <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium mt-1 truncate">
                                             Voted for: {officeVotes.map((v) => v.candidate_name).join(', ')}
-                                        </p>
-                                        <p className="text-[11px] font-mono text-slate-400 mt-0.5 truncate max-w-md">
-                                            Receipt(s): {officeVotes.map((v) => v.receipt_hash || 'MCS-VERIFIED').join(' • ')}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="text-left sm:text-right shrink-0">
-                                    <span className="text-[11px] sm:text-xs font-semibold text-slate-400 italic">
-                                        Category Locked
+                                <div className="text-right shrink-0">
+                                    <span className="text-[10px] sm:text-xs font-semibold text-slate-400 italic block">
+                                        Locked
                                     </span>
                                 </div>
                             </div>
@@ -379,23 +374,25 @@ export const BallotView: React.FC = () => {
                         return (
                             <div
                                 key={office.id}
-                                className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 opacity-60 cursor-not-allowed"
+                                className="w-full min-w-0 p-3 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2.5 sm:gap-4 opacity-60 cursor-not-allowed"
                             >
-                                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                                    <div className="size-11 sm:size-12 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                                <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 overflow-hidden">
+                                    <div className="size-10 sm:size-12 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 shrink-0">
                                         <span className="material-symbols-outlined text-xl sm:text-2xl">block</span>
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                            <h3 className="text-base sm:text-lg font-bold text-slate-700 dark:text-slate-300 truncate">
-                                                {office.description}
-                                            </h3>
-                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 inline-flex items-center gap-1">
+                                        <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-700 dark:text-slate-300 break-words whitespace-normal leading-snug">
+                                            {office.description}
+                                        </h3>
+                                        <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mt-1">
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 inline-flex items-center gap-1 shrink-0">
                                                 <span className="material-symbols-outlined text-[12px]">groups</span>
                                                 {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
                                             </span>
+                                            <span className="text-[10px] sm:text-xs text-red-500 font-semibold">
+                                                Disqualified
+                                            </span>
                                         </div>
-                                        <p className="text-xs text-red-500 font-semibold mt-0.5">Contest Disqualified by Admin</p>
                                     </div>
                                 </div>
                             </div>
@@ -407,45 +404,43 @@ export const BallotView: React.FC = () => {
                         <Link
                             key={office.id}
                             to={isVotingActive ? `/voter/ballot/${office.office_code}` : '#'}
-                            className={`group card p-4 sm:p-5 flex items-center justify-between gap-3 transition-all duration-200 ${
+                            className={`group card w-full min-w-0 p-3 sm:p-5 flex items-center justify-between gap-2.5 sm:gap-3.5 transition-all duration-200 ${
                                 isVotingActive
                                     ? 'hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10'
                                     : 'opacity-50 cursor-not-allowed'
                             }`}
                         >
-                            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-                                <div className="size-11 sm:size-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                                    <span className="material-symbols-outlined text-2xl">how_to_vote</span>
+                            <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 overflow-hidden">
+                                <div className="size-10 sm:size-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                                    <span className="material-symbols-outlined text-xl sm:text-2xl">how_to_vote</span>
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5">
-                                        <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors truncate">
-                                            {office.description}
-                                        </h3>
-                                        <div className="flex flex-wrap items-center gap-1.5">
-                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                                                <span className="material-symbols-outlined text-[13px] sm:text-[14px]">groups</span>
-                                                {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
+                                <div className="min-w-0 flex-1 overflow-hidden">
+                                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors break-words whitespace-normal leading-snug">
+                                        {office.description}
+                                    </h3>
+                                    <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mt-1 sm:mt-1.5">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0">
+                                            <span className="material-symbols-outlined text-[12px] sm:text-[14px]">groups</span>
+                                            {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
+                                        </span>
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold shrink-0 ${
+                                            office.max_votes && office.max_votes > 1
+                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                                        }`}>
+                                            <span className="material-symbols-outlined text-[12px] sm:text-[13px]">
+                                                {office.max_votes && office.max_votes > 1 ? 'ballot' : 'how_to_vote'}
                                             </span>
-                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold ${
-                                                office.max_votes && office.max_votes > 1
-                                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
-                                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
-                                            }`}>
-                                                <span className="material-symbols-outlined text-[12px] sm:text-[13px]">
-                                                    {office.max_votes && office.max_votes > 1 ? 'ballot' : 'how_to_vote'}
-                                                </span>
-                                                {office.max_votes && office.max_votes > 1
-                                                    ? `Pick up to ${office.max_votes}`
-                                                    : 'Single Choice (1)'}
-                                            </span>
-                                        </div>
+                                            {office.max_votes && office.max_votes > 1
+                                                ? `Pick up to ${office.max_votes}`
+                                                : 'Single Choice (1)'}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="size-9 sm:size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
-                                <span className="material-symbols-outlined text-lg sm:text-xl">arrow_forward</span>
+                            <div className="size-8 sm:size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
+                                <span className="material-symbols-outlined text-base sm:text-xl">arrow_forward</span>
                             </div>
                         </Link>
                     );
