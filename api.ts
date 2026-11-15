@@ -72,6 +72,7 @@ export interface UserOut {
   staff_rank?: string | null;
   staff_conraiss?: string | null;
   staff_active?: boolean | null;
+  admin_login_count?: number | null;
 }
 
 export interface UserUpdate {
@@ -87,6 +88,7 @@ export interface UserUpdate {
   staff_rank?: string;
   staff_conraiss?: string;
   staff_active?: boolean;
+  admin_login_count?: number | null;
 }
 
 export interface UserStatsOut {
@@ -888,6 +890,12 @@ export const usersAPI = {
   async reverseAccreditation(userId: number): Promise<UserOut> {
     return apiFetch<UserOut>(`/users/${userId}/reverse-accreditation`, {
       method: 'PATCH',
+    });
+  },
+
+  async resetAdminLogin(userId: number): Promise<UserOut> {
+    return apiFetch<UserOut>(`/users/${userId}/reset-admin-login`, {
+      method: 'POST',
     });
   },
 

@@ -120,6 +120,50 @@ const EditUserModal: React.FC<{
           </div>
         </div>
 
+        {role === 'admin' && (
+          <div className="p-3.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-xs text-purple-900 dark:text-purple-300 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-bold flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px]">lock_clock</span>
+                Single-Use Admin Account Status:
+              </span>
+              {user.admin_login_count && user.admin_login_count > 0 ? (
+                <span className="px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
+                  Used / Expired ({user.admin_login_count} login recorded)
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                  Unused (Ready for 1 login)
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-purple-800/80 dark:text-purple-300/80">
+              Admin accounts created by the Super Admin can only log in once. Super Admin accounts can log in at anytime.
+            </p>
+            {user.admin_login_count && user.admin_login_count > 0 && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    await usersAPI.resetAdminLogin(user.id);
+                    user.admin_login_count = 0;
+                    onUpdate();
+                  } catch (err: any) {
+                    setError(err?.data?.detail || err?.message || 'Failed to reset admin login');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="mt-1 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1 transition-all"
+              >
+                <span className="material-symbols-outlined text-sm">lock_reset</span>
+                Reset Login Status (Allow 1 More Login)
+              </button>
+            )}
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
             Staff Full Name <span className="text-red-500 font-bold">*</span>
@@ -692,7 +736,39 @@ export const UserList: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {paginatedUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer" onClick={() => setSelectedUserForDrawer(user)}>
-                      <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">{user.username}</td>
+                      <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">
+                        <div>{user.username}</div>
+                        {user.role === 'admin' && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300">
+                              Admin
+                            </span>
+                            {user.admin_login_count && user.admin_login_count > 0 ? (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300" title="Used single-use admin account">
+                                Used (1/1)
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300" title="Unused single-use admin account">
+                                Unused (Ready)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {user.role === 'super-admin' && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                              Super Admin (Anytime)
+                            </span>
+                          </div>
+                        )}
+                        {user.role === 'agent' && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
+                              Agent
+                            </span>
+                          </div>
+                        )}
+                      </td>
                       <td className="px-5 py-4 font-medium">{user.full_name}</td>
                       <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{user.staff_file_no || '—'}</td>
                       <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{user.staff_station || '—'}</td>
@@ -735,6 +811,25 @@ export const UserList: React.FC = () => {
                           >
                             <span className="material-symbols-outlined text-sm">edit</span>
                           </button>
+                          {user.role === 'admin' && user.admin_login_count && user.admin_login_count > 0 && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (window.confirm(`Reset single-use login for admin "${user.username}"? They will be able to log in once more.`)) {
+                                  try {
+                                    await usersAPI.resetAdminLogin(user.id);
+                                    loadUsers();
+                                  } catch (err: any) {
+                                    alert(err?.data?.detail || err?.message || 'Failed to reset admin login');
+                                  }
+                                }
+                              }}
+                              className="p-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded text-purple-600 dark:text-purple-400"
+                              title="Reset admin login (allow 1 more login)"
+                            >
+                              <span className="material-symbols-outlined text-sm">lock_reset</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => setDeleteConfirm({ isOpen: true, userId: user.id, username: user.username })}
                             className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-500"
@@ -1259,6 +1354,12 @@ export const CreateUser: React.FC = () => {
                 <option value="super-admin">Super Admin (Full System Access)</option>
               </select>
               <p className="text-xs text-slate-500 mt-1">Permissions assigned to this account</p>
+              {role === 'admin' && (
+                <div className="mt-2 p-2.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-[11px] text-purple-900 dark:text-purple-300 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm text-purple-600 dark:text-purple-400">lock_clock</span>
+                  <span><strong>Single-Use Admin:</strong> Admin accounts created by Super Admin can only log in once for security. Super Admin can log in at anytime.</span>
+                </div>
+              )}
             </div>
           </div>
 

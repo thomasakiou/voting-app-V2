@@ -514,18 +514,18 @@ export const AdminLogin: React.FC = () => {
         </p>
       </div>
 
-      {/* ACTIVE SESSION WARNING BANNER */}
+      {/* ACTIVE SESSION INFO BANNER */}
       {hasActiveSession && (
         <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-400 dark:border-amber-700 space-y-1.5 shadow-md animate-scale-in">
           <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-base">
             <span className="material-symbols-outlined text-2xl text-amber-600 dark:text-amber-400">
               admin_panel_settings
             </span>
-            <span>Another Admin Session Is Currently Logged In</span>
+            <span>Administrator Session Currently Active</span>
           </div>
           <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed font-medium">
             {sessionMessage ||
-              'An administrator is currently active on the portal. Only one administrator can be logged in at a time. You cannot log in until that session logs out.'}
+              'An administrator is currently active on the portal. Super Administrator can sign in at anytime. Note: Admin accounts created by super admin can only log in once.'}
           </p>
         </div>
       )}
@@ -587,7 +587,7 @@ export const AdminLogin: React.FC = () => {
         </div>
         <button
           type="submit"
-          disabled={loading || hasActiveSession}
+          disabled={loading}
           className="w-full btn-primary flex items-center justify-center gap-2 group text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (

@@ -43,11 +43,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         localStorage.getItem('fullname') ||
                         localStorage.getItem('voting_fullname') ||
                         storedUsername;
+                    const resolvedRole = (storedAuthRole === 'super-admin' || storedAuthRole === 'admin') 
+                        ? (storedAuthRole as 'super-admin' | 'admin') 
+                        : 'voter';
                     setUser({
                         id: 0,
                         username: storedUsername,
                         full_name: displayedFullName,
-                        role: storedAuthRole === 'admin' ? 'admin' : 'voter',
+                        role: resolvedRole,
                         is_active: true,
                     });
                 }
@@ -64,14 +67,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const adminLogin = async (username: string, _password: string, force?: boolean) => {
         const loginResponse = await authAPI.adminLogin(username, _password, undefined, force);
+        const role = (loginResponse.role === 'super-admin' || loginResponse.role === 'admin') 
+            ? loginResponse.role 
+            : 'admin';
         localStorage.setItem('voting_username', username);
         localStorage.setItem('voting_fullname', loginResponse.fullname || username);
-        localStorage.setItem('voting_auth_role', 'admin');
+        localStorage.setItem('voting_auth_role', role);
         setUser({
             id: 0,
             username,
             full_name: loginResponse.fullname || username,
-            role: 'admin',
+            role,
             is_active: true,
         });
     };
