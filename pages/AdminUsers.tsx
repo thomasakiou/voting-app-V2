@@ -1452,32 +1452,20 @@ export const BulkUpload: React.FC = () => {
       setCreatedCount(res.created);
 
       const rawSkipped = res.skipped_details || [];
-      // Filter out already existing voters so they don't clutter the error alert
-      const alreadyExisting = rawSkipped.filter((item: any) =>
-        item.reason && item.reason.toLowerCase().includes('already exists')
-      );
-      const genuineFailures = rawSkipped.filter((item: any) =>
-        !item.reason || !item.reason.toLowerCase().includes('already exists')
-      );
+      setSkippedDetails(rawSkipped);
+      setExistingCount(rawSkipped.length);
 
-      setExistingCount(alreadyExisting.length);
-      setSkippedDetails(genuineFailures);
-
-      if (genuineFailures.length > 0) {
+      if (rawSkipped.length > 0) {
         setSuccess(
-          `Import finished: ${res.created} new voter(s) added.${
-            alreadyExisting.length > 0 ? ` (${alreadyExisting.length} existing voters safely skipped).` : ''
-          }`
+          `Import finished: ${res.created} new voter(s) successfully added. ${rawSkipped.length} record(s) were safely skipped (duplicate MCS numbers, duplicate Staff File numbers, or email conflicts prevented).`
         );
       } else if (res.created > 0) {
         setSuccess(
-          `Upload complete: ${res.created} new voter(s) successfully registered.${
-            alreadyExisting.length > 0 ? ` (${alreadyExisting.length} already registered voters were skipped).` : ''
-          }`
+          `Upload complete: All ${res.created} new voter(s) successfully registered with zero duplicates or conflicts.`
         );
       } else {
         setSuccess(
-          `All ${alreadyExisting.length} voter(s) in this file are already registered in the system.`
+          `No new voters were registered. All records in this file were skipped due to existing MCS numbers or duplicate File numbers.`
         );
       }
       setFile(null);
@@ -1496,7 +1484,7 @@ export const BulkUpload: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'voter_upload_failures.csv';
+    a.download = 'voter_upload_skipped_report.csv';
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1550,14 +1538,14 @@ export const BulkUpload: React.FC = () => {
         </div>
       )}
 
-      {/* DETAILED ALERT FOR GENUINE FAILURES ONLY (excluding already existing voters) */}
+      {/* DETAILED ALERT FOR SKIPPED RECORDS (DUPLICATE MCS NUMBERS, FILE NUMBERS, EMAILS) */}
       {skippedDetails.length > 0 && (
         <div className="p-5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700 space-y-4 animate-scale-in">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-amber-600 text-2xl">warning</span>
               <h3 className="font-bold text-amber-900 dark:text-amber-300 text-lg">
-                Upload Warning: {skippedDetails.length} Record(s) Failed to Upload
+                Upload Notice: {skippedDetails.length} Record(s) Skipped Due to Constraints
               </h3>
             </div>
             <button
@@ -1565,13 +1553,12 @@ export const BulkUpload: React.FC = () => {
               className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm"
             >
               <span className="material-symbols-outlined text-sm">download</span>
-              Download Failure Report (.CSV)
+              Download Skipped Records Report (.CSV)
             </button>
           </div>
 
           <p className="text-sm text-amber-800 dark:text-amber-400">
-            The following records encountered conflicts (such as duplicate emails belonging to another voter or database errors) and could not be imported.
-            {existingCount > 0 && ` (${existingCount} already existing voters were skipped and are excluded from this list).`}
+            The following records were skipped because their <strong>MCS Number (Username)</strong> or <strong>Staff File Number</strong> is already assigned in the system or duplicated within the file. Duplicate MCS numbers and File numbers are strictly rejected.
           </p>
 
           <div className="max-h-72 overflow-y-auto rounded-lg border border-amber-200 dark:border-amber-800/50 bg-white dark:bg-slate-900">
