@@ -426,49 +426,12 @@ export const AdminLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [hasActiveSession, setHasActiveSession] = useState(false);
-  const [sessionMessage, setSessionMessage] = useState('');
-  const [canForceLogin, setCanForceLogin] = useState(false);
-  const [pendingCredentials, setPendingCredentials] = useState<{ username: string; password: string } | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && (user?.role === 'admin' || user?.role === 'super-admin')) {
       navigate('/admin/dashboard', { replace: true });
     }
-    checkActiveSession();
   }, [isAuthenticated, user, navigate]);
-
-  const checkActiveSession = async () => {
-    try {
-      const res = await authAPI.getAdminSessionStatus();
-      if (res?.has_active_session) {
-        setHasActiveSession(true);
-        setSessionMessage(
-          res.message ||
-            'Another admin session is currently logged in. You cannot log in until that session logs out.'
-        );
-      } else {
-        setHasActiveSession(false);
-        setCanForceLogin(false);
-      }
-    } catch {
-      // Ignore network errors on passive check
-    }
-  };
-
-  const handleForceReclaim = async () => {
-    if (!pendingCredentials) return;
-    setLoading(true);
-    setError('');
-    try {
-      await adminLogin(pendingCredentials.username, pendingCredentials.password, true);
-      navigate('/admin/dashboard', { replace: true });
-    } catch (err: any) {
-      setError(getErrorMessage(err, 'Failed to reclaim administrator session.'));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -483,19 +446,6 @@ export const AdminLogin: React.FC = () => {
     } catch (err: any) {
       const msg = getErrorMessage(err, 'Invalid administrator credentials.');
       setError(msg);
-
-      // Check if rejection was due to another active admin session
-      const isSessionConflict =
-        msg.toLowerCase().includes('another admin') ||
-        msg.toLowerCase().includes('already logged in') ||
-        msg.toLowerCase().includes('already running on another') ||
-        msg.toLowerCase().includes('another device');
-
-      if (isSessionConflict) {
-        setHasActiveSession(true);
-        setCanForceLogin(true);
-        setPendingCredentials({ username, password });
-      }
     } finally {
       setLoading(false);
     }
@@ -513,50 +463,6 @@ export const AdminLogin: React.FC = () => {
           Enter your administrative credentials to manage election parameters.
         </p>
       </div>
-
-      {/* ACTIVE SESSION INFO BANNER */}
-      {hasActiveSession && (
-        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-400 dark:border-amber-700 space-y-1.5 shadow-md animate-scale-in">
-          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-base">
-            <span className="material-symbols-outlined text-2xl text-amber-600 dark:text-amber-400">
-              admin_panel_settings
-            </span>
-            <span>Administrator Session Currently Active</span>
-          </div>
-          <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed font-medium">
-            {sessionMessage ||
-              'An administrator is currently active on the portal. Super Administrator can sign in at anytime. Note: Admin accounts created by super admin can only log in once.'}
-          </p>
-        </div>
-      )}
-
-      {/* RECLAIM ABANDONED SESSION OPTION */}
-      {canForceLogin && (
-        <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border-2 border-indigo-300 dark:border-indigo-700 space-y-3 shadow-md animate-scale-in">
-          <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold text-sm">
-            <span className="material-symbols-outlined text-xl text-indigo-600 dark:text-indigo-400">restart_alt</span>
-            <span>Are you the administrator who left this session open?</span>
-          </div>
-          <p className="text-xs text-indigo-800 dark:text-indigo-200 leading-relaxed">
-            If you mistakenly left your previous admin tab or closed your browser, you can terminate the old session and reclaim administrative access immediately.
-          </p>
-          <button
-            type="button"
-            disabled={loading}
-            onClick={handleForceReclaim}
-            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
-          >
-            {loading ? (
-              <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-lg">lock_open</span>
-                Terminate Previous Session & Sign In
-              </>
-            )}
-          </button>
-        </div>
-      )}
 
       {error && <AuthError error={error} />}
 
