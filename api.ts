@@ -73,6 +73,7 @@ export interface UserOut {
   staff_conraiss?: string | null;
   staff_active?: boolean | null;
   admin_login_count?: number | null;
+  current_session_id?: string | null;
 }
 
 export interface UserUpdate {
@@ -895,6 +896,12 @@ export const usersAPI = {
 
   async resetAdminLogin(userId: number): Promise<UserOut> {
     return apiFetch<UserOut>(`/users/${userId}/reset-admin-login`, {
+      method: 'POST',
+    });
+  },
+
+  async logoutAdmin(userId: number): Promise<UserOut> {
+    return apiFetch<UserOut>(`/users/${userId}/logout-admin`, {
       method: 'POST',
     });
   },

@@ -140,6 +140,42 @@ const EditUserModal: React.FC<{
             <p className="text-[11px] text-purple-800/80 dark:text-purple-300/80">
               Admin accounts created by the Super Admin can only log in once. Super Admin accounts can log in at anytime.
             </p>
+            <div className="pt-2 border-t border-purple-200 dark:border-purple-800 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="font-bold text-[11px] text-purple-900 dark:text-purple-300">Live Session:</span>{' '}
+                {user.current_session_id ? (
+                  <span className="font-bold text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Currently Logged In
+                  </span>
+                ) : (
+                  <span className="text-slate-500">Not Logged In</span>
+                )}
+              </div>
+              {user.current_session_id && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (window.confirm(`Terminate active session and log out admin "${user.username}" immediately?`)) {
+                      setLoading(true);
+                      try {
+                        await usersAPI.logoutAdmin(user.id);
+                        user.current_session_id = null;
+                        onUpdate();
+                      } catch (err: any) {
+                        setError(err?.data?.detail || err?.message || 'Failed to logout admin');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 transition-all shadow-sm"
+                >
+                  <span className="material-symbols-outlined text-sm">logout</span>
+                  Logout Admin Session
+                </button>
+              )}
+            </div>
             {user.admin_login_count && user.admin_login_count > 0 && (
               <button
                 type="button"
@@ -752,6 +788,12 @@ export const UserList: React.FC = () => {
                                 Unused (Ready)
                               </span>
                             )}
+                            {user.current_session_id && (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-600 text-white flex items-center gap-1 shadow-sm" title="This admin account is currently logged in">
+                                <span className="size-1 rounded-full bg-white animate-ping"></span>
+                                Active Now
+                              </span>
+                            )}
                           </div>
                         )}
                         {user.role === 'super-admin' && (
@@ -828,6 +870,25 @@ export const UserList: React.FC = () => {
                               title="Reset admin login (allow 1 more login)"
                             >
                               <span className="material-symbols-outlined text-sm">lock_reset</span>
+                            </button>
+                          )}
+                          {user.role === 'admin' && user.current_session_id && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (window.confirm(`Are you sure you want to log out admin "${user.username}"? Their active session will be terminated immediately.`)) {
+                                  try {
+                                    await usersAPI.logoutAdmin(user.id);
+                                    loadUsers();
+                                  } catch (err: any) {
+                                    alert(err?.data?.detail || err?.message || 'Failed to logout admin');
+                                  }
+                                }
+                              }}
+                              className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded text-rose-600 dark:text-rose-400"
+                              title="Force logout admin session"
+                            >
+                              <span className="material-symbols-outlined text-sm">logout</span>
                             </button>
                           )}
                           <button
@@ -951,6 +1012,19 @@ export const UserList: React.FC = () => {
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Role</p>
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase">{selectedUserForDrawer.role}</span>
                   </div>
+                  {selectedUserForDrawer.role === 'admin' && (
+                    <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 sm:col-span-2">
+                      <p className="text-[11px] text-purple-600 dark:text-purple-400 mb-1 font-bold">Admin Live Session</p>
+                      {selectedUserForDrawer.current_session_id ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 animate-pulse">
+                          <span className="size-2 rounded-full bg-emerald-500"></span>
+                          Currently Logged In (Active)
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold text-slate-500">Not Logged In</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -983,6 +1057,26 @@ export const UserList: React.FC = () => {
                     <span className="material-symbols-outlined text-[16px]">delete</span>
                     Delete
                   </button>
+                  {selectedUserForDrawer.role === 'admin' && selectedUserForDrawer.current_session_id && (
+                    <button
+                      onClick={async () => {
+                        if (window.confirm(`Are you sure you want to log out admin "${selectedUserForDrawer.username}"? Their active session will be terminated immediately.`)) {
+                          try {
+                            await usersAPI.logoutAdmin(selectedUserForDrawer.id);
+                            loadUsers();
+                            setSelectedUserForDrawer(null);
+                            setSuccess(`Logged out admin "${selectedUserForDrawer.username}" successfully.`);
+                          } catch (err: any) {
+                            alert(err?.data?.detail || err?.message || 'Failed to logout admin');
+                          }
+                        }
+                      }}
+                      className="px-4 py-2 text-sm font-semibold rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors flex items-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">logout</span>
+                      Logout Admin
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
