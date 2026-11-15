@@ -235,55 +235,87 @@
 }
 
 @media print {
-  body:has(.candidate-print-modal) * {
-    visibility: hidden;
-  }
-  .candidate-print-modal,
-  .candidate-print-modal * {
-    visibility: visible;
-  }
-  .candidate-print-modal {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    background: white !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    z-index: 999999 !important;
-    display: block !important;
-  }
-  .candidate-print-modal .no-print {
+  /* Hide standard non-printable elements */
+  nav,
+  aside,
+  header,
+  .no-print,
+  .fixed:not(.candidate-print-modal):not(:has(.candidate-print-modal)) {
     display: none !important;
   }
+
+  /* Candidate Photo Cards Specific Print Isolation */
+  body:has(.candidate-print-modal) {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    overflow: visible !important;
+  }
+
+  body:has(.candidate-print-modal) #root > *:not(:has(.candidate-print-modal)):not(.candidate-print-modal) {
+    display: none !important;
+  }
+
+  .candidate-print-modal {
+    position: static !important;
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: auto !important;
+    inset: auto !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .candidate-print-modal * {
+    visibility: visible !important;
+  }
+
+  .candidate-print-modal .no-print,
+  .candidate-print-modal button {
+    display: none !important;
+  }
+
+  .candidate-print-modal > div {
+    max-width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .candidate-print-modal .overflow-y-auto {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .candidate-print-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+
   .candidate-photo-card {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-  }
-}
-
-@media print {
-  @page {
-    margin: 1cm;
-    size: landscape;
-  }
-
-  body {
-    background: white;
-    color: black;
-  }
-
-  /* Hide non-printable elements */
-  nav,
-  aside,
-  button,
-  .no-print,
-  .fixed,
-  header {
-    display: none !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
   }
 
   /* Reset layout for print */

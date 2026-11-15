@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { CandidateResponse, resolveImageUrl } from '../api';
 import { CandidateAvatar } from './UIComponents';
 
@@ -25,8 +25,105 @@ export const CandidatePhotoCardModal: React.FC<CandidatePhotoCardModalProps> = (
   const candidateList = mode === 'single' ? (candidate ? [candidate] : []) : candidates;
   const isSingle = mode === 'single';
 
+  const printContainerRef = useRef<HTMLDivElement>(null);
+
   const handlePrint = () => {
-    window.print();
+    if (!printContainerRef.current) {
+      window.print();
+      return;
+    }
+
+    try {
+      let iframe = document.getElementById('print-photo-cards-iframe') as HTMLIFrameElement | null;
+      if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'print-photo-cards-iframe';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.style.visibility = 'hidden';
+        document.body.appendChild(iframe);
+      }
+
+      const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+        .map((node) => node.outerHTML)
+        .join('\n');
+
+      const printHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${isSingle ? `Candidate Photo Card - ${candidate?.name}` : `Photo Cards - ${officeTitle || 'All Offices'}`}</title>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+          ${styles}
+          <style>
+            @page {
+              size: ${isSingle ? 'A4 portrait' : 'A4 landscape'};
+              margin: 8mm;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            html, body {
+              background: #ffffff !important;
+              color: #0f172a !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+            .candidate-print-container {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 auto !important;
+              padding: 4mm !important;
+            }
+            .candidate-photo-card {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              background: #ffffff !important;
+              border: 2px solid #cbd5e1 !important;
+              margin-bottom: 12px;
+            }
+            .no-print {
+              display: none !important;
+            }
+          </style>
+        </head>
+        <body class="bg-white">
+          <div class="candidate-print-container">
+            ${printContainerRef.current.innerHTML}
+          </div>
+        </body>
+        </html>
+      `;
+
+      const doc = iframe.contentWindow?.document || iframe.contentDocument;
+      if (doc) {
+        doc.open();
+        doc.write(printHtml);
+        doc.close();
+
+        setTimeout(() => {
+          try {
+            iframe?.contentWindow?.focus();
+            iframe?.contentWindow?.print();
+          } catch (e) {
+            window.print();
+          }
+        }, 350);
+      } else {
+        window.print();
+      }
+    } catch (err) {
+      console.warn('Iframe print error, falling back to window.print():', err);
+      window.print();
+    }
   };
 
   return (
@@ -75,7 +172,7 @@ export const CandidatePhotoCardModal: React.FC<CandidatePhotoCardModalProps> = (
         {/* Scrollable Printable Container */}
         <div className="overflow-y-auto flex-1 p-4 sm:p-8 bg-slate-100 dark:bg-slate-950 print:bg-white print:p-0 print:overflow-visible">
           {/* Printable Document Headings */}
-          <div className="candidate-print-container max-w-4xl mx-auto space-y-8 print:space-y-6">
+          <div ref={printContainerRef} className="candidate-print-container max-w-4xl mx-auto space-y-8 print:space-y-6">
             {/* Batch Document Header */}
             <div className="text-center pb-4 border-b-2 border-indigo-900/30 dark:border-indigo-400/30">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">
