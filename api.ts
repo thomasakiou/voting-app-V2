@@ -998,6 +998,13 @@ export const usersAPI = {
 
     return response.json();
   },
+
+  async bulkDelete(userIds: number[]): Promise<{ deleted_count: number; message: string }> {
+    return apiFetch<{ deleted_count: number; message: string }>('/users/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ user_ids: userIds }),
+    });
+  },
 };
 
 // Offices API
@@ -1033,6 +1040,13 @@ export const officesAPI = {
 
   async delete(id: number): Promise<void> {
     await apiFetch(`/offices/${id}`, { method: 'DELETE' });
+  },
+
+  async bulkDelete(officeIds: number[]): Promise<{ deleted_count: number; message: string }> {
+    return apiFetch<{ deleted_count: number; message: string }>('/offices/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ office_ids: officeIds }),
+    });
   },
 };
 
@@ -1080,6 +1094,27 @@ export const candidatesAPI = {
 
   async delete(id: number): Promise<void> {
     await apiFetch(`/candidates/${id}`, { method: 'DELETE' });
+  },
+
+  async bulkStatus(candidateIds: number[], isDisqualified: boolean): Promise<{ updated_count: number; message: string }> {
+    return apiFetch<{ updated_count: number; message: string }>('/candidates/bulk-status', {
+      method: 'POST',
+      body: JSON.stringify({ candidate_ids: candidateIds, is_disqualified: isDisqualified }),
+    });
+  },
+
+  async bulkVisibility(candidateIds: number[], isHidden: boolean): Promise<{ updated_count: number; message: string }> {
+    return apiFetch<{ updated_count: number; message: string }>('/candidates/bulk-visibility', {
+      method: 'POST',
+      body: JSON.stringify({ candidate_ids: candidateIds, is_hidden: isHidden }),
+    });
+  },
+
+  async bulkDelete(candidateIds: number[]): Promise<{ deleted_count: number; message: string }> {
+    return apiFetch<{ deleted_count: number; message: string }>('/candidates/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ candidate_ids: candidateIds }),
+    });
   },
 
   async uploadImage(file: File): Promise<{ image_url: string }> {

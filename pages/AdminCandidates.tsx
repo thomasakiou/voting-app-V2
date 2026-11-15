@@ -488,6 +488,11 @@ export const CandidateManagement: React.FC = () => {
     const [success, setSuccess] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [officeFilter, setOfficeFilter] = useState<string>('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'disqualified'>('all');
+    const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'visible' | 'hidden'>('all');
+    const [selectedCandidateIds, setSelectedCandidateIds] = useState<number[]>([]);
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<{
         isOpen: boolean;
         candidateId?: number;
@@ -556,21 +561,90 @@ export const CandidateManagement: React.FC = () => {
         try {
             await candidatesAPI.delete(candidateId);
             setSuccess('Candidate deleted successfully');
+            setSelectedCandidateIds((prev) => prev.filter((id) => id !== candidateId));
             loadData();
         } catch (err: any) {
             setError('Failed to delete candidate');
         }
     };
 
+    const handleSelectAll = () => {
+        const currentIds = paginatedCandidates.map((c) => c.id);
+        const allSelected = currentIds.length > 0 && currentIds.every((id) => selectedCandidateIds.includes(id));
+        if (allSelected) {
+            setSelectedCandidateIds((prev) => prev.filter((id) => !currentIds.includes(id)));
+        } else {
+            setSelectedCandidateIds((prev) => Array.from(new Set([...prev, ...currentIds])));
+        }
+    };
+
+    const handleToggleSelect = (id: number) => {
+        setSelectedCandidateIds((prev) =>
+            prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkStatus = async (isDisqualified: boolean) => {
+        if (!selectedCandidateIds.length) return;
+        setBulkLoading(true);
+        try {
+            await candidatesAPI.bulkStatus(selectedCandidateIds, isDisqualified);
+            setSuccess(`Updated status for ${selectedCandidateIds.length} candidate(s) to ${isDisqualified ? 'Disqualified' : 'Approved'}.`);
+            setSelectedCandidateIds([]);
+            loadData();
+        } catch (err: any) {
+            setError(err?.data?.detail || 'Failed to update candidate status in bulk');
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
+    const handleBulkVisibility = async (isHidden: boolean) => {
+        if (!selectedCandidateIds.length) return;
+        setBulkLoading(true);
+        try {
+            await candidatesAPI.bulkVisibility(selectedCandidateIds, isHidden);
+            setSuccess(`Updated visibility for ${selectedCandidateIds.length} candidate(s) to ${isHidden ? 'Hidden' : 'Visible'}.`);
+            setSelectedCandidateIds([]);
+            loadData();
+        } catch (err: any) {
+            setError(err?.data?.detail || 'Failed to update candidate visibility in bulk');
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (!selectedCandidateIds.length) return;
+        setBulkLoading(true);
+        try {
+            const res = await candidatesAPI.bulkDelete(selectedCandidateIds);
+            setSuccess(res.message || `Deleted ${selectedCandidateIds.length} candidate(s) successfully.`);
+            setSelectedCandidateIds([]);
+            setBulkDeleteModalOpen(false);
+            loadData();
+        } catch (err: any) {
+            setError(err?.data?.detail || 'Failed to bulk delete candidates');
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
     const filteredCandidates = candidates.filter((c) => {
         const matchesOffice = officeFilter === 'all' || c.office?.office_code === officeFilter;
+        const matchesStatus =
+            statusFilter === 'all' ||
+            (statusFilter === 'approved' ? !c.is_disqualified : !!c.is_disqualified);
+        const matchesVisibility =
+            visibilityFilter === 'all' ||
+            (visibilityFilter === 'visible' ? !c.is_hidden : !!c.is_hidden);
         const searchLower = (searchTerm || '').toLowerCase();
         const matchesSearch =
             (c.name || '').toLowerCase().includes(searchLower) ||
             (c.candidate_code || '').toLowerCase().includes(searchLower) ||
             (c.office?.description || '').toLowerCase().includes(searchLower) ||
             (c.office?.office_code || '').toLowerCase().includes(searchLower);
-        return matchesOffice && matchesSearch;
+        return matchesOffice && matchesStatus && matchesVisibility && matchesSearch;
     });
 
     const {
@@ -585,7 +659,7 @@ export const CandidateManagement: React.FC = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, officeFilter, setCurrentPage]);
+    }, [searchTerm, officeFilter, statusFilter, visibilityFilter, setCurrentPage]);
 
     return (
         <div className="space-y-6">
@@ -641,7 +715,96 @@ export const CandidateManagement: React.FC = () => {
                             </option>
                         ))}
                     </select>
+
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                        <option value="all">All Statuses</option>
+                        <option value="approved">Approved</option>
+                        <option value="disqualified">Disqualified</option>
+                    </select>
+
+                    <select
+                        value={visibilityFilter}
+                        onChange={(e) => setVisibilityFilter(e.target.value as any)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                        <option value="all">All Visibility</option>
+                        <option value="visible">Visible</option>
+                        <option value="hidden">Hidden</option>
+                    </select>
                 </div>
+
+                {/* Bulk Actions Toolbar */}
+                {selectedCandidateIds.length > 0 && (
+                    <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 border-b border-indigo-200 dark:border-indigo-800/60 flex flex-wrap items-center justify-between gap-3 animate-fade-in text-xs font-semibold">
+                        <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+                            <span className="material-symbols-outlined text-base">checklist</span>
+                            <span><b>{selectedCandidateIds.length}</b> candidate(s) selected</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                disabled={bulkLoading}
+                                onClick={() => handleBulkStatus(false)}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-1 shadow-xs transition-colors"
+                                title="Approve all selected candidates"
+                            >
+                                <span className="material-symbols-outlined text-sm">verified</span>
+                                Approve All
+                            </button>
+                            <button
+                                type="button"
+                                disabled={bulkLoading}
+                                onClick={() => handleBulkStatus(true)}
+                                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold flex items-center gap-1 shadow-xs transition-colors"
+                                title="Disqualify all selected candidates"
+                            >
+                                <span className="material-symbols-outlined text-sm">block</span>
+                                Disqualify All
+                            </button>
+                            <button
+                                type="button"
+                                disabled={bulkLoading}
+                                onClick={() => handleBulkVisibility(false)}
+                                className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold flex items-center gap-1 shadow-xs transition-colors"
+                                title="Make all selected candidates visible"
+                            >
+                                <span className="material-symbols-outlined text-sm">visibility</span>
+                                Make Visible
+                            </button>
+                            <button
+                                type="button"
+                                disabled={bulkLoading}
+                                onClick={() => handleBulkVisibility(true)}
+                                className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold flex items-center gap-1 shadow-xs transition-colors"
+                                title="Hide all selected candidates from ballot and reports"
+                            >
+                                <span className="material-symbols-outlined text-sm">visibility_off</span>
+                                Hide All
+                            </button>
+                            <button
+                                type="button"
+                                disabled={bulkLoading}
+                                onClick={() => setBulkDeleteModalOpen(true)}
+                                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center gap-1 shadow-xs transition-colors"
+                                title="Delete all selected candidates"
+                            >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                                Delete Selected
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedCandidateIds([])}
+                                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                Deselect All
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {loading ? (
                     <LoadingSpinner />
@@ -655,6 +818,15 @@ export const CandidateManagement: React.FC = () => {
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
                                     <tr>
+                                        <th className="px-4 py-3 w-10">
+                                            <input
+                                                type="checkbox"
+                                                checked={paginatedCandidates.length > 0 && paginatedCandidates.every((c) => selectedCandidateIds.includes(c.id))}
+                                                onChange={handleSelectAll}
+                                                className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 size-4 cursor-pointer"
+                                                title="Select all on current page"
+                                            />
+                                        </th>
                                         <th className="px-6 py-3">Photo</th>
                                         <th className="px-6 py-3">Candidate Code</th>
                                         <th className="px-6 py-3">Name & Staff Info</th>
@@ -669,7 +841,15 @@ export const CandidateManagement: React.FC = () => {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {paginatedCandidates.map((candidate) => (
-                                        <tr key={candidate.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <tr key={candidate.id} className={`transition-colors ${selectedCandidateIds.includes(candidate.id) ? 'bg-indigo-50/50 dark:bg-indigo-950/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedCandidateIds.includes(candidate.id)}
+                                                    onChange={() => handleToggleSelect(candidate.id)}
+                                                    className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 size-4 cursor-pointer"
+                                                />
+                                            </td>
                                             {/* Photo column with click to preview */}
                                             <td className="px-6 py-3">
                                                 <button
@@ -864,6 +1044,16 @@ export const CandidateManagement: React.FC = () => {
                 title="Delete Candidate"
                 message={`Are you sure you want to delete candidate "${deleteConfirm.candidateName}"? This action cannot be undone.`}
                 confirmText="Delete"
+                isDestructive
+            />
+
+            <ConfirmDialog
+                isOpen={bulkDeleteModalOpen}
+                onClose={() => setBulkDeleteModalOpen(false)}
+                onConfirm={handleBulkDelete}
+                title="Bulk Delete Candidates"
+                message={`Are you sure you want to permanently delete all ${selectedCandidateIds.length} selected candidate(s)? This action cannot be undone.`}
+                confirmText={bulkLoading ? "Deleting..." : "Delete All Selected"}
                 isDestructive
             />
 

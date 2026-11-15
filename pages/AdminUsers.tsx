@@ -379,6 +379,9 @@ export const UserList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [accreditationFilter, setAccreditationFilter] = useState<'all' | 'accredited' | 'pending'>('all');
   const [staffStatusFilter, setStaffStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; userId?: number; username?: string }>({
     isOpen: false,
   });
@@ -465,6 +468,41 @@ export const UserList: React.FC = () => {
       loadUsers();
     } catch (err: any) {
       setError('Failed to delete user');
+    }
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      const pageIds = paginatedUsers.map((u) => u.id);
+      setSelectedUserIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    } else {
+      const pageIds = new Set(paginatedUsers.map((u) => u.id));
+      setSelectedUserIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    }
+  };
+
+  const handleToggleSelectUser = (userId: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const handleBulkDeleteUsers = async () => {
+    if (!selectedUserIds.length) return;
+    setBulkLoading(true);
+    try {
+      const res = await usersAPI.bulkDelete(selectedUserIds);
+      setSuccess(res.message || `Deleted ${selectedUserIds.length} user(s) successfully.`);
+      setSelectedUserIds([]);
+      setBulkDeleteModalOpen(false);
+      loadUsers();
+    } catch (err: any) {
+      setError(err?.data?.detail || err?.message || 'Failed to bulk delete users');
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -745,6 +783,35 @@ export const UserList: React.FC = () => {
           </div>
         )}
 
+        {/* Bulk Actions Toolbar */}
+        {selectedUserIds.length > 0 && (
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 border-b border-indigo-200 dark:border-indigo-800/60 flex flex-wrap items-center justify-between gap-3 animate-fade-in text-xs font-semibold">
+            <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+              <span className="material-symbols-outlined text-base">checklist</span>
+              <span><b>{selectedUserIds.length}</b> user(s) selected</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={bulkLoading}
+                onClick={() => setBulkDeleteModalOpen(true)}
+                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold flex items-center gap-1 shadow-xs transition-colors"
+                title="Bulk delete all selected users"
+              >
+                <span className="material-symbols-outlined text-sm">delete_forever</span>
+                Delete Selected ({selectedUserIds.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedUserIds([])}
+                className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+              >
+                Deselect All
+              </button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <LoadingSpinner />
         ) : filteredUsers.length === 0 ? (
@@ -757,6 +824,15 @@ export const UserList: React.FC = () => {
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
                   <tr>
+                    <th className="px-4 py-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={paginatedUsers.length > 0 && paginatedUsers.every((u) => selectedUserIds.includes(u.id))}
+                        onChange={handleSelectAll}
+                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                        title="Select all on this page"
+                      />
+                    </th>
                     <th className="px-5 py-3">MCS Username</th>
                     <th className="px-5 py-3">Staff Full Name</th>
                     <th className="px-5 py-3">File No</th>
@@ -771,7 +847,21 @@ export const UserList: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {paginatedUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer" onClick={() => setSelectedUserForDrawer(user)}>
+                    <tr
+                      key={user.id}
+                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer ${
+                        selectedUserIds.includes(user.id) ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
+                      }`}
+                      onClick={() => setSelectedUserForDrawer(user)}
+                    >
+                      <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.includes(user.id)}
+                          onChange={() => handleToggleSelectUser(user.id)}
+                          className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">
                         <div>{user.username}</div>
                         {user.role === 'admin' && (
@@ -1091,6 +1181,16 @@ export const UserList: React.FC = () => {
         title="Delete User"
         message={`Are you sure you want to delete user "${deleteConfirm.username}"? This action cannot be undone.`}
         confirmText="Delete"
+        isDestructive
+      />
+
+      <ConfirmDialog
+        isOpen={bulkDeleteModalOpen}
+        onClose={() => setBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDeleteUsers}
+        title="Bulk Delete Users"
+        message={`Are you sure you want to permanently delete all ${selectedUserIds.length} selected user(s)? This will cascade delete any votes or records associated with them. The currently active administrator account will not be deleted. This action cannot be undone.`}
+        confirmText={bulkLoading ? "Deleting..." : "Delete All Selected"}
         isDestructive
       />
 

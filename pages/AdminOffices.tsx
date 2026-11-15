@@ -117,6 +117,10 @@ export const OfficeManagement: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disqualified'>('all');
+    const [selectedOfficeIds, setSelectedOfficeIds] = useState<number[]>([]);
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; officeId?: number; officeName?: string }>({
         isOpen: false,
     });
@@ -162,10 +166,47 @@ export const OfficeManagement: React.FC = () => {
         }
     };
 
-    const filteredOffices = offices.filter((o) =>
-        o.office_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            const pageIds = paginatedOffices.map((o) => o.id);
+            setSelectedOfficeIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+        } else {
+            const pageIds = new Set(paginatedOffices.map((o) => o.id));
+            setSelectedOfficeIds((prev) => prev.filter((id) => !pageIds.has(id)));
+        }
+    };
+
+    const handleToggleSelect = (officeId: number) => {
+        setSelectedOfficeIds((prev) =>
+            prev.includes(officeId) ? prev.filter((id) => id !== officeId) : [...prev, officeId]
+        );
+    };
+
+    const handleBulkDelete = async () => {
+        if (!selectedOfficeIds.length) return;
+        setBulkLoading(true);
+        try {
+            const res = await officesAPI.bulkDelete(selectedOfficeIds);
+            setSuccess(res.message || `Deleted ${selectedOfficeIds.length} office(s) successfully.`);
+            setSelectedOfficeIds([]);
+            setBulkDeleteModalOpen(false);
+            loadOffices();
+        } catch (err: any) {
+            setError(err?.data?.detail || 'Failed to bulk delete offices');
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
+    const filteredOffices = offices.filter((o) => {
+        const matchesSearch =
+            o.office_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            o.description.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus =
+            statusFilter === 'all' ||
+            (statusFilter === 'active' ? !o.is_disqualified : !!o.is_disqualified);
+        return matchesSearch && matchesStatus;
+    });
 
     const {
         currentPage,
@@ -179,7 +220,7 @@ export const OfficeManagement: React.FC = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, setCurrentPage]);
+    }, [searchTerm, statusFilter, setCurrentPage]);
 
     return (
         <div className="space-y-6">
@@ -203,8 +244,8 @@ export const OfficeManagement: React.FC = () => {
             {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
 
             <div className="bg-white dark:bg-[#1a1d29] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden no-print">
-                <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-                    <div className="relative">
+                <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-3">
+                    <div className="relative flex-1">
                         <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-400">search</span>
                         <input
                             type="text"
@@ -214,7 +255,45 @@ export const OfficeManagement: React.FC = () => {
                             className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-primary outline-none"
                         />
                     </div>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                        <option value="all">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="disqualified">Disqualified</option>
+                    </select>
                 </div>
+
+                {/* Bulk Actions Toolbar */}
+                {selectedOfficeIds.length > 0 && (
+                    <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 border-b border-indigo-200 dark:border-indigo-800/60 flex flex-wrap items-center justify-between gap-3 animate-fade-in text-xs font-semibold">
+                        <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+                            <span className="material-symbols-outlined text-base">checklist</span>
+                            <span><b>{selectedOfficeIds.length}</b> office(s) selected</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                disabled={bulkLoading}
+                                onClick={() => setBulkDeleteModalOpen(true)}
+                                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold flex items-center gap-1 shadow-xs transition-colors"
+                                title="Bulk delete all selected offices"
+                            >
+                                <span className="material-symbols-outlined text-sm">delete_forever</span>
+                                Delete Selected ({selectedOfficeIds.length})
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedOfficeIds([])}
+                                className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                            >
+                                Deselect All
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {loading ? (
                     <LoadingSpinner />
@@ -228,6 +307,15 @@ export const OfficeManagement: React.FC = () => {
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium">
                                     <tr>
+                                        <th className="px-4 py-3 w-10 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={paginatedOffices.length > 0 && paginatedOffices.every((o) => selectedOfficeIds.includes(o.id))}
+                                                onChange={handleSelectAll}
+                                                className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                                title="Select all on this page"
+                                            />
+                                        </th>
                                         <th className="px-6 py-3">Office Code</th>
                                         <th className="px-6 py-3">Description</th>
                                         <th className="px-6 py-3">Max Selections</th>
@@ -238,7 +326,20 @@ export const OfficeManagement: React.FC = () => {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {paginatedOffices.map((office) => (
-                                        <tr key={office.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <tr
+                                            key={office.id}
+                                            className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
+                                                selectedOfficeIds.includes(office.id) ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
+                                            }`}
+                                        >
+                                            <td className="px-4 py-4 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedOfficeIds.includes(office.id)}
+                                                    onChange={() => handleToggleSelect(office.id)}
+                                                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                                />
+                                            </td>
                                             <td className="px-6 py-4 font-mono text-slate-900 dark:text-white font-medium">
                                                 {office.office_code}
                                             </td>
@@ -315,6 +416,16 @@ export const OfficeManagement: React.FC = () => {
                 title="Delete Office"
                 message={`Are you sure you want to delete office "${deleteConfirm.officeName}"? This action cannot be undone.`}
                 confirmText="Delete"
+                isDestructive
+            />
+
+            <ConfirmDialog
+                isOpen={bulkDeleteModalOpen}
+                onClose={() => setBulkDeleteModalOpen(false)}
+                onConfirm={handleBulkDelete}
+                title="Bulk Delete Offices"
+                message={`Are you sure you want to permanently delete all ${selectedOfficeIds.length} selected office(s)? This will also cascade delete all associated candidates and votes. This action cannot be undone.`}
+                confirmText={bulkLoading ? "Deleting..." : "Delete All Selected"}
                 isDestructive
             />
 
