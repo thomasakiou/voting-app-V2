@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { officesAPI, resultsAPI, OfficeResponse } from '../api';
 import { LoadingSpinner, ErrorAlert, TablePagination, usePagination } from '../components/UIComponents';
+import { OfficeResultsPDFModal } from '../components/OfficeResultsPDFModal';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -11,6 +12,7 @@ export const ElectionResults: React.FC = () => {
     const [results, setResults] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [downloadingOffice, setDownloadingOffice] = useState(false);
+    const [pdfModalOpen, setPdfModalOpen] = useState(false);
     const [error, setError] = useState('');
 
     const handleDownloadOfficeVoters = async () => {
@@ -100,10 +102,11 @@ export const ElectionResults: React.FC = () => {
                     <p className="text-sm md:text-base text-slate-500 dark:text-slate-400">View voting results by office.</p>
                 </div>
                 <button
-                    onClick={() => window.print()}
-                    className="w-full sm:w-auto px-3 md:px-4 py-2 md:py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center gap-2 text-sm md:text-base"
+                    onClick={() => setPdfModalOpen(true)}
+                    disabled={!results}
+                    className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold rounded-xl flex items-center justify-center gap-2 text-sm md:text-base shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                 >
-                    <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                    <span className="material-symbols-outlined text-base">picture_as_pdf</span>
                     Download Results PDF
                 </button>
             </div>
@@ -127,14 +130,24 @@ export const ElectionResults: React.FC = () => {
                         </select>
                     </div>
 
-                    <button
-                        onClick={handleDownloadOfficeVoters}
-                        disabled={downloadingOffice || !selectedOffice}
-                        className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold rounded-xl flex items-center gap-2 text-sm shadow-md shadow-emerald-500/20 transition-all"
-                    >
-                        <span className="material-symbols-outlined text-sm">download</span>
-                        {downloadingOffice ? 'Downloading...' : 'Download Voters for this Office (CSV)'}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <button
+                            onClick={() => setPdfModalOpen(true)}
+                            disabled={loading || !results}
+                            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-xl flex items-center gap-2 text-sm shadow-md shadow-indigo-500/20 transition-all cursor-pointer"
+                        >
+                            <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                            Download Office PDF
+                        </button>
+                        <button
+                            onClick={handleDownloadOfficeVoters}
+                            disabled={downloadingOffice || !selectedOffice}
+                            className="px-4 py-2.5 bg-slate-700 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 disabled:opacity-50 text-white font-semibold rounded-xl flex items-center gap-2 text-sm shadow-md transition-all"
+                        >
+                            <span className="material-symbols-outlined text-sm">download</span>
+                            {downloadingOffice ? 'Downloading...' : 'Download Voters (CSV)'}
+                        </button>
+                    </div>
                 </div>
 
                 {loading ? (
@@ -323,6 +336,15 @@ export const ElectionResults: React.FC = () => {
                     SecureVote System - Official Audit Record
                 </div>
             </div>
+
+            {/* Official Results PDF Modal */}
+            <OfficeResultsPDFModal
+                isOpen={pdfModalOpen}
+                onClose={() => setPdfModalOpen(false)}
+                office={offices.find((o) => o.office_code === selectedOffice) || null}
+                results={results}
+                totalVotes={totalVotes}
+            />
         </div>
     );
 };
