@@ -480,6 +480,16 @@ const EditCandidateModal: React.FC<{
     );
 };
 
+const DetailItem: React.FC<{ label: string; value: string; icon: string }> = ({ label, value, icon }) => (
+    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+        <div className="flex items-center gap-1.5 mb-1">
+            <span className="material-symbols-outlined text-[14px] text-slate-400">{icon}</span>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">{label}</p>
+        </div>
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 break-all">{value}</p>
+    </div>
+);
+
 export const CandidateManagement: React.FC = () => {
     const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
     const [offices, setOffices] = useState<OfficeResponse[]>([]);
@@ -493,6 +503,7 @@ export const CandidateManagement: React.FC = () => {
     const [selectedCandidateIds, setSelectedCandidateIds] = useState<number[]>([]);
     const [bulkLoading, setBulkLoading] = useState(false);
     const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+    const [selectedCandidateForDrawer, setSelectedCandidateForDrawer] = useState<CandidateResponse | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<{
         isOpen: boolean;
         candidateId?: number;
@@ -832,17 +843,23 @@ export const CandidateManagement: React.FC = () => {
                                         <th className="px-6 py-3">Name & Staff Info</th>
                                         <th className="px-6 py-3">Office</th>
                                         <th className="px-6 py-3 text-center">Votes</th>
-                                        <th className="px-6 py-3">Manifesto</th>
                                         <th className="px-6 py-3">Status</th>
                                         <th className="px-6 py-3">Visibility</th>
-                                        <th className="px-6 py-3">Created</th>
                                         <th className="px-6 py-3 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                     {paginatedCandidates.map((candidate) => (
-                                        <tr key={candidate.id} className={`transition-colors ${selectedCandidateIds.includes(candidate.id) ? 'bg-indigo-50/50 dark:bg-indigo-950/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}>
-                                            <td className="px-4 py-3">
+                                        <tr
+                                            key={candidate.id}
+                                            onClick={() => setSelectedCandidateForDrawer(candidate)}
+                                            className={`transition-colors cursor-pointer ${
+                                                selectedCandidateIds.includes(candidate.id)
+                                                    ? 'bg-indigo-50/50 dark:bg-indigo-950/20'
+                                                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                                            }`}
+                                        >
+                                            <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedCandidateIds.includes(candidate.id)}
@@ -851,7 +868,7 @@ export const CandidateManagement: React.FC = () => {
                                                 />
                                             </td>
                                             {/* Photo column with click to preview */}
-                                            <td className="px-6 py-3">
+                                            <td className="px-6 py-3" onClick={(e) => e.stopPropagation()}>
                                                 <button
                                                     type="button"
                                                     onClick={() => setLightboxCandidate(candidate)}
@@ -913,25 +930,7 @@ export const CandidateManagement: React.FC = () => {
                                                     {candidate.vote_count ?? 0}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                {candidate.manifesto_title || candidate.manifesto ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setManifestoModalCandidate(candidate)}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors shadow-sm"
-                                                        title="Read full manifesto"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[15px]">menu_book</span>
-                                                        <span>Manifesto</span>
-                                                    </button>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 text-xs text-slate-400 italic">
-                                                        <span className="material-symbols-outlined text-xs">edit_note</span>
-                                                        Not set
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                                 <button
                                                     onClick={() => handleToggleDisqualify(candidate.id, candidate.is_disqualified ?? false)}
                                                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
@@ -947,7 +946,7 @@ export const CandidateManagement: React.FC = () => {
                                                     {candidate.is_disqualified ? 'Disqualified' : 'Approved'}
                                                 </button>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                                 <button
                                                     onClick={() => handleToggleHide(candidate.id, candidate.is_hidden ?? false)}
                                                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
@@ -963,10 +962,7 @@ export const CandidateManagement: React.FC = () => {
                                                     {candidate.is_hidden ? 'Hidden' : 'Visible'}
                                                 </button>
                                             </td>
-                                            <td className="px-6 py-4 text-slate-500">
-                                                {candidate.created_at ? new Date(candidate.created_at).toLocaleDateString() : '—'}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                                 <div className="flex justify-end gap-1">
                                                     <button
                                                         onClick={() => handleToggleHide(candidate.id, candidate.is_hidden ?? false)}
@@ -1100,6 +1096,251 @@ export const CandidateManagement: React.FC = () => {
                         : offices.find((o) => o.office_code === officeFilter)?.description || officeFilter
                 }
             />
+
+            {/* Slide-in Candidate Detail Drawer */}
+            {selectedCandidateForDrawer && (
+                <>
+                    {/* Backdrop overlay */}
+                    <div
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
+                        onClick={() => setSelectedCandidateForDrawer(null)}
+                    />
+                    {/* Drawer panel */}
+                    <div className="fixed inset-y-0 right-0 w-full sm:w-[500px] bg-white dark:bg-[#1a1d29] shadow-2xl z-50 overflow-y-auto animate-slide-in-right">
+                        {/* Header */}
+                        <div className="sticky top-0 bg-white dark:bg-[#1a1d29] border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between z-10">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setLightboxCandidate(selectedCandidateForDrawer)}
+                                    className="group relative size-12 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border-2 border-indigo-500/40 shadow-sm flex items-center justify-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    title="Click to view full photo"
+                                >
+                                    <CandidateAvatar
+                                        src={selectedCandidateForDrawer.image_url ? resolveImageUrl(selectedCandidateForDrawer.image_url) : ''}
+                                        name={selectedCandidateForDrawer.name}
+                                        iconClassName="text-2xl"
+                                        textClassName="text-xs"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                        <span className="material-symbols-outlined text-xs">zoom_in</span>
+                                    </div>
+                                </button>
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                                        {selectedCandidateForDrawer.name}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                                        Candidate Code: {selectedCandidateForDrawer.candidate_code}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedCandidateForDrawer(null)}
+                                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
+                            >
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-6">
+                            {/* Contest & Voting Section */}
+                            <div className="space-y-1">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">
+                                    Contest & Voting Tally
+                                </h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <DetailItem
+                                        label="Contested Office"
+                                        value={selectedCandidateForDrawer.office?.description || selectedCandidateForDrawer.office?.office_code || 'N/A'}
+                                        icon="how_to_vote"
+                                    />
+                                    <DetailItem
+                                        label="Votes Count"
+                                        value={`${selectedCandidateForDrawer.vote_count ?? 0} votes cast`}
+                                        icon="poll"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Staff Identity Section */}
+                            <div className="space-y-1">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">
+                                    Candidate & Staff Identity
+                                </h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <DetailItem label="Candidate Code" value={selectedCandidateForDrawer.candidate_code} icon="qr_code" />
+                                    <DetailItem label="Full Name" value={selectedCandidateForDrawer.name} icon="person" />
+                                    <DetailItem
+                                        label="MCS Number"
+                                        value={selectedCandidateForDrawer.mcs_number || selectedCandidateForDrawer.candidate_code}
+                                        icon="badge"
+                                    />
+                                    <DetailItem label="Staff File No" value={selectedCandidateForDrawer.file_no || '—'} icon="folder_shared" />
+                                    <DetailItem label="Station / Location" value={selectedCandidateForDrawer.station || '—'} icon="location_on" />
+                                    <DetailItem label="CONRAISS" value={selectedCandidateForDrawer.conraiss || '—'} icon="grade" />
+                                </div>
+                            </div>
+
+                            {/* Status, Visibility & Registration Section */}
+                            <div className="space-y-1">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">
+                                    Status, Visibility & Registration
+                                </h4>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Status</p>
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                            selectedCandidateForDrawer.is_disqualified
+                                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                        }`}>
+                                            <span className="material-symbols-outlined text-[13px]">
+                                                {selectedCandidateForDrawer.is_disqualified ? 'block' : 'verified'}
+                                            </span>
+                                            {selectedCandidateForDrawer.is_disqualified ? 'Disqualified' : 'Approved'}
+                                        </span>
+                                    </div>
+                                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Visibility</p>
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                            selectedCandidateForDrawer.is_hidden
+                                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-300 dark:border-amber-800'
+                                                : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'
+                                        }`}>
+                                            <span className="material-symbols-outlined text-[13px]">
+                                                {selectedCandidateForDrawer.is_hidden ? 'visibility_off' : 'visibility'}
+                                            </span>
+                                            {selectedCandidateForDrawer.is_hidden ? 'Hidden' : 'Visible'}
+                                        </span>
+                                    </div>
+                                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Created At</p>
+                                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
+                                            {selectedCandidateForDrawer.created_at ? new Date(selectedCandidateForDrawer.created_at).toLocaleDateString() : '—'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Manifesto Section */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                        Manifesto & Agenda
+                                    </h4>
+                                    {(selectedCandidateForDrawer.manifesto || selectedCandidateForDrawer.manifesto_title) && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setManifestoModalCandidate(selectedCandidateForDrawer)}
+                                            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                                        >
+                                            <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                                            Full Screen View
+                                        </button>
+                                    )}
+                                </div>
+                                {selectedCandidateForDrawer.manifesto_title && (
+                                    <div className="p-3 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60">
+                                        <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-0.5">
+                                            Vision Title / Bold Header
+                                        </p>
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                                            {selectedCandidateForDrawer.manifesto_title}
+                                        </p>
+                                    </div>
+                                )}
+                                {selectedCandidateForDrawer.manifesto ? (
+                                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                                        {selectedCandidateForDrawer.manifesto}
+                                    </div>
+                                ) : (
+                                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-center text-xs text-slate-400 italic">
+                                        No candidate manifesto submitted.
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Quick Actions */}
+                            <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-slate-800">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">
+                                    Quick Actions
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setEditModal({ isOpen: true, candidate: selectedCandidateForDrawer });
+                                            setSelectedCandidateForDrawer(null);
+                                        }}
+                                        className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border border-indigo-200 dark:border-indigo-800 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                                        Edit Candidate
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            const newDisq = !selectedCandidateForDrawer.is_disqualified;
+                                            await handleToggleDisqualify(selectedCandidateForDrawer.id, selectedCandidateForDrawer.is_disqualified ?? false);
+                                            setSelectedCandidateForDrawer((prev) => prev ? { ...prev, is_disqualified: newDisq } : null);
+                                        }}
+                                        className={`px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors flex items-center gap-1.5 ${
+                                            selectedCandidateForDrawer.is_disqualified
+                                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                                : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-100'
+                                        }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">
+                                            {selectedCandidateForDrawer.is_disqualified ? 'verified' : 'block'}
+                                        </span>
+                                        {selectedCandidateForDrawer.is_disqualified ? 'Reinstate' : 'Disqualify'}
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            const newHidden = !selectedCandidateForDrawer.is_hidden;
+                                            await handleToggleHide(selectedCandidateForDrawer.id, selectedCandidateForDrawer.is_hidden ?? false);
+                                            setSelectedCandidateForDrawer((prev) => prev ? { ...prev, is_hidden: newHidden } : null);
+                                        }}
+                                        className={`px-3.5 py-2 text-xs font-semibold rounded-lg border transition-colors flex items-center gap-1.5 ${
+                                            selectedCandidateForDrawer.is_hidden
+                                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                                : 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100'
+                                        }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">
+                                            {selectedCandidateForDrawer.is_hidden ? 'visibility' : 'visibility_off'}
+                                        </span>
+                                        {selectedCandidateForDrawer.is_hidden ? 'Make Visible' : 'Hide Everywhere'}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setPrintCardModal({ isOpen: true, mode: 'single', candidate: selectedCandidateForDrawer });
+                                        }}
+                                        className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">print</span>
+                                        Print Card
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setDeleteConfirm({
+                                                isOpen: true,
+                                                candidateId: selectedCandidateForDrawer.id,
+                                                candidateName: selectedCandidateForDrawer.name,
+                                            });
+                                            setSelectedCandidateForDrawer(null);
+                                        }}
+                                        className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

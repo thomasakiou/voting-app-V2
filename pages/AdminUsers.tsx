@@ -839,8 +839,6 @@ export const UserList: React.FC = () => {
                     <th className="px-5 py-3">Station</th>
                     <th className="px-5 py-3">Rank</th>
                     <th className="px-5 py-3">CONRAISS</th>
-                    <th className="px-5 py-3">Phone</th>
-                    <th className="px-5 py-3">Email</th>
                     <th className="px-5 py-3">Staff Status</th>
                     <th className="px-5 py-3 text-right">Actions</th>
                   </tr>
@@ -906,8 +904,6 @@ export const UserList: React.FC = () => {
                       <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{user.staff_station || '—'}</td>
                       <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{user.staff_rank || '—'}</td>
                       <td className="px-5 py-4 text-slate-600 dark:text-slate-300">{user.staff_conraiss || '—'}</td>
-                      <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-300">{user.phone || '—'}</td>
-                      <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-300 max-w-[160px] truncate">{user.email || '—'}</td>
                       <td className="px-5 py-4">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                           user.staff_active !== false
