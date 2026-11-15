@@ -566,7 +566,6 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
         return (
           (v.username && v.username.toLowerCase().includes(q)) ||
           (v.user_name && v.user_name.toLowerCase().includes(q)) ||
-          (v.full_name && v.full_name.toLowerCase().includes(q)) ||
           (v.office_name && v.office_name.toLowerCase().includes(q)) ||
           (v.candidate_name && v.candidate_name.toLowerCase().includes(q)) ||
           (v.receipt_hash && v.receipt_hash.toLowerCase().includes(q))
@@ -810,7 +809,7 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
                     : 'bg-slate-100 border-slate-200 text-slate-700'
                 }`}>
                   <th className="px-6 py-4">#</th>
-                  <th className="px-6 py-4">Voter (MCS No.)</th>
+                  <th className="px-6 py-4">Username (MCS No.)</th>
                   <th className="px-6 py-4">Contested Office</th>
                   <th className="px-6 py-4">Candidate Voted For</th>
                   <th className="px-6 py-4">Receipt Hash</th>
@@ -839,27 +838,18 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
 
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`size-9 rounded-xl border flex items-center justify-center font-bold text-xs shrink-0 ${
+                          <div className={`size-8 rounded-xl border flex items-center justify-center font-bold text-xs shrink-0 ${
                             isDarkTheme
                               ? 'bg-slate-800 border-slate-700 text-indigo-400'
                               : 'bg-indigo-50 border-indigo-200 text-indigo-700'
                           }`}>
-                            {(vote.username || vote.user_name || 'V').slice(0, 2).toUpperCase()}
+                            <span className="material-symbols-outlined text-sm">badge</span>
                           </div>
-                          <div>
-                            <div className={`font-mono font-bold text-base tracking-wide ${
-                              isDarkTheme ? 'text-white' : 'text-slate-900'
-                            }`}>
-                              {vote.username || vote.user_name}
-                            </div>
-                            {vote.full_name && vote.full_name !== vote.username && (
-                              <div className={`text-xs capitalize ${
-                                isDarkTheme ? 'text-slate-400' : 'text-slate-500'
-                              }`}>
-                                {vote.full_name}
-                              </div>
-                            )}
-                          </div>
+                          <span className={`font-mono font-bold text-base tracking-wide ${
+                            isDarkTheme ? 'text-white' : 'text-slate-900'
+                          }`}>
+                            {vote.username || vote.user_name}
+                          </span>
                         </div>
                       </td>
 
