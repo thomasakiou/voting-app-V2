@@ -494,6 +494,25 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
   const [filterQuery, setFilterQuery] = useState('');
+  
+  // Theme state: dark / light with toggle capability
+  const [isDarkTheme, setIsDarkTheme] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return document.documentElement.classList.contains('dark');
+  });
+
+  const toggleTheme = () => {
+    const nextDark = !isDarkTheme;
+    setIsDarkTheme(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   // Update clock every second
   useEffect(() => {
@@ -556,9 +575,13 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
     : (liveVotes.recent_votes || []);
 
   const modalContent = (
-    <div className="fixed inset-0 z-[99999] bg-[#070b14] text-slate-100 flex flex-col overflow-hidden animate-fade-in font-sans select-none">
+    <div className={`fixed inset-0 z-[99999] flex flex-col overflow-hidden animate-fade-in font-sans select-none transition-colors duration-200 ${
+      isDarkTheme ? 'bg-[#070b14] text-slate-100' : 'bg-slate-100 text-slate-800'
+    }`}>
       {/* TOP PRESENTATION HEADER BAR */}
-      <header className="px-6 py-4 bg-[#0d1322] border-b border-slate-800/80 shadow-2xl flex flex-wrap items-center justify-between gap-4 shrink-0">
+      <header className={`px-6 py-4 border-b shadow-lg flex flex-wrap items-center justify-between gap-4 shrink-0 transition-colors duration-200 ${
+        isDarkTheme ? 'bg-[#0d1322] border-slate-800/80 shadow-2xl' : 'bg-white border-slate-200'
+      }`}>
         {/* Left: Branding & Status */}
         <div className="flex items-center gap-4">
           <div className="size-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-500/30">
@@ -566,27 +589,37 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-xl md:text-2xl font-black text-white tracking-tight uppercase">
+              <h1 className={`text-xl md:text-2xl font-black tracking-tight uppercase ${
+                isDarkTheme ? 'text-white' : 'text-slate-900'
+              }`}>
                 NECO MCS ELECTION — LIVE BALLOT CAST STREAM
               </h1>
               <span className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                 isVotingActive
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse'
-                  : 'bg-red-500/20 text-red-300 border border-red-500/40'
+                  ? isDarkTheme
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse'
+                    : 'bg-emerald-100 text-emerald-800 border border-emerald-300 animate-pulse'
+                  : isDarkTheme
+                    ? 'bg-red-500/20 text-red-300 border border-red-500/40'
+                    : 'bg-red-100 text-red-800 border border-red-300'
               }`}>
-                <span className={`size-2 rounded-full ${isVotingActive ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
+                <span className={`size-2 rounded-full ${isVotingActive ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
                 {isVotingActive ? 'LIVE VOTING ACTIVE' : 'VOTING CLOSED'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
+            <p className={`text-xs mt-0.5 flex items-center gap-2 ${
+              isDarkTheme ? 'text-slate-400' : 'text-slate-500'
+            }`}>
               <span>Official Real-Time Ballot Audit Feed</span>
               <span>•</span>
-              <span className="text-emerald-400 font-mono flex items-center gap-1">
+              <span className={`font-mono flex items-center gap-1 font-bold ${
+                isDarkTheme ? 'text-emerald-400' : 'text-emerald-700'
+              }`}>
                 <span className="material-symbols-outlined text-xs">schedule</span>
                 {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
               <span>•</span>
-              <span className="text-slate-400">
+              <span>
                 {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </p>
@@ -594,42 +627,68 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
         </div>
 
         {/* Center: Live Presentation Counters */}
-        <div className="hidden xl:flex items-center gap-6 px-5 py-2 rounded-2xl bg-slate-900/90 border border-slate-800">
-          <div className="text-center px-3 border-r border-slate-800">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Ballots Cast</span>
-            <div className="text-2xl font-black text-emerald-400 font-mono">
+        <div className={`hidden xl:flex items-center gap-6 px-5 py-2 rounded-2xl border transition-colors ${
+          isDarkTheme ? 'bg-slate-900/90 border-slate-800' : 'bg-slate-50 border-slate-200'
+        }`}>
+          <div className={`text-center px-3 border-r ${isDarkTheme ? 'border-slate-800' : 'border-slate-200'}`}>
+            <span className={`text-[10px] uppercase font-bold tracking-wider ${isDarkTheme ? 'text-slate-400' : 'text-slate-500'}`}>Total Ballots Cast</span>
+            <div className={`text-2xl font-black font-mono ${isDarkTheme ? 'text-emerald-400' : 'text-emerald-600'}`}>
               {liveVotes.total_votes_cast.toLocaleString()}
             </div>
           </div>
-          <div className="text-center px-3 border-r border-slate-800">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Accredited Voters</span>
-            <div className="text-2xl font-black text-indigo-400 font-mono">
+          <div className={`text-center px-3 border-r ${isDarkTheme ? 'border-slate-800' : 'border-slate-200'}`}>
+            <span className={`text-[10px] uppercase font-bold tracking-wider ${isDarkTheme ? 'text-slate-400' : 'text-slate-500'}`}>Accredited Voters</span>
+            <div className={`text-2xl font-black font-mono ${isDarkTheme ? 'text-indigo-400' : 'text-indigo-600'}`}>
               {(stats?.accredited_voters || 0).toLocaleString()}
             </div>
           </div>
           <div className="text-center px-3">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Voter Turnout</span>
-            <div className="text-2xl font-black text-amber-400 font-mono">
+            <span className={`text-[10px] uppercase font-bold tracking-wider ${isDarkTheme ? 'text-slate-400' : 'text-slate-500'}`}>Voter Turnout</span>
+            <div className={`text-2xl font-black font-mono ${isDarkTheme ? 'text-amber-400' : 'text-amber-600'}`}>
               {stats?.turnout_percentage || 0}%
             </div>
           </div>
         </div>
 
         {/* Right: Presentation Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* THEME SWITCHER BUTTON */}
+          <button
+            onClick={toggleTheme}
+            className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs hover:scale-105 active:scale-95 ${
+              isDarkTheme
+                ? 'bg-slate-800/90 hover:bg-slate-700 text-amber-300 border-slate-700/70 shadow-amber-500/10'
+                : 'bg-slate-100 hover:bg-slate-200 text-indigo-800 border-slate-300 shadow-indigo-500/10'
+            }`}
+            title={isDarkTheme ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+          >
+            <span className="material-symbols-outlined text-base">
+              {isDarkTheme ? 'light_mode' : 'dark_mode'}
+            </span>
+            <span>{isDarkTheme ? 'Light Theme' : 'Dark Theme'}</span>
+          </button>
+
           {/* Refresh button */}
           <button
             onClick={onRefresh}
-            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition-colors"
+            className={`p-2 rounded-xl border transition-colors ${
+              isDarkTheme
+                ? 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700/60'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+            }`}
             title="Refresh feed now"
           >
-            <span className="material-symbols-outlined text-lg">refresh</span>
+            <span className="material-symbols-outlined text-base">refresh</span>
           </button>
 
           {/* Browser Fullscreen toggle */}
           <button
             onClick={toggleBrowserFullscreen}
-            className="px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700/60 text-xs font-bold flex items-center gap-1.5 transition-colors"
+            className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
+              isDarkTheme
+                ? 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white border-slate-700/60'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+            }`}
             title={isBrowserFullscreen ? 'Exit Browser Fullscreen (F11)' : 'Fit Entire Screen (F11)'}
           >
             <span className="material-symbols-outlined text-base">
@@ -641,7 +700,7 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
           {/* Exit Modal Button */}
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl bg-red-600/90 hover:bg-red-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-red-900/30 hover:scale-105 active:scale-95 transition-all border border-red-500/50"
+            className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-red-900/30 hover:scale-105 active:scale-95 transition-all border border-red-500/50"
             title="Exit Presentation Mode (Press ESC)"
           >
             <span className="material-symbols-outlined text-base">close</span>
@@ -651,10 +710,14 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
       </header>
 
       {/* FILTER & PRESENTATION BAR */}
-      <div className="px-6 py-3 bg-[#0a0f1d] border-b border-slate-800/60 flex flex-wrap items-center justify-between gap-4 shrink-0">
+      <div className={`px-6 py-3 border-b flex flex-wrap items-center justify-between gap-4 shrink-0 transition-colors ${
+        isDarkTheme ? 'bg-[#0a0f1d] border-slate-800/60' : 'bg-slate-50 border-slate-200'
+      }`}>
         <div className="flex items-center gap-3 flex-1 max-w-md">
           <div className="relative w-full">
-            <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-500 text-lg">
+            <span className={`material-symbols-outlined absolute left-3 top-2.5 text-lg ${
+              isDarkTheme ? 'text-slate-500' : 'text-slate-400'
+            }`}>
               search
             </span>
             <input
@@ -662,12 +725,18 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
               placeholder="Quick search candidate, office, voter..."
-              className="w-full pl-9 pr-4 py-1.5 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500"
+              className={`w-full pl-9 pr-4 py-1.5 rounded-xl text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
+                isDarkTheme
+                  ? 'bg-slate-900/90 border border-slate-800 text-white placeholder-slate-500'
+                  : 'bg-white border border-slate-300 text-slate-900 placeholder-slate-400 shadow-xs'
+              }`}
             />
             {filterQuery && (
               <button
                 onClick={() => setFilterQuery('')}
-                className="absolute right-2.5 top-2 text-slate-400 hover:text-white text-xs"
+                className={`absolute right-2.5 top-2 text-xs ${
+                  isDarkTheme ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-700'
+                }`}
               >
                 ✕
               </button>
@@ -676,18 +745,24 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
         </div>
 
         {/* Rows per page selector for big screen */}
-        <div className="flex items-center gap-4 text-xs text-slate-400">
+        <div className={`flex items-center gap-4 text-xs ${
+          isDarkTheme ? 'text-slate-400' : 'text-slate-600'
+        }`}>
           <div className="flex items-center gap-2">
             <span>Show per page:</span>
-            <div className="flex rounded-lg overflow-hidden border border-slate-800 bg-slate-900/80 p-0.5">
+            <div className={`flex rounded-lg overflow-hidden border p-0.5 ${
+              isDarkTheme ? 'border-slate-800 bg-slate-900/80' : 'border-slate-200 bg-white shadow-xs'
+            }`}>
               {[10, 25, 50, 100].map((sz) => (
                 <button
                   key={sz}
                   onClick={() => onPageSizeChange(sz)}
                   className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${
                     livePageSize === sz
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : isDarkTheme
+                        ? 'text-slate-400 hover:text-white hover:bg-slate-800'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
                   {sz}
@@ -698,21 +773,29 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
 
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-emerald-500 animate-ping"></span>
-            <span className="text-emerald-400 font-semibold">Updating every 4s</span>
+            <span className={`font-semibold ${isDarkTheme ? 'text-emerald-400' : 'text-emerald-700'}`}>
+              Updating every 4s
+            </span>
           </div>
         </div>
       </div>
 
       {/* PRESENTATION TABLE BODY */}
       <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-7xl mx-auto bg-slate-900/60 rounded-3xl border border-slate-800/80 shadow-2xl overflow-hidden">
+        <div className={`max-w-7xl mx-auto rounded-3xl border overflow-hidden transition-colors ${
+          isDarkTheme
+            ? 'bg-slate-900/60 border-slate-800/80 shadow-2xl'
+            : 'bg-white border-slate-200 shadow-xl'
+        }`}>
           {filteredVotes.length === 0 ? (
             <div className="py-24 text-center">
-              <div className="size-20 rounded-3xl bg-slate-800/60 border border-slate-700/60 mx-auto flex items-center justify-center text-slate-500 mb-4">
+              <div className={`size-20 rounded-3xl border mx-auto flex items-center justify-center mb-4 ${
+                isDarkTheme ? 'bg-slate-800/60 border-slate-700/60 text-slate-500' : 'bg-slate-100 border-slate-200 text-slate-400'
+              }`}>
                 <span className="material-symbols-outlined text-4xl">inbox</span>
               </div>
-              <h3 className="text-xl font-bold text-white">No Ballots In View</h3>
-              <p className="text-sm text-slate-400 mt-1 max-w-md mx-auto">
+              <h3 className={`text-xl font-bold ${isDarkTheme ? 'text-white' : 'text-slate-900'}`}>No Ballots In View</h3>
+              <p className={`text-sm mt-1 max-w-md mx-auto ${isDarkTheme ? 'text-slate-400' : 'text-slate-500'}`}>
                 {filterQuery
                   ? `No cast ballots match "${filterQuery}". Try a different keyword.`
                   : 'Ballots will stream here in real time as accredited voters cast their votes.'}
@@ -721,7 +804,11 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-800/90 border-b border-slate-700/80 text-slate-300 font-bold text-xs uppercase tracking-wider">
+                <tr className={`border-b font-bold text-xs uppercase tracking-wider ${
+                  isDarkTheme
+                    ? 'bg-slate-800/90 border-slate-700/80 text-slate-300'
+                    : 'bg-slate-100 border-slate-200 text-slate-700'
+                }`}>
                   <th className="px-6 py-4">#</th>
                   <th className="px-6 py-4">Voter (MCS No.)</th>
                   <th className="px-6 py-4">Contested Office</th>
@@ -730,29 +817,45 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
                   <th className="px-6 py-4 text-right">Time Cast</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/70 text-sm">
+              <tbody className={`divide-y text-sm ${
+                isDarkTheme ? 'divide-slate-800/70' : 'divide-slate-200'
+              }`}>
                 {filteredVotes.map((vote: any, idx: number) => {
                   const globalIdx = (livePage - 1) * livePageSize + idx + 1;
                   return (
                     <tr
                       key={vote.id || idx}
-                      className="hover:bg-slate-800/50 transition-colors odd:bg-slate-900/30 even:bg-slate-900/70"
+                      className={`transition-colors ${
+                        isDarkTheme
+                          ? 'odd:bg-slate-900/30 even:bg-slate-900/70 hover:bg-slate-800/50'
+                          : 'odd:bg-white even:bg-slate-50/70 hover:bg-indigo-50/40'
+                      }`}
                     >
-                      <td className="px-6 py-4 text-xs font-mono text-slate-500">
+                      <td className={`px-6 py-4 text-xs font-mono ${
+                        isDarkTheme ? 'text-slate-500' : 'text-slate-400'
+                      }`}>
                         {globalIdx}
                       </td>
 
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="size-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-indigo-400 shrink-0">
+                          <div className={`size-9 rounded-xl border flex items-center justify-center font-bold text-xs shrink-0 ${
+                            isDarkTheme
+                              ? 'bg-slate-800 border-slate-700 text-indigo-400'
+                              : 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                          }`}>
                             {(vote.username || vote.user_name || 'V').slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-mono font-bold text-white text-base tracking-wide">
+                            <div className={`font-mono font-bold text-base tracking-wide ${
+                              isDarkTheme ? 'text-white' : 'text-slate-900'
+                            }`}>
                               {vote.username || vote.user_name}
                             </div>
                             {vote.full_name && vote.full_name !== vote.username && (
-                              <div className="text-xs text-slate-400 capitalize">
+                              <div className={`text-xs capitalize ${
+                                isDarkTheme ? 'text-slate-400' : 'text-slate-500'
+                              }`}>
                                 {vote.full_name}
                               </div>
                             )}
@@ -761,8 +864,14 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
                       </td>
 
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800 text-slate-200 border border-slate-700/60 font-semibold text-xs tracking-wide">
-                          <span className="material-symbols-outlined text-xs text-indigo-400">how_to_vote</span>
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border font-semibold text-xs tracking-wide ${
+                          isDarkTheme
+                            ? 'bg-slate-800 text-slate-200 border-slate-700/60'
+                            : 'bg-slate-100 text-slate-800 border-slate-200'
+                        }`}>
+                          <span className={`material-symbols-outlined text-xs ${
+                            isDarkTheme ? 'text-indigo-400' : 'text-indigo-600'
+                          }`}>how_to_vote</span>
                           {vote.office_name}
                         </span>
                       </td>
@@ -770,23 +879,33 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <span className="size-2 rounded-full bg-emerald-500"></span>
-                          <span className="font-bold text-emerald-400 text-base">
+                          <span className={`font-bold text-base ${
+                            isDarkTheme ? 'text-emerald-400' : 'text-emerald-700'
+                          }`}>
                             {vote.candidate_name}
                           </span>
                         </div>
                       </td>
 
                       <td className="px-6 py-4 font-mono text-xs">
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-indigo-300 border border-indigo-900/40 font-mono font-bold inline-block">
+                        <span className={`px-2.5 py-1 rounded-lg border font-mono font-bold inline-block ${
+                          isDarkTheme
+                            ? 'bg-slate-800 text-indigo-300 border-indigo-900/40'
+                            : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                        }`}>
                           {vote.receipt_hash || 'MCS-SECURE'}
                         </span>
                       </td>
 
                       <td className="px-6 py-4 text-right">
-                        <div className="font-mono font-bold text-slate-200 text-sm">
+                        <div className={`font-mono font-bold text-sm ${
+                          isDarkTheme ? 'text-slate-200' : 'text-slate-900'
+                        }`}>
                           {new Date(vote.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                         </div>
-                        <div className="text-[11px] text-slate-500">
+                        <div className={`text-[11px] ${
+                          isDarkTheme ? 'text-slate-500' : 'text-slate-400'
+                        }`}>
                           {new Date(vote.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         </div>
                       </td>
@@ -800,9 +919,11 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
       </div>
 
       {/* FOOTER BAR WITH PAGINATION */}
-      <footer className="px-6 py-3.5 bg-[#0d1322] border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 shrink-0 text-xs text-slate-400">
+      <footer className={`px-6 py-3.5 border-t flex flex-wrap items-center justify-between gap-4 shrink-0 text-xs transition-colors ${
+        isDarkTheme ? 'bg-[#0d1322] border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-600 shadow-sm'
+      }`}>
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-slate-300">
+          <span className={`font-semibold ${isDarkTheme ? 'text-slate-300' : 'text-slate-800'}`}>
             Showing {((livePage - 1) * livePageSize) + (filteredVotes.length > 0 ? 1 : 0)} – {Math.min(livePage * livePageSize, liveTotalItems)} of {liveTotalItems.toLocaleString()} cast ballots
           </span>
           <span>•</span>
@@ -813,29 +934,45 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
           <button
             onClick={() => onPageChange(Math.max(1, livePage - 1))}
             disabled={livePage <= 1}
-            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-200 font-bold border border-slate-700 flex items-center gap-1 transition-colors"
+            className={`px-3.5 py-1.5 rounded-xl disabled:opacity-40 disabled:pointer-events-none font-bold border flex items-center gap-1 transition-colors ${
+              isDarkTheme
+                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+            }`}
           >
             <span className="material-symbols-outlined text-sm">chevron_left</span>
             Previous
           </button>
 
-          <span className="px-3 py-1 rounded-lg bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold">
+          <span className={`px-3 py-1 rounded-lg font-bold border ${
+            isDarkTheme
+              ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500/30'
+              : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+          }`}>
             {livePage} / {liveTotalPages}
           </span>
 
           <button
             onClick={() => onPageChange(Math.min(liveTotalPages, livePage + 1))}
             disabled={livePage >= liveTotalPages}
-            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-200 font-bold border border-slate-700 flex items-center gap-1 transition-colors"
+            className={`px-3.5 py-1.5 rounded-xl disabled:opacity-40 disabled:pointer-events-none font-bold border flex items-center gap-1 transition-colors ${
+              isDarkTheme
+                ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+            }`}
           >
             Next
             <span className="material-symbols-outlined text-sm">chevron_right</span>
           </button>
         </div>
 
-        <div className="hidden md:flex items-center gap-2 text-slate-500">
+        <div className={`hidden md:flex items-center gap-2 ${
+          isDarkTheme ? 'text-slate-500' : 'text-slate-400'
+        }`}>
           <span>Press</span>
-          <kbd className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[11px] border border-slate-700">ESC</kbd>
+          <kbd className={`px-2 py-0.5 rounded font-mono text-[11px] border ${
+            isDarkTheme ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'
+          }`}>ESC</kbd>
           <span>to exit presentation mode</span>
         </div>
       </footer>
