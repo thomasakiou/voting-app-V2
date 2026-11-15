@@ -182,18 +182,6 @@ export const AdminLayout: React.FC = () => {
               <p className="text-xs text-slate-500 font-medium">Admin Console</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSidebarOpen(false);
-              localStorage.setItem('admin_sidebar_open', 'false');
-            }}
-            className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-            title="Hide left panel"
-            aria-label="Hide left panel"
-          >
-            <span className="material-symbols-outlined text-xl">menu_open</span>
-          </button>
         </div>
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto py-4">
