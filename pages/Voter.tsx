@@ -590,7 +590,7 @@ export const VoteCandidate: React.FC = () => {
             ]);
 
             setOffice(officeData);
-            setCandidates(candData);
+            setCandidates((candData || []).filter((c: any) => !c.is_hidden));
 
             // Check if already voted
             const matchingVotes = myVotes.filter((v) => v.office_code === officeId);

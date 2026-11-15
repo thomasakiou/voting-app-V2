@@ -131,6 +131,8 @@ export interface CandidateCreate {
   name: string;
   office_code: string;
   image_url?: string;
+  is_disqualified?: boolean;
+  is_hidden?: boolean;
   manifesto_title?: string;
   manifesto?: string;
   mcs_number?: string;
@@ -145,6 +147,7 @@ export interface CandidateResponse {
   name: string;
   image_url?: string;
   is_disqualified?: boolean;
+  is_hidden?: boolean;
   manifesto_title?: string | null;
   manifesto?: string | null;
   mcs_number?: string | null;
@@ -1065,6 +1068,13 @@ export const candidatesAPI = {
     return apiFetch<CandidateResponse>(`/candidates/${id}/disqualify`, {
       method: 'PATCH',
       body: JSON.stringify({ is_disqualified: isDisqualified }),
+    });
+  },
+
+  async hide(id: number, isHidden: boolean): Promise<CandidateResponse> {
+    return apiFetch<CandidateResponse>(`/candidates/${id}/hide`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_hidden: isHidden }),
     });
   },
 

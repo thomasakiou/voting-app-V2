@@ -564,8 +564,7 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
     ? (liveVotes.recent_votes || []).filter((v: any) => {
         const q = filterQuery.toLowerCase();
         return (
-          (v.username && v.username.toLowerCase().includes(q)) ||
-          (v.user_name && v.user_name.toLowerCase().includes(q)) ||
+          (v.station && v.station.toLowerCase().includes(q)) ||
           (v.office_name && v.office_name.toLowerCase().includes(q)) ||
           (v.candidate_name && v.candidate_name.toLowerCase().includes(q)) ||
           (v.receipt_hash && v.receipt_hash.toLowerCase().includes(q))
@@ -809,7 +808,7 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
                     : 'bg-slate-100 border-slate-200 text-slate-700'
                 }`}>
                   <th className="px-6 py-4">#</th>
-                  <th className="px-6 py-4">Username (MCS No.)</th>
+                  <th className="px-6 py-4">Voting Station</th>
                   <th className="px-6 py-4">Contested Office</th>
                   <th className="px-6 py-4">Candidate Voted For</th>
                   <th className="px-6 py-4">Receipt Hash</th>
@@ -840,15 +839,15 @@ const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps
                         <div className="flex items-center gap-3">
                           <div className={`size-8 rounded-xl border flex items-center justify-center font-bold text-xs shrink-0 ${
                             isDarkTheme
-                              ? 'bg-slate-800 border-slate-700 text-indigo-400'
-                              : 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                              ? 'bg-slate-800 border-slate-700 text-emerald-400'
+                              : 'bg-emerald-50 border-emerald-200 text-emerald-700'
                           }`}>
-                            <span className="material-symbols-outlined text-sm">badge</span>
+                            <span className="material-symbols-outlined text-sm">apartment</span>
                           </div>
-                          <span className={`font-mono font-bold text-base tracking-wide ${
+                          <span className={`font-semibold text-base tracking-wide ${
                             isDarkTheme ? 'text-white' : 'text-slate-900'
                           }`}>
-                            {vote.username || vote.user_name}
+                            {vote.station || 'Headquarters'}
                           </span>
                         </div>
                       </td>
@@ -1714,7 +1713,7 @@ export const AdminDashboard: React.FC = () => {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-semibold text-xs uppercase">
                     <tr>
-                      <th className="px-4 py-2.5">Username</th>
+                      <th className="px-4 py-2.5">Voting Station</th>
                       <th className="px-4 py-2.5">Contested Office</th>
                       <th className="px-4 py-2.5">Candidate Voted</th>
                       <th className="px-4 py-2.5">Receipt Hash</th>
@@ -1724,8 +1723,9 @@ export const AdminDashboard: React.FC = () => {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {(liveVotes.recent_votes || []).map((vote: any) => (
                       <tr key={vote.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                        <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white font-mono">
-                          {vote.username || vote.user_name}
+                        <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                          <span className="material-symbols-outlined text-sm text-emerald-500">apartment</span>
+                          <span>{vote.station || 'Headquarters'}</span>
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{vote.office_name}</td>
                         <td className="px-4 py-3 font-medium text-indigo-600 dark:text-indigo-400">

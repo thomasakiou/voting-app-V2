@@ -542,6 +542,16 @@ export const CandidateManagement: React.FC = () => {
         }
     };
 
+    const handleToggleHide = async (candidateId: number, currentHidden: boolean) => {
+        try {
+            await candidatesAPI.hide(candidateId, !currentHidden);
+            setSuccess(`Candidate ${!currentHidden ? 'hidden from ballot, statistics, and reports' : 'unhidden and made visible'} successfully`);
+            loadData();
+        } catch (err: any) {
+            setError(err?.data?.detail || 'Failed to update candidate visibility');
+        }
+    };
+
     const handleDelete = async (candidateId: number) => {
         try {
             await candidatesAPI.delete(candidateId);
@@ -652,6 +662,7 @@ export const CandidateManagement: React.FC = () => {
                                         <th className="px-6 py-3 text-center">Votes</th>
                                         <th className="px-6 py-3">Manifesto</th>
                                         <th className="px-6 py-3">Status</th>
+                                        <th className="px-6 py-3">Visibility</th>
                                         <th className="px-6 py-3">Created</th>
                                         <th className="px-6 py-3 text-right">Actions</th>
                                     </tr>
@@ -756,11 +767,40 @@ export const CandidateManagement: React.FC = () => {
                                                     {candidate.is_disqualified ? 'Disqualified' : 'Approved'}
                                                 </button>
                                             </td>
+                                            <td className="px-6 py-4">
+                                                <button
+                                                    onClick={() => handleToggleHide(candidate.id, candidate.is_hidden ?? false)}
+                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-colors ${
+                                                        candidate.is_hidden
+                                                            ? 'bg-amber-100 text-amber-800 hover:bg-emerald-100 hover:text-emerald-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-300 dark:border-amber-800'
+                                                            : 'bg-emerald-50 text-emerald-700 hover:bg-amber-100 hover:text-amber-800 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800'
+                                                    }`}
+                                                    title={candidate.is_hidden ? 'Candidate is Hidden (click to Unhide and show on ballot & reports)' : 'Candidate is Visible (click to Hide from ballot & reports)'}
+                                                >
+                                                    <span className="material-symbols-outlined text-[14px]">
+                                                        {candidate.is_hidden ? 'visibility_off' : 'visibility'}
+                                                    </span>
+                                                    {candidate.is_hidden ? 'Hidden' : 'Visible'}
+                                                </button>
+                                            </td>
                                             <td className="px-6 py-4 text-slate-500">
                                                 {candidate.created_at ? new Date(candidate.created_at).toLocaleDateString() : '—'}
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-1">
+                                                    <button
+                                                        onClick={() => handleToggleHide(candidate.id, candidate.is_hidden ?? false)}
+                                                        className={`p-1.5 rounded transition-colors ${
+                                                            candidate.is_hidden
+                                                                ? 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-amber-600 dark:text-amber-400 hover:text-emerald-600'
+                                                                : 'hover:bg-amber-50 dark:hover:bg-amber-900/20 text-slate-500 hover:text-amber-600 dark:text-slate-400'
+                                                        }`}
+                                                        title={candidate.is_hidden ? 'Unhide candidate (make visible everywhere)' : 'Hide candidate (remove from ballot, reports, stats, pdf)'}
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">
+                                                            {candidate.is_hidden ? 'visibility_off' : 'visibility'}
+                                                        </span>
+                                                    </button>
                                                     <button
                                                         onClick={() => setPrintCardModal({ isOpen: true, mode: 'single', candidate })}
                                                         className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded text-amber-600 dark:text-amber-400"
@@ -863,7 +903,7 @@ export const CandidateManagement: React.FC = () => {
                 onClose={() => setPrintCardModal({ isOpen: false, mode: 'office', candidate: null })}
                 mode={printCardModal.mode}
                 candidate={printCardModal.candidate}
-                candidates={filteredCandidates}
+                candidates={filteredCandidates.filter(c => !c.is_hidden)}
                 officeTitle={
                     officeFilter === 'all'
                         ? 'All Offices'
