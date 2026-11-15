@@ -135,7 +135,28 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, onClick }) => {
 };
 
 export const AdminLayout: React.FC = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('admin_sidebar_open');
+      if (saved !== null) return saved === 'true';
+      return window.innerWidth >= 1024;
+    }
+    return true;
+  });
+
+  const toggleSidebar = () => {
+    setSidebarOpen((prev) => {
+      const next = !prev;
+      localStorage.setItem('admin_sidebar_open', String(next));
+      return next;
+    });
+  };
+
+  const handleNavClick = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] flex">
@@ -147,9 +168,10 @@ export const AdminLayout: React.FC = () => {
         ></div>
       )}
 
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50 flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
+      {/* Sidebar (Left Panel) */}
+      <aside className={`fixed inset-y-0 left-0 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50 flex flex-col transition-transform duration-300 ease-in-out shadow-xl lg:shadow-none ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3 px-2">
             <div className="size-10 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -161,27 +183,33 @@ export const AdminLayout: React.FC = () => {
             </div>
           </div>
           <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+            type="button"
+            onClick={() => {
+              setSidebarOpen(false);
+              localStorage.setItem('admin_sidebar_open', 'false');
+            }}
+            className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            title="Hide left panel"
+            aria-label="Hide left panel"
           >
-            <span className="material-symbols-outlined">close</span>
+            <span className="material-symbols-outlined text-xl">menu_open</span>
           </button>
         </div>
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto py-4">
           <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Overview</p>
-          <NavItem to="/admin/dashboard" icon="dashboard" label="Dashboard" onClick={() => setSidebarOpen(false)} />
-          <NavItem to="/admin/analysis" icon="insights" label="Voter Analysis" onClick={() => setSidebarOpen(false)} />
-          <NavItem to="/admin/results" icon="bar_chart" label="Election Results" onClick={() => setSidebarOpen(false)} />
+          <NavItem to="/admin/dashboard" icon="dashboard" label="Dashboard" onClick={handleNavClick} />
+          <NavItem to="/admin/analysis" icon="insights" label="Voter Analysis" onClick={handleNavClick} />
+          <NavItem to="/admin/results" icon="bar_chart" label="Election Results" onClick={handleNavClick} />
 
           <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-8">Management</p>
-          <NavItem to="/admin/users" icon="group" label="Users" onClick={() => setSidebarOpen(false)} />
-          <NavItem to="/admin/offices" icon="how_to_vote" label="Offices" onClick={() => setSidebarOpen(false)} />
-          <NavItem to="/admin/candidates" icon="person_add" label="Candidates" onClick={() => setSidebarOpen(false)} />
+          <NavItem to="/admin/users" icon="group" label="Users" onClick={handleNavClick} />
+          <NavItem to="/admin/offices" icon="how_to_vote" label="Offices" onClick={handleNavClick} />
+          <NavItem to="/admin/candidates" icon="person_add" label="Candidates" onClick={handleNavClick} />
 
           <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-8">System</p>
-          <NavItem to="/admin/system-status" icon="dns" label="System Status" onClick={() => setSidebarOpen(false)} />
-          <NavItem to="/admin/settings" icon="settings" label="Settings" onClick={() => setSidebarOpen(false)} />
+          <NavItem to="/admin/system-status" icon="dns" label="System Status" onClick={handleNavClick} />
+          <NavItem to="/admin/settings" icon="settings" label="Settings" onClick={handleNavClick} />
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-slate-800">
@@ -195,16 +223,23 @@ export const AdminLayout: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-72 flex flex-col min-h-screen">
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${
+        sidebarOpen ? 'lg:ml-72' : 'lg:ml-0'
+      }`}>
         {/* Top Header */}
         <header className="sticky top-0 z-20 bg-white/80 dark:bg-[#0B1120]/80 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50">
           <div className="px-4 md:px-6 py-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+                type="button"
+                onClick={toggleSidebar}
+                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center justify-center border border-slate-200 dark:border-slate-700/60 shadow-xs"
+                title={sidebarOpen ? "Hide left panel" : "Show left panel"}
+                aria-label={sidebarOpen ? "Hide left panel" : "Show left panel"}
               >
-                <span className="material-symbols-outlined">menu</span>
+                <span className="material-symbols-outlined text-2xl transition-transform duration-200">
+                  {sidebarOpen ? 'menu_open' : 'menu'}
+                </span>
               </button>
               <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
                 SecureVote Admin
