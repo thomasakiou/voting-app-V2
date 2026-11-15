@@ -459,6 +459,392 @@ const VotingNotificationAlert: React.FC<VotingNotificationAlertProps> = ({
   return createPortal(modalContent, document.body);
 };
 
+// ============================================================
+// LIVE BALLOT CAST FULLSCREEN PRESENTATION MODAL
+// ============================================================
+interface LiveBallotCastFullscreenModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  liveVotes: { total_votes_cast: number; recent_votes: any[] };
+  stats: UserStatsOut | null;
+  votingStatus: VotingTimeOut | null;
+  livePage: number;
+  liveTotalPages: number;
+  liveTotalItems: number;
+  livePageSize: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  onRefresh: () => void;
+}
+
+const LiveBallotCastFullscreenModal: React.FC<LiveBallotCastFullscreenModalProps> = ({
+  isOpen,
+  onClose,
+  liveVotes,
+  stats,
+  votingStatus,
+  livePage,
+  liveTotalPages,
+  liveTotalItems,
+  livePageSize,
+  onPageChange,
+  onPageSizeChange,
+  onRefresh,
+}) => {
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [isBrowserFullscreen, setIsBrowserFullscreen] = useState(false);
+  const [filterQuery, setFilterQuery] = useState('');
+
+  // Update clock every second
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, [isOpen]);
+
+  // Escape key listener to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Sync browser fullscreen state
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsBrowserFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleBrowserFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const isVotingActive = votingStatus?.is_active && votingStatus.status === 'ACTIVE';
+
+  // Filter client-side if search query entered
+  const filteredVotes = filterQuery.trim()
+    ? (liveVotes.recent_votes || []).filter((v: any) => {
+        const q = filterQuery.toLowerCase();
+        return (
+          (v.username && v.username.toLowerCase().includes(q)) ||
+          (v.user_name && v.user_name.toLowerCase().includes(q)) ||
+          (v.full_name && v.full_name.toLowerCase().includes(q)) ||
+          (v.office_name && v.office_name.toLowerCase().includes(q)) ||
+          (v.candidate_name && v.candidate_name.toLowerCase().includes(q)) ||
+          (v.receipt_hash && v.receipt_hash.toLowerCase().includes(q))
+        );
+      })
+    : (liveVotes.recent_votes || []);
+
+  const modalContent = (
+    <div className="fixed inset-0 z-[99999] bg-[#070b14] text-slate-100 flex flex-col overflow-hidden animate-fade-in font-sans select-none">
+      {/* TOP PRESENTATION HEADER BAR */}
+      <header className="px-6 py-4 bg-[#0d1322] border-b border-slate-800/80 shadow-2xl flex flex-wrap items-center justify-between gap-4 shrink-0">
+        {/* Left: Branding & Status */}
+        <div className="flex items-center gap-4">
+          <div className="size-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-500/30">
+            <span className="material-symbols-outlined text-white text-3xl">how_to_vote</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl md:text-2xl font-black text-white tracking-tight uppercase">
+                NECO MCS ELECTION — LIVE BALLOT CAST STREAM
+              </h1>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                isVotingActive
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse'
+                  : 'bg-red-500/20 text-red-300 border border-red-500/40'
+              }`}>
+                <span className={`size-2 rounded-full ${isVotingActive ? 'bg-emerald-400' : 'bg-red-400'}`}></span>
+                {isVotingActive ? 'LIVE VOTING ACTIVE' : 'VOTING CLOSED'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
+              <span>Official Real-Time Ballot Audit Feed</span>
+              <span>•</span>
+              <span className="text-emerald-400 font-mono flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">schedule</span>
+                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+              <span>•</span>
+              <span className="text-slate-400">
+                {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Center: Live Presentation Counters */}
+        <div className="hidden xl:flex items-center gap-6 px-5 py-2 rounded-2xl bg-slate-900/90 border border-slate-800">
+          <div className="text-center px-3 border-r border-slate-800">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Ballots Cast</span>
+            <div className="text-2xl font-black text-emerald-400 font-mono">
+              {liveVotes.total_votes_cast.toLocaleString()}
+            </div>
+          </div>
+          <div className="text-center px-3 border-r border-slate-800">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Accredited Voters</span>
+            <div className="text-2xl font-black text-indigo-400 font-mono">
+              {(stats?.accredited_voters || 0).toLocaleString()}
+            </div>
+          </div>
+          <div className="text-center px-3">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Voter Turnout</span>
+            <div className="text-2xl font-black text-amber-400 font-mono">
+              {stats?.turnout_percentage || 0}%
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Presentation Actions */}
+        <div className="flex items-center gap-3">
+          {/* Refresh button */}
+          <button
+            onClick={onRefresh}
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition-colors"
+            title="Refresh feed now"
+          >
+            <span className="material-symbols-outlined text-lg">refresh</span>
+          </button>
+
+          {/* Browser Fullscreen toggle */}
+          <button
+            onClick={toggleBrowserFullscreen}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700/60 text-xs font-bold flex items-center gap-1.5 transition-colors"
+            title={isBrowserFullscreen ? 'Exit Browser Fullscreen (F11)' : 'Fit Entire Screen (F11)'}
+          >
+            <span className="material-symbols-outlined text-base">
+              {isBrowserFullscreen ? 'fullscreen_exit' : 'fullscreen'}
+            </span>
+            <span className="hidden sm:inline">{isBrowserFullscreen ? 'Exit Screen' : 'Full Screen'}</span>
+          </button>
+
+          {/* Exit Modal Button */}
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 rounded-xl bg-red-600/90 hover:bg-red-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-red-900/30 hover:scale-105 active:scale-95 transition-all border border-red-500/50"
+            title="Exit Presentation Mode (Press ESC)"
+          >
+            <span className="material-symbols-outlined text-base">close</span>
+            <span>Close (Esc)</span>
+          </button>
+        </div>
+      </header>
+
+      {/* FILTER & PRESENTATION BAR */}
+      <div className="px-6 py-3 bg-[#0a0f1d] border-b border-slate-800/60 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-3 flex-1 max-w-md">
+          <div className="relative w-full">
+            <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-500 text-lg">
+              search
+            </span>
+            <input
+              type="text"
+              value={filterQuery}
+              onChange={(e) => setFilterQuery(e.target.value)}
+              placeholder="Quick search candidate, office, voter..."
+              className="w-full pl-9 pr-4 py-1.5 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500"
+            />
+            {filterQuery && (
+              <button
+                onClick={() => setFilterQuery('')}
+                className="absolute right-2.5 top-2 text-slate-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Rows per page selector for big screen */}
+        <div className="flex items-center gap-4 text-xs text-slate-400">
+          <div className="flex items-center gap-2">
+            <span>Show per page:</span>
+            <div className="flex rounded-lg overflow-hidden border border-slate-800 bg-slate-900/80 p-0.5">
+              {[10, 25, 50, 100].map((sz) => (
+                <button
+                  key={sz}
+                  onClick={() => onPageSizeChange(sz)}
+                  className={`px-3 py-1 text-xs font-bold rounded-md transition-colors ${
+                    livePageSize === sz
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  {sz}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="size-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span className="text-emerald-400 font-semibold">Updating every 4s</span>
+          </div>
+        </div>
+      </div>
+
+      {/* PRESENTATION TABLE BODY */}
+      <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-7xl mx-auto bg-slate-900/60 rounded-3xl border border-slate-800/80 shadow-2xl overflow-hidden">
+          {filteredVotes.length === 0 ? (
+            <div className="py-24 text-center">
+              <div className="size-20 rounded-3xl bg-slate-800/60 border border-slate-700/60 mx-auto flex items-center justify-center text-slate-500 mb-4">
+                <span className="material-symbols-outlined text-4xl">inbox</span>
+              </div>
+              <h3 className="text-xl font-bold text-white">No Ballots In View</h3>
+              <p className="text-sm text-slate-400 mt-1 max-w-md mx-auto">
+                {filterQuery
+                  ? `No cast ballots match "${filterQuery}". Try a different keyword.`
+                  : 'Ballots will stream here in real time as accredited voters cast their votes.'}
+              </p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-800/90 border-b border-slate-700/80 text-slate-300 font-bold text-xs uppercase tracking-wider">
+                  <th className="px-6 py-4">#</th>
+                  <th className="px-6 py-4">Voter (MCS No.)</th>
+                  <th className="px-6 py-4">Contested Office</th>
+                  <th className="px-6 py-4">Candidate Voted For</th>
+                  <th className="px-6 py-4">Receipt Hash</th>
+                  <th className="px-6 py-4 text-right">Time Cast</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/70 text-sm">
+                {filteredVotes.map((vote: any, idx: number) => {
+                  const globalIdx = (livePage - 1) * livePageSize + idx + 1;
+                  return (
+                    <tr
+                      key={vote.id || idx}
+                      className="hover:bg-slate-800/50 transition-colors odd:bg-slate-900/30 even:bg-slate-900/70"
+                    >
+                      <td className="px-6 py-4 text-xs font-mono text-slate-500">
+                        {globalIdx}
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="size-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-indigo-400 shrink-0">
+                            {(vote.username || vote.user_name || 'V').slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-mono font-bold text-white text-base tracking-wide">
+                              {vote.username || vote.user_name}
+                            </div>
+                            {vote.full_name && vote.full_name !== vote.username && (
+                              <div className="text-xs text-slate-400 capitalize">
+                                {vote.full_name}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800 text-slate-200 border border-slate-700/60 font-semibold text-xs tracking-wide">
+                          <span className="material-symbols-outlined text-xs text-indigo-400">how_to_vote</span>
+                          {vote.office_name}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="size-2 rounded-full bg-emerald-500"></span>
+                          <span className="font-bold text-emerald-400 text-base">
+                            {vote.candidate_name}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4 font-mono text-xs">
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-indigo-300 border border-indigo-900/40 font-mono font-bold inline-block">
+                          {vote.receipt_hash || 'MCS-SECURE'}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4 text-right">
+                        <div className="font-mono font-bold text-slate-200 text-sm">
+                          {new Date(vote.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          {new Date(vote.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* FOOTER BAR WITH PAGINATION */}
+      <footer className="px-6 py-3.5 bg-[#0d1322] border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 shrink-0 text-xs text-slate-400">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-slate-300">
+            Showing {((livePage - 1) * livePageSize) + (filteredVotes.length > 0 ? 1 : 0)} – {Math.min(livePage * livePageSize, liveTotalItems)} of {liveTotalItems.toLocaleString()} cast ballots
+          </span>
+          <span>•</span>
+          <span>Page {livePage} of {liveTotalPages}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onPageChange(Math.max(1, livePage - 1))}
+            disabled={livePage <= 1}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-200 font-bold border border-slate-700 flex items-center gap-1 transition-colors"
+          >
+            <span className="material-symbols-outlined text-sm">chevron_left</span>
+            Previous
+          </button>
+
+          <span className="px-3 py-1 rounded-lg bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold">
+            {livePage} / {liveTotalPages}
+          </span>
+
+          <button
+            onClick={() => onPageChange(Math.min(liveTotalPages, livePage + 1))}
+            disabled={livePage >= liveTotalPages}
+            className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-200 font-bold border border-slate-700 flex items-center gap-1 transition-colors"
+          >
+            Next
+            <span className="material-symbols-outlined text-sm">chevron_right</span>
+          </button>
+        </div>
+
+        <div className="hidden md:flex items-center gap-2 text-slate-500">
+          <span>Press</span>
+          <kbd className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[11px] border border-slate-700">ESC</kbd>
+          <span>to exit presentation mode</span>
+        </div>
+      </footer>
+    </div>
+  );
+
+  return createPortal(modalContent, document.body);
+};
+
 export const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<UserStatsOut | null>(null);
   const [votingStatus, setVotingStatus] = useState<VotingTimeOut | null>(null);
@@ -471,6 +857,7 @@ export const AdminDashboard: React.FC = () => {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [liveFeedFullscreen, setLiveFeedFullscreen] = useState(false);
   const [portalLocks, setPortalLocks] = useState<PortalLocksStatus | null>(null);
   const [togglingLock, setTogglingLock] = useState<string | null>(null);
 
@@ -819,6 +1206,22 @@ export const AdminDashboard: React.FC = () => {
         onClose={() => setCustomAlert({ ...customAlert, isOpen: false })}
       />
 
+      {/* FULLSCREEN LIVE BALLOT CAST PRESENTATION MODAL */}
+      <LiveBallotCastFullscreenModal
+        isOpen={liveFeedFullscreen}
+        onClose={() => setLiveFeedFullscreen(false)}
+        liveVotes={liveVotes}
+        stats={stats}
+        votingStatus={votingStatus}
+        livePage={livePage}
+        liveTotalPages={liveTotalPages}
+        liveTotalItems={liveTotalItems}
+        livePageSize={livePageSize}
+        onPageChange={setLivePage}
+        onPageSizeChange={handleLivePageSizeChange}
+        onRefresh={fetchLiveStream}
+      />
+
       {/* Top Banner & Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -1149,14 +1552,25 @@ export const AdminDashboard: React.FC = () => {
 
         {/* LIVE STREAM: AS VOTERS CAST THEIR VOTE (REQUIREMENT 3) */}
         <div className="lg:col-span-2 card p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
               <div className="size-3 rounded-full bg-emerald-500 animate-ping"></div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">Live Ballot Cast Feed</h3>
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-              Live Auto-Refresh
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setLiveFeedFullscreen(true)}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all"
+                title="Enlarge Live Feed to Full Screen for presentation / projector"
+              >
+                <span className="material-symbols-outlined text-sm">fullscreen</span>
+                <span>Enlarge Full Screen</span>
+              </button>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                Live Auto-Refresh
+              </span>
+            </div>
           </div>
 
           <p className="text-xs text-slate-400 mb-4">
