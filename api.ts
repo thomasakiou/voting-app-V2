@@ -145,6 +145,7 @@ export interface CandidateResponse {
   id: number;
   candidate_code: string;
   name: string;
+  office_code?: string;
   image_url?: string;
   is_disqualified?: boolean;
   is_hidden?: boolean;

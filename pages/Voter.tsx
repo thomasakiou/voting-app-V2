@@ -280,10 +280,12 @@ export const BallotView: React.FC = () => {
 
     const candidateCountByOffice = useMemo(() => {
         const map = new Map<string, number>();
-        candidates.forEach((c) => {
+        candidates.forEach((c: any) => {
             if (!c.is_hidden) {
-                const code = c.office_code;
-                map.set(code, (map.get(code) || 0) + 1);
+                const code = c.office?.office_code || c.office_code;
+                if (code) {
+                    map.set(code, (map.get(code) || 0) + 1);
+                }
             }
         });
         return map;
@@ -333,37 +335,39 @@ export const BallotView: React.FC = () => {
                         return (
                             <div
                                 key={office.id}
-                                className="p-5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-300 dark:border-emerald-800/60 flex items-center justify-between"
+                                className="p-4 sm:p-5 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-300 dark:border-emerald-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4"
                             >
-                                <div className="flex items-center gap-4">
-                                    <div className="size-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 shadow-sm">
-                                        <span className="material-symbols-outlined text-2xl">check_circle</span>
+                                <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                                    <div className="size-11 sm:size-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-sm">
+                                        <span className="material-symbols-outlined text-xl sm:text-2xl">check_circle</span>
                                     </div>
-                                    <div>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
                                                 {office.description}
                                             </h3>
-                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 inline-flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[13px]">check</span>
-                                                Voted ({officeVotes.length} {officeVotes.length === 1 ? 'candidate' : 'candidates'})
-                                            </span>
-                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[13px]">groups</span>
-                                                {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
-                                            </span>
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 inline-flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[12px]">check</span>
+                                                    Voted ({officeVotes.length})
+                                                </span>
+                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-[12px]">groups</span>
+                                                    {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
+                                        <p className="text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-400 mt-1 truncate">
                                             Voted for: {officeVotes.map((v) => v.candidate_name).join(', ')}
                                         </p>
-                                        <p className="text-xs font-mono text-slate-400 mt-0.5 truncate max-w-md">
+                                        <p className="text-[11px] font-mono text-slate-400 mt-0.5 truncate max-w-md">
                                             Receipt(s): {officeVotes.map((v) => v.receipt_hash || 'MCS-VERIFIED').join(' • ')}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="text-right">
-                                    <span className="text-xs font-semibold text-slate-400 italic">
+                                <div className="text-left sm:text-right shrink-0">
+                                    <span className="text-[11px] sm:text-xs font-semibold text-slate-400 italic">
                                         Category Locked
                                     </span>
                                 </div>
@@ -375,19 +379,19 @@ export const BallotView: React.FC = () => {
                         return (
                             <div
                                 key={office.id}
-                                className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between opacity-60 cursor-not-allowed"
+                                className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 opacity-60 cursor-not-allowed"
                             >
-                                <div className="flex items-center gap-4">
-                                    <div className="size-12 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400">
-                                        <span className="material-symbols-outlined text-2xl">block</span>
+                                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                                    <div className="size-11 sm:size-12 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                                        <span className="material-symbols-outlined text-xl sm:text-2xl">block</span>
                                     </div>
-                                    <div>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                            <h3 className="text-base sm:text-lg font-bold text-slate-700 dark:text-slate-300 truncate">
                                                 {office.description}
                                             </h3>
-                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 inline-flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[13px]">groups</span>
+                                            <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 inline-flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px]">groups</span>
                                                 {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
                                             </span>
                                         </div>
@@ -403,48 +407,45 @@ export const BallotView: React.FC = () => {
                         <Link
                             key={office.id}
                             to={isVotingActive ? `/voter/ballot/${office.office_code}` : '#'}
-                            className={`group card p-5 flex items-center justify-between transition-all duration-200 ${
+                            className={`group card p-4 sm:p-5 flex items-center justify-between gap-3 transition-all duration-200 ${
                                 isVotingActive
                                     ? 'hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10'
                                     : 'opacity-50 cursor-not-allowed'
                             }`}
                         >
-                            <div className="flex items-center gap-4 min-w-0">
-                                <div className="size-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                            <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                                <div className="size-11 sm:size-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                                     <span className="material-symbols-outlined text-2xl">how_to_vote</span>
                                 </div>
-                                <div className="min-w-0">
-                                    <div className="flex flex-wrap items-center gap-2.5">
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors truncate">
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5">
+                                        <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors truncate">
                                             {office.description}
                                         </h3>
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                                            <span className="material-symbols-outlined text-[14px]">groups</span>
-                                            {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                            office.max_votes && office.max_votes > 1
-                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
-                                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
-                                        }`}>
-                                            <span className="material-symbols-outlined text-[13px]">
-                                                {office.max_votes && office.max_votes > 1 ? 'ballot' : 'how_to_vote'}
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                                <span className="material-symbols-outlined text-[13px] sm:text-[14px]">groups</span>
+                                                {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
                                             </span>
-                                            {office.max_votes && office.max_votes > 1
-                                                ? `Pick up to ${office.max_votes} candidates`
-                                                : 'Single Choice (1 candidate)'}
-                                        </span>
-                                        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                            <span>•</span> Click to inspect & vote
-                                        </span>
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold ${
+                                                office.max_votes && office.max_votes > 1
+                                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                                            }`}>
+                                                <span className="material-symbols-outlined text-[12px] sm:text-[13px]">
+                                                    {office.max_votes && office.max_votes > 1 ? 'ballot' : 'how_to_vote'}
+                                                </span>
+                                                {office.max_votes && office.max_votes > 1
+                                                    ? `Pick up to ${office.max_votes}`
+                                                    : 'Single Choice (1)'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                <span className="material-symbols-outlined text-xl">arrow_forward</span>
+                            <div className="size-9 sm:size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
+                                <span className="material-symbols-outlined text-lg sm:text-xl">arrow_forward</span>
                             </div>
                         </Link>
                     );
