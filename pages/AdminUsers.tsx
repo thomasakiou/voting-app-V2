@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { usersAPI, voterContactAPI, UserOut, UserUpdate, VoterDisputeOut } from '../api';
 import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
 
@@ -9,6 +10,8 @@ const EditUserModal: React.FC<{
   user: UserOut;
   onUpdate: () => void;
 }> = ({ isOpen, onClose, user, onUpdate }) => {
+  const { user: currentUser } = useAuth();
+  const isSuperAdmin = currentUser?.role === 'super-admin';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [username, setUsername] = useState(user.username || '');
@@ -114,7 +117,7 @@ const EditUserModal: React.FC<{
               <option value="voter">Voter (Standard Voter Account)</option>
               <option value="agent">Agent (Observer / Live Monitoring)</option>
               <option value="admin">Admin (Election Manager)</option>
-              <option value="super-admin">Super Admin (Full System Access)</option>
+              {isSuperAdmin && <option value="super-admin">Super Admin (Full System Access)</option>}
             </select>
             <p className="text-[11px] text-slate-500 mt-1">Role determines user access permissions</p>
           </div>
@@ -370,6 +373,9 @@ const DetailItem: React.FC<{ label: string; value: string; icon: string }> = ({ 
 );
 
 export const UserList: React.FC = () => {
+  const { user: currentUser } = useAuth();
+  const isSuperAdmin = currentUser?.role === 'super-admin';
+  const isCurUserAdmin = currentUser?.role === 'admin';
   const [users, setUsers] = useState<UserOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -540,6 +546,10 @@ export const UserList: React.FC = () => {
   const filteredUsers = useMemo(() => {
     const q = searchTerm.toLowerCase().trim();
     return users.filter((user) => {
+      if (isCurUserAdmin && user.role === 'super-admin') {
+        return false;
+      }
+
       const matchesSearch =
         !q ||
         user.username.toLowerCase().includes(q) ||
@@ -569,7 +579,7 @@ export const UserList: React.FC = () => {
 
       return matchesSearch && matchesRole && matchesStatus && matchesAccreditation && matchesStaffStatus;
     });
-  }, [users, searchTerm, roleFilter, statusFilter, accreditationFilter, staffStatusFilter]);
+  }, [users, searchTerm, roleFilter, statusFilter, accreditationFilter, staffStatusFilter, isCurUserAdmin]);
 
   const {
     currentPage,
@@ -750,7 +760,7 @@ export const UserList: React.FC = () => {
               <option value="voter">Voters Only</option>
               <option value="agent">Agents Only</option>
               <option value="admin">Admin</option>
-              <option value="super-admin">Super Admin</option>
+              {isSuperAdmin && <option value="super-admin">Super Admin</option>}
             </select>
           </div>
 
@@ -1395,6 +1405,8 @@ export const UserList: React.FC = () => {
 };
 
 export const CreateUser: React.FC = () => {
+  const { user: currentUser } = useAuth();
+  const isSuperAdmin = currentUser?.role === 'super-admin';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -1417,6 +1429,10 @@ export const CreateUser: React.FC = () => {
     }
     if (!fullName.trim()) {
       setError('Staff Full Name is compulsory.');
+      return;
+    }
+    if (!isSuperAdmin && role === 'super-admin') {
+      setError('Only Super Administrators can create Super Admin accounts.');
       return;
     }
 
@@ -1541,7 +1557,7 @@ export const CreateUser: React.FC = () => {
                 <option value="voter">Voter (Standard Voter Account)</option>
                 <option value="agent">Agent (Live Election Monitor Portal)</option>
                 <option value="admin">Admin (Election Manager)</option>
-                <option value="super-admin">Super Admin (Full System Access)</option>
+                {isSuperAdmin && <option value="super-admin">Super Admin (Full System Access)</option>}
               </select>
               <p className="text-xs text-slate-500 mt-1">Permissions assigned to this account</p>
               {role === 'admin' && (
