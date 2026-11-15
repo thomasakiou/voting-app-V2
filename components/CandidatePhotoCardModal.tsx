@@ -172,7 +172,7 @@ export const CandidatePhotoCardModal: React.FC<CandidatePhotoCardModalProps> = (
                               MCS No. (Username)
                             </span>
                             <span className="font-mono font-bold text-slate-800 text-[11px] break-all">
-                              {cand.mcs_number || 'N/A'}
+                              {cand.mcs_number || cand.candidate_code || 'N/A'}
                             </span>
                           </div>
                           <div>

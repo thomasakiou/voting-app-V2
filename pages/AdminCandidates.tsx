@@ -87,7 +87,7 @@ export const PhotoLightboxModal: React.FC<{
                     <div className="flex justify-between items-center text-sm">
                         <span className="text-slate-500 font-semibold">MCS No. (Username)</span>
                         <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                            {candidate.mcs_number || 'N/A'}
+                            {candidate.mcs_number || candidate.candidate_code || 'N/A'}
                         </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
@@ -695,11 +695,9 @@ export const CandidateManagement: React.FC = () => {
                                                         </span>
                                                     )}
                                                     <div className="flex flex-wrap gap-1 text-[10px] text-slate-500 dark:text-slate-400">
-                                                        {candidate.mcs_number && (
-                                                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono font-medium">
-                                                                MCS: {candidate.mcs_number}
-                                                            </span>
-                                                        )}
+                                                        <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono font-medium">
+                                                            MCS: {candidate.mcs_number || candidate.candidate_code}
+                                                        </span>
                                                         {candidate.file_no && (
                                                             <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-medium">
                                                                 File: {candidate.file_no}
