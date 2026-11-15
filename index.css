@@ -235,6 +235,37 @@
 }
 
 @media print {
+  body:has(.candidate-print-modal) * {
+    visibility: hidden;
+  }
+  .candidate-print-modal,
+  .candidate-print-modal * {
+    visibility: visible;
+  }
+  .candidate-print-modal {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 999999 !important;
+    display: block !important;
+  }
+  .candidate-print-modal .no-print {
+    display: none !important;
+  }
+  .candidate-photo-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+@media print {
   @page {
     margin: 1cm;
     size: landscape;

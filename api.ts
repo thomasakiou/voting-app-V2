@@ -129,6 +129,10 @@ export interface CandidateCreate {
   image_url?: string;
   manifesto_title?: string;
   manifesto?: string;
+  mcs_number?: string;
+  conraiss?: string;
+  station?: string;
+  file_no?: string;
 }
 
 export interface CandidateResponse {
@@ -139,6 +143,11 @@ export interface CandidateResponse {
   is_disqualified?: boolean;
   manifesto_title?: string | null;
   manifesto?: string | null;
+  mcs_number?: string | null;
+  conraiss?: string | null;
+  station?: string | null;
+  file_no?: string | null;
+  vote_count?: number;
   created_at: string;
   office?: {
     office_code: string;

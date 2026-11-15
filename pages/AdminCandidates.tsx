@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { candidatesAPI, officesAPI, CandidateResponse, OfficeResponse, resolveImageUrl } from '../api';
 import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination, CandidateAvatar } from '../components/UIComponents';
 import { CandidateManifestoModal } from '../components/CandidateManifestoModal';
+import { CandidatePhotoCardModal } from '../components/CandidatePhotoCardModal';
 
 const compressImage = (file: File, maxWidth = 800, quality = 0.85): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -52,7 +53,8 @@ export const PhotoLightboxModal: React.FC<{
     onClose: () => void;
     candidate: CandidateResponse | null;
     onOpenManifesto?: (candidate: CandidateResponse) => void;
-}> = ({ isOpen, onClose, candidate, onOpenManifesto }) => {
+    onPrintPhotoCard?: (candidate: CandidateResponse) => void;
+}> = ({ isOpen, onClose, candidate, onOpenManifesto, onPrintPhotoCard }) => {
     if (!isOpen || !candidate) return null;
     const resolvedUrl = candidate.image_url ? resolveImageUrl(candidate.image_url) : '';
     const hasManifesto = Boolean(candidate.manifesto_title || candidate.manifesto);
@@ -80,6 +82,36 @@ export const PhotoLightboxModal: React.FC<{
                         <span className="text-slate-500 font-semibold">Office</span>
                         <span className="font-bold text-indigo-600 dark:text-indigo-400">
                             {candidate.office?.description || 'N/A'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-semibold">MCS No. (Username)</span>
+                        <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                            {candidate.mcs_number || 'N/A'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-semibold">Staff File No.</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">
+                            {candidate.file_no || 'N/A'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-semibold">CONRAISS</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">
+                            {candidate.conraiss || 'N/A'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-semibold">Station / Dept</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">
+                            {candidate.station || 'N/A'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-500 font-semibold">Votes Received</span>
+                        <span className="px-2.5 py-0.5 rounded-md text-xs font-black bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                            {candidate.vote_count ?? 0} {candidate.vote_count === 1 ? 'vote' : 'votes'}
                         </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
@@ -121,6 +153,20 @@ export const PhotoLightboxModal: React.FC<{
                     </button>
                 )}
 
+                {onPrintPhotoCard && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            onClose();
+                            onPrintPhotoCard(candidate);
+                        }}
+                        className="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">print</span>
+                        Print Candidate Photo Card (PDF)
+                    </button>
+                )}
+
                 <button
                     onClick={onClose}
                     className="w-full py-2.5 text-sm font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
@@ -145,6 +191,10 @@ const EditCandidateModal: React.FC<{
     const [name, setName] = useState(candidate.name || '');
     const [officeCode, setOfficeCode] = useState(candidate.office?.office_code || '');
     const [imageUrl, setImageUrl] = useState<string>(candidate.image_url || '');
+    const [mcsNumber, setMcsNumber] = useState(candidate.mcs_number || '');
+    const [fileNo, setFileNo] = useState(candidate.file_no || '');
+    const [conraiss, setConraiss] = useState(candidate.conraiss || '');
+    const [station, setStation] = useState(candidate.station || '');
     const [manifestoTitle, setManifestoTitle] = useState(candidate.manifesto_title || '');
     const [manifesto, setManifesto] = useState(candidate.manifesto || '');
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,6 +203,10 @@ const EditCandidateModal: React.FC<{
         setName(candidate.name || '');
         setOfficeCode(candidate.office?.office_code || '');
         setImageUrl(candidate.image_url || '');
+        setMcsNumber(candidate.mcs_number || '');
+        setFileNo(candidate.file_no || '');
+        setConraiss(candidate.conraiss || '');
+        setStation(candidate.station || '');
         setManifestoTitle(candidate.manifesto_title || '');
         setManifesto(candidate.manifesto || '');
         setError('');
@@ -190,6 +244,10 @@ const EditCandidateModal: React.FC<{
                 name: name.trim(),
                 office_code: officeCode,
                 image_url: imageUrl || undefined,
+                mcs_number: mcsNumber.trim() || undefined,
+                file_no: fileNo.trim() || undefined,
+                conraiss: conraiss.trim() || undefined,
+                station: station.trim() || undefined,
                 manifesto_title: manifestoTitle.trim() || undefined,
                 manifesto: manifesto.trim() || undefined,
             });
@@ -299,6 +357,52 @@ const EditCandidateModal: React.FC<{
                     />
                 </div>
 
+                <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">MCS Number (Username)</label>
+                        <input
+                            type="text"
+                            value={mcsNumber}
+                            onChange={(e) => setMcsNumber(e.target.value)}
+                            className="input-field"
+                            placeholder="e.g. MCS/1234 or staff username"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">Staff File Number</label>
+                        <input
+                            type="text"
+                            value={fileNo}
+                            onChange={(e) => setFileNo(e.target.value)}
+                            className="input-field"
+                            placeholder="e.g. P/12345"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">CONRAISS / Grade Level</label>
+                        <input
+                            type="text"
+                            value={conraiss}
+                            onChange={(e) => setConraiss(e.target.value)}
+                            className="input-field"
+                            placeholder="e.g. CONRAISS 12"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-white">Station / Department</label>
+                        <input
+                            type="text"
+                            value={station}
+                            onChange={(e) => setStation(e.target.value)}
+                            className="input-field"
+                            placeholder="e.g. Head Office / ICT"
+                        />
+                    </div>
+                </div>
+
                 {/* Manifesto Title / Bold Header */}
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
                     <label className="block text-sm font-semibold mb-1 text-slate-700 dark:text-white">
@@ -396,6 +500,15 @@ export const CandidateManagement: React.FC = () => {
     });
     const [lightboxCandidate, setLightboxCandidate] = useState<CandidateResponse | null>(null);
     const [manifestoModalCandidate, setManifestoModalCandidate] = useState<CandidateResponse | null>(null);
+    const [printCardModal, setPrintCardModal] = useState<{
+        isOpen: boolean;
+        mode: 'single' | 'office';
+        candidate?: CandidateResponse | null;
+    }>({
+        isOpen: false,
+        mode: 'office',
+        candidate: null,
+    });
 
     useEffect(() => {
         loadData();
@@ -471,7 +584,16 @@ export const CandidateManagement: React.FC = () => {
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Candidate Management</h1>
                     <p className="text-slate-500 dark:text-slate-400">Manage candidates and photos for all offices.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
+                    <button
+                        type="button"
+                        onClick={() => setPrintCardModal({ isOpen: true, mode: 'office', candidate: null })}
+                        className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg flex items-center gap-2 shadow-sm transition-colors"
+                        title={officeFilter === 'all' ? 'Print photo cards for all candidates' : `Print photo cards for ${offices.find(o => o.office_code === officeFilter)?.description || officeFilter}`}
+                    >
+                        <span className="material-symbols-outlined text-sm">print</span>
+                        <span>Print Photo Cards (PDF)</span>
+                    </button>
                     <Link
                         to="/admin/candidates/create"
                         className="px-4 py-2.5 bg-primary text-white font-medium rounded-lg hover:bg-blue-700 flex items-center gap-2"
@@ -525,8 +647,9 @@ export const CandidateManagement: React.FC = () => {
                                     <tr>
                                         <th className="px-6 py-3">Photo</th>
                                         <th className="px-6 py-3">Candidate Code</th>
-                                        <th className="px-6 py-3">Name</th>
+                                        <th className="px-6 py-3">Name & Staff Info</th>
                                         <th className="px-6 py-3">Office</th>
+                                        <th className="px-6 py-3 text-center">Votes</th>
                                         <th className="px-6 py-3">Manifesto</th>
                                         <th className="px-6 py-3">Status</th>
                                         <th className="px-6 py-3">Created</th>
@@ -557,9 +680,9 @@ export const CandidateManagement: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 font-mono text-slate-500 font-semibold">{candidate.candidate_code}</td>
                                             <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
-                                                <div className="flex flex-col">
+                                                <div className="flex flex-col gap-1">
                                                     <div className="flex items-center gap-2">
-                                                        <span>{candidate.name}</span>
+                                                        <span className="font-bold">{candidate.name}</span>
                                                         {candidate.image_url && (
                                                             <span className="material-symbols-outlined text-xs text-indigo-500" title="Photo attached">
                                                                 image
@@ -571,9 +694,36 @@ export const CandidateManagement: React.FC = () => {
                                                             "{candidate.manifesto_title}"
                                                         </span>
                                                     )}
+                                                    <div className="flex flex-wrap gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                                                        {candidate.mcs_number && (
+                                                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono font-medium">
+                                                                MCS: {candidate.mcs_number}
+                                                            </span>
+                                                        )}
+                                                        {candidate.file_no && (
+                                                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-medium">
+                                                                File: {candidate.file_no}
+                                                            </span>
+                                                        )}
+                                                        {candidate.conraiss && (
+                                                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-medium">
+                                                                {candidate.conraiss}
+                                                            </span>
+                                                        )}
+                                                        {candidate.station && (
+                                                            <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-medium">
+                                                                {candidate.station}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">{candidate.office?.description || candidate.office?.office_code || 'N/A'}</td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className="inline-flex items-center justify-center min-w-[32px] px-2.5 py-1 rounded-lg text-xs font-black bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                                    {candidate.vote_count ?? 0}
+                                                </span>
+                                            </td>
                                             <td className="px-6 py-4">
                                                 {candidate.manifesto_title || candidate.manifesto ? (
                                                     <button
@@ -613,6 +763,13 @@ export const CandidateManagement: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-1">
+                                                    <button
+                                                        onClick={() => setPrintCardModal({ isOpen: true, mode: 'single', candidate })}
+                                                        className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded text-amber-600 dark:text-amber-400"
+                                                        title="Print official candidate photo card with votes tally"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">print</span>
+                                                    </button>
                                                     <button
                                                         onClick={() => setManifestoModalCandidate(candidate)}
                                                         className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded text-indigo-600 dark:text-indigo-400"
@@ -691,6 +848,7 @@ export const CandidateManagement: React.FC = () => {
                 onClose={() => setLightboxCandidate(null)}
                 candidate={lightboxCandidate}
                 onOpenManifesto={(c) => setManifestoModalCandidate(c)}
+                onPrintPhotoCard={(c) => setPrintCardModal({ isOpen: true, mode: 'single', candidate: c })}
             />
 
             {/* Candidate Manifesto Preview Modal */}
@@ -699,6 +857,20 @@ export const CandidateManagement: React.FC = () => {
                 onClose={() => setManifestoModalCandidate(null)}
                 candidate={manifestoModalCandidate}
                 officeName={manifestoModalCandidate?.office?.description}
+            />
+
+            {/* Candidate Photo Card Print Modal (Office or Single) */}
+            <CandidatePhotoCardModal
+                isOpen={printCardModal.isOpen}
+                onClose={() => setPrintCardModal({ isOpen: false, mode: 'office', candidate: null })}
+                mode={printCardModal.mode}
+                candidate={printCardModal.candidate}
+                candidates={filteredCandidates}
+                officeTitle={
+                    officeFilter === 'all'
+                        ? 'All Offices'
+                        : offices.find((o) => o.office_code === officeFilter)?.description || officeFilter
+                }
             />
         </div>
     );
@@ -711,6 +883,10 @@ export const CreateCandidate: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [imageUrl, setImageUrl] = useState<string>('');
+    const [mcsNumber, setMcsNumber] = useState('');
+    const [fileNo, setFileNo] = useState('');
+    const [conraiss, setConraiss] = useState('');
+    const [station, setStation] = useState('');
     const [manifestoTitle, setManifestoTitle] = useState('');
     const [manifesto, setManifesto] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -765,6 +941,10 @@ export const CreateCandidate: React.FC = () => {
                 name,
                 office_code,
                 image_url: imageUrl || undefined,
+                mcs_number: mcsNumber.trim() || undefined,
+                file_no: fileNo.trim() || undefined,
+                conraiss: conraiss.trim() || undefined,
+                station: station.trim() || undefined,
                 manifesto_title: manifestoTitle.trim() || undefined,
                 manifesto: manifesto.trim() || undefined,
             });
@@ -773,6 +953,10 @@ export const CreateCandidate: React.FC = () => {
             setImageUrl('');
             setManifestoTitle('');
             setManifesto('');
+            setMcsNumber('');
+            setFileNo('');
+            setConraiss('');
+            setStation('');
         } catch (err: any) {
             setError(err?.data?.detail || 'Failed to create candidate');
         } finally {
@@ -886,6 +1070,61 @@ export const CreateCandidate: React.FC = () => {
                             className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
                             placeholder="e.g. John Doe"
                         />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                                MCS Number (Username)
+                            </label>
+                            <input
+                                type="text"
+                                value={mcsNumber}
+                                onChange={(e) => setMcsNumber(e.target.value)}
+                                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
+                                placeholder="e.g. MCS/1234 or staff username"
+                            />
+                            <p className="text-xs text-slate-500 mt-1">Leave empty to auto-link with user's staff profile</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                                Staff File Number
+                            </label>
+                            <input
+                                type="text"
+                                value={fileNo}
+                                onChange={(e) => setFileNo(e.target.value)}
+                                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
+                                placeholder="e.g. P/12345"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                                CONRAISS / Grade Level
+                            </label>
+                            <input
+                                type="text"
+                                value={conraiss}
+                                onChange={(e) => setConraiss(e.target.value)}
+                                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
+                                placeholder="e.g. CONRAISS 12"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                                Station / Department
+                            </label>
+                            <input
+                                type="text"
+                                value={station}
+                                onChange={(e) => setStation(e.target.value)}
+                                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
+                                placeholder="e.g. Head Office / ICT"
+                            />
+                        </div>
                     </div>
 
                     {/* Manifesto Header */}
