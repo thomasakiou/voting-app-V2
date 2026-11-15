@@ -11,78 +11,255 @@ const EditUserModal: React.FC<{
 }> = ({ isOpen, onClose, user, onUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [fullName, setFullName] = useState(user.full_name);
-  const [role, setRole] = useState<'super-admin' | 'admin' | 'voter' | 'agent'>(user.role);
+  const [username, setUsername] = useState(user.username || '');
+  const [fullName, setFullName] = useState(user.full_name || '');
+  const [role, setRole] = useState<'super-admin' | 'admin' | 'voter' | 'agent'>(user.role || 'voter');
+  const [phone, setPhone] = useState(user.phone || '');
+  const [email, setEmail] = useState(user.email || '');
+  const [fileNo, setFileNo] = useState(user.staff_file_no || '');
+  const [conraiss, setConraiss] = useState(user.staff_conraiss || '');
+  const [station, setStation] = useState(user.staff_station || '');
+  const [staffActive, setStaffActive] = useState<boolean>(user.staff_active ?? true);
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
-    setFullName(user.full_name);
-    setRole(user.role);
+    setUsername(user.username || '');
+    setFullName(user.full_name || '');
+    setRole(user.role || 'voter');
+    setPhone(user.phone || '');
+    setEmail(user.email || '');
+    setFileNo(user.staff_file_no || '');
+    setConraiss(user.staff_conraiss || '');
+    setStation(user.staff_station || '');
+    setStaffActive(user.staff_active ?? true);
+    setPassword('');
+    setError('');
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username.trim()) {
+      setError('MCS Number (Username) is compulsory.');
+      return;
+    }
+    if (!fullName.trim()) {
+      setError('Staff Full Name is compulsory.');
+      return;
+    }
     setLoading(true);
     setError('');
 
     try {
-      await usersAPI.update(user.id, { full_name: fullName, role });
+      await usersAPI.update(user.id, {
+        username: username.trim(),
+        full_name: fullName.trim(),
+        role,
+        phone: phone.trim() || undefined,
+        email: email.trim().toLowerCase() || undefined,
+        staff_file_no: fileNo.trim() || undefined,
+        staff_conraiss: conraiss.trim() || undefined,
+        staff_station: station.trim() || undefined,
+        staff_active: staffActive,
+        password: password.trim() || undefined,
+      });
       onUpdate();
       onClose();
     } catch (err: any) {
-      setError(err?.data?.detail || 'Failed to update user');
+      setError(err?.data?.detail || err?.message || 'Failed to update user');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit User">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Edit User: ${user.full_name || user.username}`} maxWidth="max-w-3xl">
       {error && <div className="mb-4"><ErrorAlert message={error} /></div>}
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Username</label>
-          <input
-            type="text"
-            value={user.username}
-            disabled
-            className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed"
-          />
+        {/* Compulsory Fields Notice */}
+        <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-300 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px] text-blue-600 dark:text-blue-400">info</span>
+            <span><strong>Compulsory Fields:</strong> MCS Number, Full Name, and Role. All other fields are optional.</span>
+          </div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">* Required</span>
         </div>
+
+        {/* Compulsory Identity Fields */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+              MCS Number (Username) <span className="text-red-500 font-bold">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+              placeholder="e.g. 2668 or staff MCS number"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">Unique identifier used for voting, login, and accreditation</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+              User Role <span className="text-red-500 font-bold">*</span>
+            </label>
+            <select
+              required
+              value={role}
+              onChange={(e) => setRole(e.target.value as any)}
+              className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none font-medium"
+            >
+              <option value="voter">Voter (Standard Voter Account)</option>
+              <option value="agent">Agent (Observer / Live Monitoring)</option>
+              <option value="admin">Admin (Election Manager)</option>
+              <option value="super-admin">Super Admin (Full System Access)</option>
+            </select>
+            <p className="text-[11px] text-slate-500 mt-1">Role determines user access permissions</p>
+          </div>
+        </div>
+
         <div>
-          <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Full Name</label>
+          <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+            Staff Full Name <span className="text-red-500 font-bold">*</span>
+          </label>
           <input
             type="text"
+            required
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
-            placeholder="Enter full name"
+            className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none font-semibold"
+            placeholder="e.g. Ibrahim Abubakar"
           />
         </div>
-        <div>
-          <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Role</label>
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as any)}
-            className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
-          >
-            <option value="voter">Voter</option>
-            <option value="admin">Admin</option>
-            <option value="agent">Agent (Observer)</option>
-            <option value="super-admin">Super Admin</option>
-          </select>
+
+        {/* Optional Contact Details */}
+        <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+            Contact Details (Optional)
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                Phone Number (Optional)
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none font-mono"
+                placeholder="e.g. 08012345678"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                Email Address (Optional)
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                placeholder="e.g. user@neco.gov.ng"
+              />
+            </div>
+          </div>
         </div>
-        <div className="flex justify-end gap-3 pt-4">
+
+        {/* Optional Staff Registry Details */}
+        <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+            Staff Registry Details (Optional)
+          </div>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                File Number (Optional)
+              </label>
+              <input
+                type="text"
+                value={fileNo}
+                onChange={(e) => setFileNo(e.target.value)}
+                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                placeholder="e.g. P/12345"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                CONRAISS (Optional)
+              </label>
+              <input
+                type="text"
+                value={conraiss}
+                onChange={(e) => setConraiss(e.target.value)}
+                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                placeholder="e.g. CONRAISS 12"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                Station / Dept (Optional)
+              </label>
+              <input
+                type="text"
+                value={station}
+                onChange={(e) => setStation(e.target.value)}
+                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                placeholder="e.g. Minna HQ"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Security & Password */}
+        <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="grid sm:grid-cols-2 gap-4 items-center">
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                Reset Password (Optional)
+              </label>
+              <input
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                placeholder="Leave blank to keep existing password"
+              />
+            </div>
+
+            <div className="pt-6">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={staffActive}
+                  onChange={(e) => setStaffActive(e.target.checked)}
+                  className="size-5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                />
+                <div className="text-sm">
+                  <span className="font-semibold text-slate-900 dark:text-white block">Staff Active Status</span>
+                  <span className="text-xs text-slate-500">Uncheck to mark staff as inactive</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 text-sm font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200 border border-slate-200 dark:border-slate-600"
+            className="px-6 py-2.5 text-sm font-semibold rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all border border-slate-200 dark:border-slate-600"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/30 transition-all disabled:opacity-50 flex items-center gap-2"
           >
             {loading ? (
               <>
@@ -936,34 +1113,55 @@ export const CreateUser: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [role, setRole] = useState<'admin' | 'voter' | 'agent'>('voter');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState<'voter' | 'agent' | 'admin' | 'super-admin'>('voter');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [fileNo, setFileNo] = useState('');
+  const [conraiss, setConraiss] = useState('');
+  const [station, setStation] = useState('');
+  const [password, setPassword] = useState('');
+  const [staffActive, setStaffActive] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username.trim()) {
+      setError('MCS Number (Username) is compulsory.');
+      return;
+    }
+    if (!fullName.trim()) {
+      setError('Staff Full Name is compulsory.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
-    const form = e.target as HTMLFormElement;
-    const username = (form.elements.namedItem('username') as HTMLInputElement).value.trim();
-    if (!username) {
-      setError('Username is required');
-      setLoading(false);
-      return;
-    }
     try {
-      if (role === 'admin') {
-        await usersAPI.createAdmin({ username, full_name: fullName || username, password: password || 'admin123' });
-      } else if (role === 'agent') {
-        await usersAPI.createAgent({ username, full_name: fullName || username, password: password || 'agent123', role: 'agent' });
-      } else {
-        await usersAPI.createVoter({ username, full_name: fullName || username, password: password || 'voter123' });
-      }
-      setSuccess(`${role === 'admin' ? 'Administrator' : role === 'agent' ? 'Contestant Agent' : 'Voter'} created successfully!`);
-      form.reset();
-      setPassword('');
+      await usersAPI.create({
+        username: username.trim(),
+        full_name: fullName.trim(),
+        role,
+        phone: phone.trim() || undefined,
+        email: email.trim().toLowerCase() || undefined,
+        staff_file_no: fileNo.trim() || undefined,
+        staff_conraiss: conraiss.trim() || undefined,
+        staff_station: station.trim() || undefined,
+        password: password.trim() || undefined,
+        staff_active: staffActive,
+      });
+
+      setSuccess(`${role === 'admin' ? 'Administrator' : role === 'super-admin' ? 'Super Admin' : role === 'agent' ? 'Contestant Agent' : 'Voter'} created successfully!`);
+      setUsername('');
       setFullName('');
+      setPhone('');
+      setEmail('');
+      setFileNo('');
+      setConraiss('');
+      setStation('');
+      setPassword('');
+      setRole('voter');
     } catch (err: any) {
       const detail = err?.data?.detail;
       let msg = 'Failed to create user';
@@ -983,14 +1181,14 @@ export const CreateUser: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Create New User</h1>
-        <p className="text-slate-500">Fill in the details to add a new user or agent to the system.</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Create New User / Voter</h1>
+        <p className="text-slate-500">Register an individual voter, agent, or administrator into the NECO MCS election system.</p>
       </div>
 
       {error && (
-        <div className="space-y-3">
+        <div className="space-y-3 mb-6">
           <ErrorAlert message={error} onDismiss={() => setError('')} />
           {(error.toLowerCase().includes('session') ||
             error.toLowerCase().includes('unauthorized') ||
@@ -1002,7 +1200,7 @@ export const CreateUser: React.FC = () => {
                 <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-2xl">admin_panel_settings</span>
                 <div className="text-sm text-amber-900 dark:text-amber-200">
                   <p className="font-bold">Admin Authentication Required</p>
-                  <p className="text-xs text-amber-800 dark:text-amber-300">Your administrator session has timed out. Please sign in again to authorize bulk voter registration.</p>
+                  <p className="text-xs text-amber-800 dark:text-amber-300">Your administrator session has timed out. Please sign in again to authorize registration.</p>
                 </div>
               </div>
               <Link
@@ -1015,60 +1213,187 @@ export const CreateUser: React.FC = () => {
           )}
         </div>
       )}
-      {success && <SuccessAlert message={success} onDismiss={() => setSuccess('')} />}
+      {success && <div className="mb-6"><SuccessAlert message={success} onDismiss={() => setSuccess('')} /></div>}
 
       <div className="bg-white dark:bg-[#1a1d29] p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Username</label>
-            <input
-              type="text"
-              name="username"
-              required
-              className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
-              placeholder={role === 'agent' ? 'e.g. agent_apc or agent_mike' : 'e.g. 2668'}
-            />
+          {/* Compulsory Fields Notice */}
+          <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-300 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px] text-blue-600 dark:text-blue-400">info</span>
+              <span><strong>Compulsory Fields:</strong> MCS Number, Full Name, and Role. All other fields are optional.</span>
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">* Required</span>
           </div>
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Full Name (Optional)</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
-              placeholder="e.g. Agent John / Candidate Representative"
-            />
+
+          {/* Compulsory Identity Fields */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                MCS Number (Username) <span className="text-red-500 font-bold">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                placeholder={role === 'agent' ? 'e.g. agent_apc' : 'e.g. 2668 or staff MCS number'}
+              />
+              <p className="text-xs text-slate-500 mt-1">Unique staff username used for voting and accreditation</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                User Role <span className="text-red-500 font-bold">*</span>
+              </label>
+              <select
+                required
+                value={role}
+                onChange={(e) => setRole(e.target.value as any)}
+                className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none font-medium"
+              >
+                <option value="voter">Voter (Standard Voter Account)</option>
+                <option value="agent">Agent (Live Election Monitor Portal)</option>
+                <option value="admin">Admin (Election Manager)</option>
+                <option value="super-admin">Super Admin (Full System Access)</option>
+              </select>
+              <p className="text-xs text-slate-500 mt-1">Permissions assigned to this account</p>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as any)}
-              className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
-            >
-              <option value="voter">Voter</option>
-              <option value="agent">Agent (Live Election Monitor Portal)</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
+
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
-              Password {role === 'agent' ? '(Username & Password login)' : '(Optional, default assigned)'}
+              Staff Full Name <span className="text-red-500 font-bold">*</span>
             </label>
             <input
               type="text"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-300 bg-white dark:bg-white text-slate-900 dark:text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200 outline-none"
-              placeholder={role === 'agent' ? 'Set password (e.g. agent2026)' : 'Leave empty for default password'}
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none font-semibold"
+              placeholder="e.g. Ibrahim Abubakar"
             />
-            {role === 'agent' && (
-              <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
-                Agents can log in to the Live Monitor portal with username and password alone (no OTP required).
-              </p>
-            )}
           </div>
-          <div className="flex justify-end gap-3 pt-4">
+
+          {/* Optional Contact Details */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+              Contact Details (Optional)
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                  Phone Number (Optional)
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none font-mono"
+                  placeholder="e.g. 08012345678"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                  Email Address (Optional)
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                  placeholder="e.g. user@neco.gov.ng"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Optional Staff Registry Details */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+              Staff Registry Details (Optional)
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                  Staff File Number (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={fileNo}
+                  onChange={(e) => setFileNo(e.target.value)}
+                  className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                  placeholder="e.g. P/12345"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                  CONRAISS (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={conraiss}
+                  onChange={(e) => setConraiss(e.target.value)}
+                  className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                  placeholder="e.g. CONRAISS 12"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                  Station / Dept (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={station}
+                  onChange={(e) => setStation(e.target.value)}
+                  className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                  placeholder="e.g. Minna HQ"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Security & Password */}
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div className="grid sm:grid-cols-2 gap-4 items-center">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-slate-900 dark:text-white">
+                  Password (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 text-base rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                  placeholder={role === 'agent' ? 'Set password (e.g. agent2026)' : 'Leave empty for default role password'}
+                />
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  {role === 'agent' ? 'Agents log in with username and password alone (no OTP).' : 'Defaults to role default password (e.g. voter123 / admin123).'}
+                </p>
+              </div>
+
+              <div className="pt-2 sm:pt-4">
+                <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={staffActive}
+                    onChange={(e) => setStaffActive(e.target.checked)}
+                    className="size-5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                  />
+                  <div className="text-sm">
+                    <span className="font-semibold text-slate-900 dark:text-white block">Staff Active Status</span>
+                    <span className="text-xs text-slate-500">Uncheck to mark staff as inactive</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
             <Link
               to="/admin/users"
               className="px-6 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 font-medium hover:bg-slate-50 dark:hover:bg-slate-800"

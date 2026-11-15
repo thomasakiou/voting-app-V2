@@ -79,6 +79,7 @@ export interface UserUpdate {
   full_name?: string;
   phone?: string;
   email?: string;
+  password?: string;
   role?: 'super-admin' | 'admin' | 'voter' | 'agent';
   is_active?: boolean;
   staff_file_no?: string;
@@ -784,6 +785,13 @@ export const voterContactAPI = {
 
 // Users API
 export const usersAPI = {
+  async create(data: UserCreate): Promise<UserOut> {
+    return apiFetch<UserOut>('/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   async createAdmin(data: UserCreate): Promise<UserOut> {
     return apiFetch<UserOut>('/users/admin', {
       method: 'POST',
