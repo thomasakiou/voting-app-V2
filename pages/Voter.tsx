@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -248,6 +248,7 @@ export const VoterDashboard: React.FC = () => {
 // ============================================================
 export const BallotView: React.FC = () => {
     const [offices, setOffices] = useState<OfficeResponse[]>([]);
+    const [candidates, setCandidates] = useState<CandidateResponse[]>([]);
     const [votingStatus, setVotingStatus] = useState<VotingTimeOut | null>(null);
     const [myVotes, setMyVotes] = useState<MyVoteResponse[]>([]);
     const [loading, setLoading] = useState(true);
@@ -259,13 +260,15 @@ export const BallotView: React.FC = () => {
     const loadData = async () => {
         try {
             setLoading(true);
-            const [officesData, timeStatus, myVotesData] = await Promise.all([
+            const [officesData, candidatesData, timeStatus, myVotesData] = await Promise.all([
                 officesAPI.getAll().catch(() => []),
+                candidatesAPI.getAll().catch(() => []),
                 votingTimeAPI.getStatus().catch(() => null),
                 votesAPI.getMyVotes().catch(() => []),
             ]);
 
             setOffices(officesData);
+            setCandidates((candidatesData || []).filter((c: CandidateResponse) => !c.is_hidden));
             setVotingStatus(timeStatus);
             setMyVotes(myVotesData);
         } catch (err) {
@@ -274,6 +277,17 @@ export const BallotView: React.FC = () => {
             setLoading(false);
         }
     };
+
+    const candidateCountByOffice = useMemo(() => {
+        const map = new Map<string, number>();
+        candidates.forEach((c) => {
+            if (!c.is_hidden) {
+                const code = c.office_code;
+                map.set(code, (map.get(code) || 0) + 1);
+            }
+        });
+        return map;
+    }, [candidates]);
 
     if (loading) return <LoadingSpinner />;
 
@@ -313,6 +327,7 @@ export const BallotView: React.FC = () => {
                     const isVoted = votedOfficesMap.has(office.office_code);
                     const officeVotes = votedOfficesMap.get(office.office_code) || [];
                     const isDisqualified = office.is_disqualified;
+                    const contestantCount = candidateCountByOffice.get(office.office_code) ?? 0;
 
                     if (isVoted) {
                         return (
@@ -325,12 +340,17 @@ export const BallotView: React.FC = () => {
                                         <span className="material-symbols-outlined text-2xl">check_circle</span>
                                     </div>
                                     <div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                                                 {office.description}
                                             </h3>
-                                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 inline-flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[13px]">check</span>
                                                 Voted ({officeVotes.length} {officeVotes.length === 1 ? 'candidate' : 'candidates'})
+                                            </span>
+                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[13px]">groups</span>
+                                                {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
                                             </span>
                                         </div>
                                         <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mt-0.5">
@@ -362,10 +382,16 @@ export const BallotView: React.FC = () => {
                                         <span className="material-symbols-outlined text-2xl">block</span>
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">
-                                            {office.description}
-                                        </h3>
-                                        <p className="text-xs text-red-500 font-semibold">Contest Disqualified by Admin</p>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300">
+                                                {office.description}
+                                            </h3>
+                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300 inline-flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[13px]">groups</span>
+                                                {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-red-500 font-semibold mt-0.5">Contest Disqualified by Admin</p>
                                     </div>
                                 </div>
                             </div>
@@ -388,24 +414,30 @@ export const BallotView: React.FC = () => {
                                     <span className="material-symbols-outlined text-2xl">how_to_vote</span>
                                 </div>
                                 <div className="min-w-0">
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors truncate">
-                                        {office.description}
-                                    </h3>
-                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    <div className="flex flex-wrap items-center gap-2.5">
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors truncate">
+                                            {office.description}
+                                        </h3>
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                            <span className="material-symbols-outlined text-[14px]">groups</span>
+                                            {contestantCount} {contestantCount === 1 ? 'Contestant' : 'Contestants'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2 mt-1.5">
                                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                                             office.max_votes && office.max_votes > 1
-                                                ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
+                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
                                                 : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
                                         }`}>
                                             <span className="material-symbols-outlined text-[13px]">
-                                                {office.max_votes && office.max_votes > 1 ? 'groups' : 'how_to_vote'}
+                                                {office.max_votes && office.max_votes > 1 ? 'ballot' : 'how_to_vote'}
                                             </span>
                                             {office.max_votes && office.max_votes > 1
                                                 ? `Pick up to ${office.max_votes} candidates`
                                                 : 'Single Choice (1 candidate)'}
                                         </span>
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                                            Click to inspect & vote
+                                        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                            <span>•</span> Click to inspect & vote
                                         </span>
                                     </div>
                                 </div>
@@ -694,6 +726,10 @@ export const VoteCandidate: React.FC = () => {
                         {office?.description || 'Contest'}
                     </h1>
                     <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                            <span className="material-symbols-outlined text-sm">groups</span>
+                            {candidates.length} {candidates.length === 1 ? 'Contestant' : 'Contestants'}
+                        </span>
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                             isMulti
                                 ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
