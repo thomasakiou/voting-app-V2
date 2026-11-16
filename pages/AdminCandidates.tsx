@@ -243,7 +243,7 @@ const EditCandidateModal: React.FC<{
                 candidate_code: candidate.candidate_code.trim(),
                 name: name.trim(),
                 office_code: officeCode,
-                image_url: imageUrl || undefined,
+                image_url: imageUrl ? imageUrl.trim() : '',
                 mcs_number: mcsNumber.trim() || undefined,
                 file_no: fileNo.trim() || undefined,
                 conraiss: conraiss.trim() || undefined,
@@ -305,7 +305,10 @@ const EditCandidateModal: React.FC<{
                                 {imageUrl && (
                                     <button
                                         type="button"
-                                        onClick={() => setImageUrl('')}
+                                        onClick={() => {
+                                            setImageUrl('');
+                                            if (fileInputRef.current) fileInputRef.current.value = '';
+                                        }}
                                         className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-red-100 hover:text-red-700 transition-colors flex items-center gap-1"
                                     >
                                         <span className="material-symbols-outlined text-sm">delete</span>

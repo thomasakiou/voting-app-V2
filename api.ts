@@ -130,7 +130,7 @@ export interface CandidateCreate {
   candidate_code: string;
   name: string;
   office_code: string;
-  image_url?: string;
+  image_url?: string | null;
   is_disqualified?: boolean;
   is_hidden?: boolean;
   manifesto_title?: string;
