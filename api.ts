@@ -284,6 +284,21 @@ export interface AccreditationVerifyResponse {
   masked_phone?: string;
 }
 
+export interface AccreditationStatusCheckResponse {
+  username: string;
+  full_name: string;
+  is_accredited: boolean;
+  is_active: boolean;
+  accredited_at?: string | null;
+  staff_file_no?: string | null;
+  staff_station?: string | null;
+  staff_rank?: string | null;
+  masked_phone?: string | null;
+  masked_email?: string | null;
+  status_label: string;
+  message: string;
+}
+
 export interface VoterContactLookupResponse {
   username: string;
   full_name: string;
@@ -699,6 +714,21 @@ export const accreditationAPI = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+
+    return response.json();
+  },
+
+  async checkStatus(username: string): Promise<AccreditationStatusCheckResponse> {
+    const response = await fetch(`${API_BASE_URL}/accreditation/check-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username.trim() }),
     });
 
     if (!response.ok) {

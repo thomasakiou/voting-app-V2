@@ -633,6 +633,17 @@ export const Accreditation: React.FC = () => {
             <p className="text-center text-xs text-slate-400 dark:text-slate-500 mb-2">Other portals</p>
             <div className="flex flex-wrap justify-center gap-2">
               <Link
+                to="/check-accreditation"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
+                           bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50
+                           text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300
+                           border border-emerald-200 dark:border-emerald-800 hover:border-emerald-300 dark:hover:border-emerald-700
+                           transition-colors"
+              >
+                <span className="material-symbols-outlined text-[14px]">verified_user</span>
+                Check Accreditation Status
+              </Link>
+              <Link
                 to="/election"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
                            bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-900/30

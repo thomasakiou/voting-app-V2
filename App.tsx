@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthLayout, AdminLayout, VoterLayout } from './components/Layouts';
 import { Login, AdminLogin, VerifyOTP } from './pages/Auth';
 import { Accreditation } from './pages/Accreditation';
+import { AccreditationStatusCheck } from './pages/AccreditationStatusCheck';
 import { VoterContactUpdate } from './pages/VoterContactUpdate';
 import { AgentsLiveView } from './pages/AgentsLiveView';
 import { PrivacyPolicy, TermsOfService } from './pages/Legal';
@@ -26,6 +27,11 @@ const App: React.FC = () => {
 
           {/* Public Accreditation Route */}
           <Route path="/accreditation" element={<Accreditation />} />
+
+          {/* Public Accreditation Status Check (No role restrictions) */}
+          <Route path="/check-accreditation" element={<AccreditationStatusCheck />} />
+          <Route path="/accreditation-check" element={<AccreditationStatusCheck />} />
+          <Route path="/accreditation-status" element={<AccreditationStatusCheck />} />
 
           {/* Public Contestants' Agents Live View */}
           <Route path="/agents/live" element={<AgentsLiveView />} />
