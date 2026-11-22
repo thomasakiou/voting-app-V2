@@ -740,6 +740,27 @@ export const accreditationAPI = {
   },
 };
 
+export interface TelegramLinkInfoResponse {
+  username: string;
+  full_name: string;
+  is_linked: boolean;
+  telegram_username?: string | null;
+  deep_link: string;
+  bot_username: string;
+}
+
+// Telegram Bot API
+export const telegramAPI = {
+  async getLinkInfo(username: string): Promise<TelegramLinkInfoResponse> {
+    const response = await fetch(`${API_BASE_URL}/telegram/link-info/${encodeURIComponent(username.trim())}`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
+  },
+};
+
 // Voter Contact & Dispute Management API
 export const voterContactAPI = {
   async lookup(username: string): Promise<VoterContactLookupResponse> {

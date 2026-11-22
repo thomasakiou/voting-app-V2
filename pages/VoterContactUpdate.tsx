@@ -580,6 +580,32 @@ export const VoterContactUpdate: React.FC = () => {
                 </div>
               )}
 
+              {/* Optional Telegram Instant OTP Option */}
+              <div className="p-3.5 rounded-2xl bg-sky-50/80 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg bg-sky-500 flex items-center justify-center text-white shrink-0 shadow-sm">
+                    <span className="material-symbols-outlined text-[18px]">send</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-sky-900 dark:text-sky-200">
+                      Receive OTPs via Telegram (Instant &amp; Free)
+                    </p>
+                    <p className="text-[11px] text-sky-700 dark:text-sky-400">
+                      Link your Telegram account to receive verification codes without carrier network delays.
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={`https://t.me/NECOMCSVotingBot?start=MCS_${username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shrink-0 transition shadow-sm flex items-center gap-1"
+                >
+                  <span>Connect</span>
+                  <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                </a>
+              </div>
+
               {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
                 <button
