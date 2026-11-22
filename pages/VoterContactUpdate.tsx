@@ -641,7 +641,7 @@ export const VoterContactUpdate: React.FC = () => {
                     </div>
                   </div>
                   <a
-                    href="https://t.me/NECOMCSVotingOTPBot"
+                    href={`https://t.me/NECOMCSVotingOTPBot?start=${username.trim()}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shrink-0 transition shadow-sm flex items-center gap-1"

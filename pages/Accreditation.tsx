@@ -31,6 +31,7 @@ export const Accreditation: React.FC = () => {
   const [maskedEmail, setMaskedEmail] = useState('');
   const [hasTelegram, setHasTelegram] = useState(false);
   const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
+  const [telegramDeepLink, setTelegramDeepLink] = useState<string>('');
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(6).fill(''));
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -69,6 +70,9 @@ export const Accreditation: React.FC = () => {
         if (info.is_linked) {
           setHasTelegram(true);
           setTelegramUsername(info.telegram_username || null);
+        }
+        if (info.deep_link) {
+          setTelegramDeepLink(info.deep_link);
         }
       }).catch(() => null);
     };
@@ -517,7 +521,7 @@ export const Accreditation: React.FC = () => {
                     </div>
                   </div>
                   <a
-                    href="https://t.me/NECOMCSVotingOTPBot"
+                    href={telegramDeepLink || `https://t.me/NECOMCSVotingOTPBot?start=${username.trim()}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shrink-0 transition shadow-sm flex items-center gap-1"
