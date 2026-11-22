@@ -776,28 +776,16 @@ export interface TelegramLinkInfoResponse {
 // Telegram Bot API
 export const telegramAPI = {
   async getLinkInfo(username: string): Promise<TelegramLinkInfoResponse> {
-    const response = await fetch(`${API_BASE_URL}/telegram/link-info/${encodeURIComponent(username.trim())}`);
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new APIError(response.status, response.statusText, error);
-    }
-    return response.json();
+    return apiFetch<TelegramLinkInfoResponse>(
+      `/telegram/link-info/${encodeURIComponent(username.trim())}`
+    );
   },
 
   async unlink(username: string): Promise<{ success: boolean; message: string; username: string }> {
-    const token = getAuthToken();
-    const response = await fetch(`${API_BASE_URL}/telegram/unlink/${encodeURIComponent(username.trim())}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new APIError(response.status, response.statusText, error);
-    }
-    return response.json();
+    return apiFetch<{ success: boolean; message: string; username: string }>(
+      `/telegram/unlink/${encodeURIComponent(username.trim())}`,
+      { method: 'POST' }
+    );
   },
 };
 
