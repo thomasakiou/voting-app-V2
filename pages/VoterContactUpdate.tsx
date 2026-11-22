@@ -591,12 +591,12 @@ export const VoterContactUpdate: React.FC = () => {
                       Receive OTPs via Telegram (Instant &amp; Free)
                     </p>
                     <p className="text-[11px] text-sky-700 dark:text-sky-400">
-                      Link your Telegram account to receive verification codes without carrier network delays.
+                      Link your registered phone number to receive OTPs on Telegram.
                     </p>
                   </div>
                 </div>
                 <a
-                  href={`https://t.me/NECOMCSVotingOTPBot?start=MCS_${username}`}
+                  href="https://t.me/NECOMCSVotingOTPBot"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shrink-0 transition shadow-sm flex items-center gap-1"

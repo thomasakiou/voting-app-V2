@@ -467,12 +467,12 @@ export const Accreditation: React.FC = () => {
                       Receive OTP on Telegram (Instant &amp; Free)
                     </p>
                     <p className="text-[11px] text-sky-700 dark:text-sky-400">
-                      Connect your Telegram account to get OTPs without carrier delays.
+                      Link your registered phone number to get OTPs on Telegram.
                     </p>
                   </div>
                 </div>
                 <a
-                  href={`https://t.me/NECOMCSVotingOTPBot?start=MCS_${username}`}
+                  href="https://t.me/NECOMCSVotingOTPBot"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shrink-0 transition shadow-sm flex items-center gap-1"
