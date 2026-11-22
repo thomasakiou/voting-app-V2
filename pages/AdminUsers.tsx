@@ -537,11 +537,11 @@ export const UserList: React.FC = () => {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      const pageIds = paginatedUsers.map((u) => u.id);
-      setSelectedUserIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+      const allFilteredIds = filteredUsers.map((u) => u.id);
+      setSelectedUserIds((prev) => Array.from(new Set([...prev, ...allFilteredIds])));
     } else {
-      const pageIds = new Set(paginatedUsers.map((u) => u.id));
-      setSelectedUserIds((prev) => prev.filter((id) => !pageIds.has(id)));
+      const allFilteredIds = new Set(filteredUsers.map((u) => u.id));
+      setSelectedUserIds((prev) => prev.filter((id) => !allFilteredIds.has(id)));
     }
   };
 
@@ -929,10 +929,10 @@ export const UserList: React.FC = () => {
                     <th className="px-4 py-3 w-10 text-center">
                       <input
                         type="checkbox"
-                        checked={paginatedUsers.length > 0 && paginatedUsers.every((u) => selectedUserIds.includes(u.id))}
+                        checked={filteredUsers.length > 0 && filteredUsers.every((u) => selectedUserIds.includes(u.id))}
                         onChange={handleSelectAll}
                         className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                        title="Select all on this page"
+                        title="Select all filtered users"
                       />
                     </th>
                     <th className="px-5 py-3">MCS Username</th>
