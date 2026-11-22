@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { voterContactAPI, portalLocksAPI, APIError } from '../api';
+import { voterContactAPI, portalLocksAPI, telegramAPI, APIError } from '../api';
 
 const getErrorMessage = (err: unknown, fallback: string): string => {
   if (err instanceof APIError) {
@@ -31,6 +31,8 @@ export const VoterContactUpdate: React.FC = () => {
   const [existingMaskedEmail, setExistingMaskedEmail] = useState('');
   const [existingMaskedPhone, setExistingMaskedPhone] = useState('');
   const [isAccredited, setIsAccredited] = useState(false);
+  const [hasTelegram, setHasTelegram] = useState(false);
+  const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
 
   // Inputs for missing details
   const [newEmail, setNewEmail] = useState('');
@@ -81,6 +83,21 @@ export const VoterContactUpdate: React.FC = () => {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
+  useEffect(() => {
+    if (step !== 2 || !username.trim()) return;
+    const checkTelegram = () => {
+      telegramAPI.getLinkInfo(username.trim()).then((info) => {
+        if (info.is_linked) {
+          setHasTelegram(true);
+          setTelegramUsername(info.telegram_username || null);
+        }
+      }).catch(() => null);
+    };
+    checkTelegram();
+    const interval = setInterval(checkTelegram, 3500);
+    return () => clearInterval(interval);
+  }, [step, username]);
+
   // Step 1: Look up voter by MCS number
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +122,8 @@ export const VoterContactUpdate: React.FC = () => {
       setExistingMaskedEmail(data.masked_email || (data.has_email ? 'Registered on file' : ''));
       setExistingMaskedPhone(data.masked_phone || (data.has_phone ? 'Registered on file' : ''));
       setIsAccredited(data.is_accredited);
+      setHasTelegram(Boolean(data.has_telegram));
+      setTelegramUsername(data.telegram_username || null);
       setNewEmail('');
       setNewPhone('');
 
@@ -581,30 +600,57 @@ export const VoterContactUpdate: React.FC = () => {
               )}
 
               {/* Optional Telegram Instant OTP Option */}
-              <div className="p-3.5 rounded-2xl bg-sky-50/80 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-lg bg-sky-500 flex items-center justify-center text-white shrink-0 shadow-sm">
-                    <span className="material-symbols-outlined text-[18px]">send</span>
+              {hasTelegram ? (
+                <div className="p-3.5 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 flex items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white shrink-0 shadow-sm">
+                      <span className="material-symbols-outlined text-[18px]">verified</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-emerald-950 dark:text-emerald-200 flex items-center gap-1.5">
+                        <span>Telegram Connected</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-100 font-bold">ACTIVE</span>
+                      </p>
+                      <p className="text-[11px] text-emerald-800 dark:text-emerald-300">
+                        Linked {telegramUsername ? `(${telegramUsername})` : 'to your phone'}. Your verification OTP will arrive on Telegram automatically!
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-sky-900 dark:text-sky-200">
-                      Receive OTPs via Telegram (Instant &amp; Free)
-                    </p>
-                    <p className="text-[11px] text-sky-700 dark:text-sky-400">
-                      Link your registered phone number to receive OTPs on Telegram.
-                    </p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => alert("✅ Your Telegram is already connected to your voter profile!\n\nClick 'Confirm & Send OTP' below to dispatch your code to Telegram and Email.")}
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0 transition shadow-sm flex items-center gap-1 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">check_circle</span>
+                    <span>Connected</span>
+                  </button>
                 </div>
-                <a
-                  href="https://t.me/NECOMCSVotingOTPBot"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shrink-0 transition shadow-sm flex items-center gap-1"
-                >
-                  <span>Connect</span>
-                  <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                </a>
-              </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-sky-50/80 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-8 rounded-lg bg-sky-500 flex items-center justify-center text-white shrink-0 shadow-sm">
+                      <span className="material-symbols-outlined text-[18px]">send</span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-sky-900 dark:text-sky-200">
+                        Receive OTPs via Telegram (Instant &amp; Free)
+                      </p>
+                      <p className="text-[11px] text-sky-700 dark:text-sky-400">
+                        Link your registered phone number to receive OTPs on Telegram.
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href="https://t.me/NECOMCSVotingOTPBot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shrink-0 transition shadow-sm flex items-center gap-1"
+                  >
+                    <span>Connect</span>
+                    <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                  </a>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-2">

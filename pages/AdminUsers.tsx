@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { usersAPI, voterContactAPI, UserOut, UserUpdate, VoterDisputeOut } from '../api';
+import { usersAPI, voterContactAPI, telegramAPI, UserOut, UserUpdate, VoterDisputeOut } from '../api';
 import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
 
 const EditUserModal: React.FC<{
@@ -249,6 +249,63 @@ const EditUserModal: React.FC<{
               />
             </div>
           </div>
+        </div>
+
+        {/* Telegram Bot Integration Details */}
+        <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[16px] text-sky-500">send</span>
+              Telegram Bot Integration
+            </span>
+            {user.telegram_chat_id ? (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                Connected
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                Not Connected
+              </span>
+            )}
+          </div>
+          {user.telegram_chat_id ? (
+            <div className="p-3.5 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 flex items-center justify-between gap-3 text-xs">
+              <div>
+                <p className="font-semibold text-sky-900 dark:text-sky-200">
+                  {user.telegram_username ? `Account: ${user.telegram_username}` : `Chat ID: ${user.telegram_chat_id}`}
+                </p>
+                <p className="text-[11px] text-sky-700 dark:text-sky-400">
+                  This voter receives instant verification OTPs via @NECOMCSVotingOTPBot.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm(`Unlink Telegram account from voter "${user.full_name}" (${user.username})?\n\nThe voter will no longer receive OTPs on Telegram until they re-verify their phone.`)) {
+                    setLoading(true);
+                    try {
+                      await telegramAPI.unlink(user.username);
+                      user.telegram_chat_id = null;
+                      user.telegram_username = null;
+                      onUpdate();
+                    } catch (err: any) {
+                      setError(err?.data?.detail || err?.message || 'Failed to unlink Telegram');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 transition-all shrink-0 shadow-sm cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[15px]">link_off</span>
+                Unlink Telegram
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500 dark:text-slate-400 italic">
+              Voter has not linked their Telegram account. They can link anytime by opening @NECOMCSVotingOTPBot and sending their registered phone number.
+            </p>
+          )}
         </div>
 
         {/* Optional Staff Registry Details */}

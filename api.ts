@@ -74,6 +74,8 @@ export interface UserOut {
   staff_active?: boolean | null;
   admin_login_count?: number | null;
   current_session_id?: string | null;
+  telegram_chat_id?: string | null;
+  telegram_username?: string | null;
 }
 
 export interface UserUpdate {
@@ -262,6 +264,8 @@ export interface AccreditationValidateResponse {
   staff_rank?: string | null;
   staff_conraiss?: string | null;
   staff_active?: boolean | null;
+  has_telegram?: boolean;
+  telegram_username?: string | null;
   message?: string;
 }
 
@@ -315,6 +319,8 @@ export interface VoterContactLookupResponse {
   staff_rank?: string | null;
   staff_conraiss?: string | null;
   staff_active?: boolean | null;
+  has_telegram?: boolean;
+  telegram_username?: string | null;
   message?: string;
 }
 
@@ -738,6 +744,22 @@ export const accreditationAPI = {
 
     return response.json();
   },
+
+  async unlink(username: string): Promise<{ success: boolean; message: string; username: string }> {
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/telegram/unlink/${encodeURIComponent(username.trim())}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
+  },
 };
 
 export interface TelegramLinkInfoResponse {
@@ -753,6 +775,22 @@ export interface TelegramLinkInfoResponse {
 export const telegramAPI = {
   async getLinkInfo(username: string): Promise<TelegramLinkInfoResponse> {
     const response = await fetch(`${API_BASE_URL}/telegram/link-info/${encodeURIComponent(username.trim())}`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
+  },
+
+  async unlink(username: string): Promise<{ success: boolean; message: string; username: string }> {
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/telegram/unlink/${encodeURIComponent(username.trim())}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new APIError(response.status, response.statusText, error);
@@ -1188,6 +1226,22 @@ export const candidatesAPI = {
     }
     return response.json();
   },
+
+  async unlink(username: string): Promise<{ success: boolean; message: string; username: string }> {
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/telegram/unlink/${encodeURIComponent(username.trim())}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
+  },
 };
 
 export function resolveImageUrl(url?: string | null): string {
@@ -1253,6 +1307,22 @@ export const votesAPI = {
   async getAgentsLiveMonitor(page: number = 1, pageSize: number = 20): Promise<AgentsLiveMonitorResponse> {
     const token = TokenManager.getToken();
     const response = await fetch(`${API_BASE_URL}/votes/agents/live?page=${page}&page_size=${pageSize}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new APIError(response.status, response.statusText, error);
+    }
+    return response.json();
+  },
+
+  async unlink(username: string): Promise<{ success: boolean; message: string; username: string }> {
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/telegram/unlink/${encodeURIComponent(username.trim())}`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
