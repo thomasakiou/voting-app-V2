@@ -24,6 +24,9 @@ const EditUserModal: React.FC<{
   const [station, setStation] = useState(user.staff_station || '');
   const [staffActive, setStaffActive] = useState<boolean>(user.staff_active ?? true);
   const [password, setPassword] = useState('');
+  const [telegramLinked, setTelegramLinked] = useState<boolean>(Boolean(user.telegram_chat_id));
+  const [telegramUsername, setTelegramUsername] = useState<string | null>(user.telegram_username || null);
+  const [telegramChatId, setTelegramChatId] = useState<string | null>(user.telegram_chat_id || null);
 
   useEffect(() => {
     setUsername(user.username || '');
@@ -37,7 +40,41 @@ const EditUserModal: React.FC<{
     setStaffActive(user.staff_active ?? true);
     setPassword('');
     setError('');
-  }, [user]);
+    setTelegramLinked(Boolean(user.telegram_chat_id));
+    setTelegramUsername(user.telegram_username || null);
+    setTelegramChatId(user.telegram_chat_id || null);
+
+    if (!isOpen || !user.username) return;
+
+    let isMounted = true;
+    const checkTelegramLink = async () => {
+      try {
+        const info = await telegramAPI.getLinkInfo(user.username);
+        if (!isMounted) return;
+        setTelegramLinked(Boolean(info.is_linked));
+        setTelegramUsername(info.telegram_username || null);
+        if (info.is_linked) {
+          setTelegramChatId(user.telegram_chat_id || 'linked');
+          user.telegram_chat_id = user.telegram_chat_id || 'linked';
+          user.telegram_username = info.telegram_username || null;
+        } else {
+          setTelegramChatId(null);
+          user.telegram_chat_id = null;
+          user.telegram_username = null;
+        }
+      } catch {
+        // silent polling catch
+      }
+    };
+
+    checkTelegramLink();
+    const interval = setInterval(checkTelegramLink, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [user, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,8 +295,9 @@ const EditUserModal: React.FC<{
               <span className="material-symbols-outlined text-[16px] text-sky-500">send</span>
               Telegram Bot Integration
             </span>
-            {user.telegram_chat_id ? (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+            {telegramLinked ? (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center gap-1">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 Connected
               </span>
             ) : (
@@ -268,11 +306,11 @@ const EditUserModal: React.FC<{
               </span>
             )}
           </div>
-          {user.telegram_chat_id ? (
+          {telegramLinked ? (
             <div className="p-3.5 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 flex items-center justify-between gap-3 text-xs">
               <div>
                 <p className="font-semibold text-sky-900 dark:text-sky-200">
-                  {user.telegram_username ? `Account: ${user.telegram_username}` : `Chat ID: ${user.telegram_chat_id}`}
+                  {telegramUsername ? `Account: ${telegramUsername}` : (telegramChatId ? `Chat ID: ${telegramChatId}` : 'Linked via Phone')}
                 </p>
                 <p className="text-[11px] text-sky-700 dark:text-sky-400">
                   This voter receives instant verification OTPs via @NECOMCSVotingOTPBot.
@@ -287,6 +325,9 @@ const EditUserModal: React.FC<{
                       await telegramAPI.unlink(user.username);
                       user.telegram_chat_id = null;
                       user.telegram_username = null;
+                      setTelegramLinked(false);
+                      setTelegramUsername(null);
+                      setTelegramChatId(null);
                       onUpdate();
                     } catch (err: any) {
                       setError(err?.data?.detail || err?.message || 'Failed to unlink Telegram');
@@ -472,11 +513,74 @@ export const UserList: React.FC = () => {
   const [disqualifyFile, setDisqualifyFile] = useState<File | null>(null);
   const [isDisqualifying, setIsDisqualifying] = useState(false);
   const [disqualifyError, setDisqualifyError] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     loadUsers();
     loadDisputes();
+
+    // Auto-refresh in background every 15 seconds so admin sees live voter link/accreditation changes
+    const interval = setInterval(() => {
+      loadUsers(false);
+    }, 15000);
+
+    // Auto-refresh immediately whenever admin switches back to this browser tab
+    const handleTabActive = () => {
+      if (document.visibilityState === 'visible') {
+        loadUsers(false);
+      }
+    };
+    window.addEventListener('focus', handleTabActive);
+    document.addEventListener('visibilitychange', handleTabActive);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleTabActive);
+      document.removeEventListener('visibilitychange', handleTabActive);
+    };
   }, []);
+
+  // Live polling for selected user in details drawer
+  useEffect(() => {
+    if (!selectedUserForDrawer?.username) return;
+    let isMounted = true;
+    const checkDrawerTg = async () => {
+      try {
+        const info = await telegramAPI.getLinkInfo(selectedUserForDrawer.username);
+        if (!isMounted) return;
+        if (info.is_linked !== Boolean(selectedUserForDrawer.telegram_chat_id)) {
+          setSelectedUserForDrawer((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  telegram_chat_id: info.is_linked ? (prev.telegram_chat_id || 'linked') : null,
+                  telegram_username: info.telegram_username || null,
+                }
+              : null
+          );
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.username.toLowerCase() === info.username.toLowerCase()
+                ? {
+                    ...u,
+                    telegram_chat_id: info.is_linked ? (u.telegram_chat_id || 'linked') : null,
+                    telegram_username: info.telegram_username || null,
+                  }
+                : u
+            )
+          );
+        }
+      } catch {
+        // silent
+      }
+    };
+    checkDrawerTg();
+    const interval = setInterval(checkDrawerTg, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [selectedUserForDrawer?.username]);
 
   const loadDisputes = async () => {
     try {
@@ -501,17 +605,22 @@ export const UserList: React.FC = () => {
     }
   };
 
-  const loadUsers = async () => {
+  const loadUsers = async (showSpinner = true) => {
     try {
-      setLoading(true);
+      if (showSpinner) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
       const data = await usersAPI.getAll();
       setUsers(data);
       setError('');
     } catch (err: any) {
-      setError('Failed to load users');
+      if (showSpinner) setError('Failed to load users');
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -852,6 +961,19 @@ export const UserList: React.FC = () => {
               Reset Filters
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => loadUsers(false)}
+            disabled={isRefreshing}
+            className="px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 transition-colors flex items-center gap-1.5 shrink-0"
+            title="Refresh voter data without reloading page"
+          >
+            <span className={`material-symbols-outlined text-[16px] ${isRefreshing ? 'animate-spin' : ''}`}>
+              refresh
+            </span>
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
         </div>
 
         {/* Counter Summary Bar */}
@@ -963,7 +1085,18 @@ export const UserList: React.FC = () => {
                         />
                       </td>
                       <td className="px-5 py-4 font-bold text-slate-900 dark:text-white">
-                        <div>{user.username}</div>
+                        <div className="flex items-center gap-2">
+                          <span>{user.username}</span>
+                          {user.telegram_chat_id && (
+                            <span
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300"
+                              title={user.telegram_username ? `Telegram: ${user.telegram_username}` : 'Telegram Connected'}
+                            >
+                              <span className="material-symbols-outlined text-[12px]">send</span>
+                              TG
+                            </span>
+                          )}
+                        </div>
                         {user.role === 'admin' && (
                           <div className="flex items-center gap-1 mt-0.5">
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300">
@@ -1158,6 +1291,20 @@ export const UserList: React.FC = () => {
                 <div className="grid grid-cols-1 gap-4">
                   <DetailItem label="Phone" value={selectedUserForDrawer.phone || '—'} icon="call" />
                   <DetailItem label="Email" value={selectedUserForDrawer.email || '—'} icon="mail" />
+                  <DetailItem
+                    label="Telegram OTP Bot"
+                    value={
+                      selectedUserForDrawer.telegram_chat_id ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                          <span className="material-symbols-outlined text-[15px]">check_circle</span>
+                          Connected {selectedUserForDrawer.telegram_username ? `(${selectedUserForDrawer.telegram_username})` : ''}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 italic">Not Connected</span>
+                      )
+                    }
+                    icon="send"
+                  />
                 </div>
               </div>
 
