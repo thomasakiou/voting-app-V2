@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { usersAPI, voterContactAPI, telegramAPI, UserOut, UserUpdate, VoterDisputeOut } from '../api';
-import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
+import { LoadingSpinner, TableSkeleton, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
 
 const EditUserModal: React.FC<{
   isOpen: boolean;
@@ -880,7 +880,13 @@ export const UserList: React.FC = () => {
         )}
 
         {loading ? (
-          <LoadingSpinner />
+          <TableSkeleton
+            cols={9}
+            rows={8}
+            headers={['', 'MCS Username', 'Staff Full Name', 'File No', 'Station', 'Rank', 'CONRAISS', 'Staff Status', 'Actions']}
+            hasCheckbox={true}
+            hasActions={true}
+          />
         ) : filteredUsers.length === 0 ? (
           <div className="p-8 text-center text-slate-400">
             No users found matching your search criteria.

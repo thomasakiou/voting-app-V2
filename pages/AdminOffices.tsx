@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { officesAPI, OfficeResponse } from '../api';
-import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
+import { LoadingSpinner, TableSkeleton, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination } from '../components/UIComponents';
 
 const EditOfficeModal: React.FC<{
     isOpen: boolean;
@@ -296,7 +296,13 @@ export const OfficeManagement: React.FC = () => {
                 )}
 
                 {loading ? (
-                    <LoadingSpinner />
+                    <TableSkeleton
+                        cols={7}
+                        rows={6}
+                        headers={['', 'Office Code', 'Description', 'Max Selections', 'Status', 'Created', 'Actions']}
+                        hasCheckbox={true}
+                        hasActions={true}
+                    />
                 ) : filteredOffices.length === 0 ? (
                     <div className="p-8 text-center text-slate-400">
                         No offices found matching your search.

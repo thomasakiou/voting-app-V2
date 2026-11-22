@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { candidatesAPI, officesAPI, CandidateResponse, OfficeResponse, resolveImageUrl } from '../api';
-import { LoadingSpinner, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination, CandidateAvatar } from '../components/UIComponents';
+import { LoadingSpinner, TableSkeleton, ErrorAlert, SuccessAlert, ConfirmDialog, Modal, TablePagination, usePagination, CandidateAvatar } from '../components/UIComponents';
 import { CandidateManifestoModal } from '../components/CandidateManifestoModal';
 import { CandidatePhotoCardModal } from '../components/CandidatePhotoCardModal';
 
@@ -821,7 +821,13 @@ export const CandidateManagement: React.FC = () => {
                 )}
 
                 {loading ? (
-                    <LoadingSpinner />
+                    <TableSkeleton
+                        cols={8}
+                        rows={7}
+                        headers={['', 'Photo', 'Candidate Code', 'Full Name', 'Contesting Office', 'Votes Count', 'Status', 'Actions']}
+                        hasCheckbox={true}
+                        hasActions={true}
+                    />
                 ) : filteredCandidates.length === 0 ? (
                     <div className="p-8 text-center text-slate-400">
                         No candidates found matching your criteria.

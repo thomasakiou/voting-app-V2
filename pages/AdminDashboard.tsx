@@ -10,7 +10,7 @@ import {
   UserStatsOut,
   PortalLocksStatus,
 } from '../api';
-import { LoadingSpinner, SuccessAlert, ErrorAlert, TablePagination } from '../components/UIComponents';
+import { LoadingSpinner, TableSkeleton, SuccessAlert, ErrorAlert, TablePagination } from '../components/UIComponents';
 
 // ============================================================
 // CUSTOM ELECTION CONFIRMATION MODAL
@@ -1288,7 +1288,31 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) {
+    return (
+      <div className="space-y-8 animate-fade-in">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">Admin Dashboard</h1>
+            <p className="text-slate-500 text-sm">Election Control Center & Real-time Telemetry</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
+          <div className="h-28 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 table-shimmer" />
+          <div className="h-28 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 table-shimmer" />
+          <div className="h-28 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 table-shimmer" />
+          <div className="h-28 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 table-shimmer" />
+        </div>
+        <TableSkeleton
+          cols={6}
+          rows={7}
+          headers={['MCS Username', 'Staff Full Name', 'Station', 'Rank', 'CONRAISS', 'Accredited']}
+          hasCheckbox={false}
+          hasActions={false}
+        />
+      </div>
+    );
+  }
 
   const isVotingActive = votingStatus?.is_active && votingStatus.status === 'ACTIVE';
 

@@ -463,6 +463,8 @@ export class TokenManager {
   }
 }
 
+export const getAuthToken = (): string | null => TokenManager.getToken();
+
 // API Error class
 export class APIError extends Error {
   constructor(

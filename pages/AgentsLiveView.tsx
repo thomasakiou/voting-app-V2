@@ -8,6 +8,7 @@ import {
   AgentsLiveOfficeTally,
   AgentsLiveBallotFeedItem,
 } from '../api';
+import { TableSkeleton } from '../components/UIComponents';
 
 function getSavedAgentAuth(): { token: string; role: string; username: string; fullname: string } | null {
   const token = TokenManager.getToken() || localStorage.getItem('access_token') || '';
@@ -493,7 +494,15 @@ export const AgentsLiveView: React.FC = () => {
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-            {ballotsList.length === 0 ? (
+            {loading && ballotsList.length === 0 ? (
+              <TableSkeleton
+                cols={5}
+                rows={8}
+                headers={['Receipt Hash', 'Contest / Office', 'Candidate Voted', 'Timestamp', 'Verification']}
+                hasCheckbox={false}
+                hasActions={false}
+              />
+            ) : ballotsList.length === 0 ? (
               <div className="p-10 text-center text-slate-400">
                 <span className="material-symbols-outlined text-4xl mb-2 text-slate-300 dark:text-slate-600 block">hourglass_empty</span>
                 No votes recorded yet. The live stream will populate as ballots are cast.

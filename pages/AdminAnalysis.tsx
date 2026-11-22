@@ -9,7 +9,7 @@ import {
   OfficeResponse,
   VotingTimeOut,
 } from '../api';
-import { LoadingSpinner, ErrorAlert } from '../components/UIComponents';
+import { LoadingSpinner, TableSkeleton, ErrorAlert } from '../components/UIComponents';
 import {
   ResponsiveContainer,
   BarChart,
@@ -123,7 +123,29 @@ export const AdminAnalysis: React.FC = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white">Voter Analytics & Insights</h1>
+          <p className="text-sm text-slate-500">Live operational telemetry & voter turnout intelligence.</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
+          <div className="h-28 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 table-shimmer" />
+          <div className="h-28 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 table-shimmer" />
+          <div className="h-28 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 table-shimmer" />
+          <div className="h-28 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 table-shimmer" />
+        </div>
+        <TableSkeleton
+          cols={4}
+          rows={6}
+          headers={['Metric Category', 'Count', '% of Register', 'Operational Status']}
+          hasCheckbox={false}
+          hasActions={false}
+        />
+      </div>
+    );
+  }
 
   // 1. Data for Accreditation / Eligibility Donut Chart
   const accreditationPieData = [

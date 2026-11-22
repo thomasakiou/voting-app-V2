@@ -16,6 +16,150 @@ export const LoadingSpinner: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size =
     );
 };
 
+// Shimmer Table Skeleton Component
+export interface TableSkeletonProps {
+    cols?: number;
+    rows?: number;
+    headers?: string[];
+    hasCheckbox?: boolean;
+    hasActions?: boolean;
+}
+
+export const TableSkeleton: React.FC<TableSkeletonProps> = ({
+    cols = 7,
+    rows = 7,
+    headers,
+    hasCheckbox = false,
+    hasActions = true,
+}) => {
+    const effectiveCols = headers ? headers.length : cols;
+
+    return (
+        <div className="w-full overflow-hidden rounded-xl border border-slate-200/80 dark:border-slate-700/60 bg-white dark:bg-slate-900 shadow-sm">
+            {/* Top Animated Loading Line */}
+            <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-sky-400 to-indigo-500 animate-pulse" />
+            </div>
+
+            <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-700/60 font-medium">
+                        <tr>
+                            {headers ? (
+                                headers.map((h, i) => (
+                                    <th key={i} className="px-5 py-3.5 whitespace-nowrap">
+                                        <span className="opacity-80 font-medium">{h}</span>
+                                    </th>
+                                ))
+                            ) : (
+                                Array.from({ length: effectiveCols }).map((_, i) => (
+                                    <th key={i} className="px-5 py-3.5">
+                                        <div
+                                            className="h-3.5 bg-slate-200 dark:bg-slate-700 rounded table-shimmer animate-pulse"
+                                            style={{
+                                                width: i === 0 && hasCheckbox ? '20px' : `${Math.floor(55 + ((i * 23) % 40))}%`,
+                                                maxWidth: '130px',
+                                            }}
+                                        />
+                                    </th>
+                                ))
+                            )}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {Array.from({ length: rows }).map((_, rIdx) => (
+                            <tr key={rIdx} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/30 transition-colors">
+                                {Array.from({ length: effectiveCols }).map((_, cIdx) => {
+                                    const isFirst = cIdx === 0;
+                                    const isLast = cIdx === effectiveCols - 1;
+                                    const isStatus = cIdx === effectiveCols - 2;
+
+                                    return (
+                                        <td key={cIdx} className="px-5 py-3.5">
+                                            {isFirst && hasCheckbox ? (
+                                                <div className="w-4 h-4 rounded bg-slate-200 dark:bg-slate-700/80 animate-pulse table-shimmer" />
+                                            ) : isLast && hasActions ? (
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700/70 animate-pulse table-shimmer" />
+                                                    <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700/70 animate-pulse table-shimmer" />
+                                                </div>
+                                            ) : isStatus ? (
+                                                <div className="h-6 w-20 rounded-full bg-slate-200/90 dark:bg-slate-700/80 animate-pulse table-shimmer" />
+                                            ) : (
+                                                <div
+                                                    className="h-4 rounded bg-slate-200/80 dark:bg-slate-700/70 animate-pulse table-shimmer"
+                                                    style={{
+                                                        width: `${Math.max(40, 88 - ((rIdx * 19 + cIdx * 31) % 45))}%`,
+                                                        maxWidth: cIdx === 1 ? '160px' : '220px',
+                                                    }}
+                                                />
+                                            )}
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Skeleton Pagination Bar Footer */}
+            <div className="px-5 py-3.5 border-t border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/20 flex items-center justify-between">
+                <div className="h-4 w-32 rounded bg-slate-200/70 dark:bg-slate-700/60 animate-pulse table-shimmer" />
+                <div className="flex items-center gap-2">
+                    <div className="h-8 w-16 rounded-lg bg-slate-200/70 dark:bg-slate-700/60 animate-pulse table-shimmer" />
+                    <div className="h-8 w-16 rounded-lg bg-slate-200/70 dark:bg-slate-700/60 animate-pulse table-shimmer" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Shimmer Rows for rendering directly inside custom <tbody>
+export const TableSkeletonRows: React.FC<{
+    rows?: number;
+    cols: number;
+    hasCheckbox?: boolean;
+    hasActions?: boolean;
+}> = ({ rows = 6, cols, hasCheckbox = false, hasActions = false }) => {
+    return (
+        <>
+            {Array.from({ length: rows }).map((_, rIdx) => (
+                <tr key={rIdx} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/30 transition-colors">
+                    {Array.from({ length: cols }).map((_, cIdx) => {
+                        const isFirst = cIdx === 0;
+                        const isLast = cIdx === cols - 1;
+                        const isStatus = cIdx === cols - 2;
+
+                        return (
+                            <td key={cIdx} className="px-5 py-3.5">
+                                {isFirst && hasCheckbox ? (
+                                    <div className="w-4 h-4 rounded bg-slate-200 dark:bg-slate-700/80 animate-pulse table-shimmer" />
+                                ) : isLast && hasActions ? (
+                                    <div className="flex items-center justify-end gap-2">
+                                        <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700/70 animate-pulse table-shimmer" />
+                                        <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-700/70 animate-pulse table-shimmer" />
+                                    </div>
+                                ) : isStatus ? (
+                                    <div className="h-6 w-20 rounded-full bg-slate-200/90 dark:bg-slate-700/80 animate-pulse table-shimmer" />
+                                ) : (
+                                    <div
+                                        className="h-4 rounded bg-slate-200/80 dark:bg-slate-700/70 animate-pulse table-shimmer"
+                                        style={{
+                                            width: `${Math.max(40, 85 - ((rIdx * 17 + cIdx * 29) % 45))}%`,
+                                            maxWidth: '200px',
+                                        }}
+                                    />
+                                )}
+                            </td>
+                        );
+                    })}
+                </tr>
+            ))}
+        </>
+    );
+};
+
 export const formatAlertMessage = (msg: any): string => {
     if (!msg) return '';
     if (typeof msg === 'string') return msg;

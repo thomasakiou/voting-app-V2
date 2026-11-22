@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { officesAPI, resultsAPI, OfficeResponse } from '../api';
-import { LoadingSpinner, ErrorAlert, TablePagination, usePagination } from '../components/UIComponents';
+import { LoadingSpinner, TableSkeleton, ErrorAlert, TablePagination, usePagination } from '../components/UIComponents';
 import { OfficeResultsPDFModal } from '../components/OfficeResultsPDFModal';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -151,7 +151,20 @@ export const ElectionResults: React.FC = () => {
                 </div>
 
                 {loading ? (
-                    <LoadingSpinner />
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 animate-pulse">
+                            <div className="h-20 rounded-xl bg-slate-100 dark:bg-slate-800 table-shimmer" />
+                            <div className="h-20 rounded-xl bg-slate-100 dark:bg-slate-800 table-shimmer" />
+                            <div className="h-20 rounded-xl bg-slate-100 dark:bg-slate-800 table-shimmer" />
+                        </div>
+                        <TableSkeleton
+                            cols={4}
+                            rows={6}
+                            headers={['Rank', 'Candidate', 'Votes', 'Percentage']}
+                            hasCheckbox={false}
+                            hasActions={false}
+                        />
+                    </div>
                 ) : results ? (
                     <div className="space-y-8">
                         {/* Summary Stats */}

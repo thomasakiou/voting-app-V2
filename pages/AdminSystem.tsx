@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { systemAPI, auditLogsAPI, AuditLog } from '../api';
-import { LoadingSpinner, ErrorAlert, SuccessAlert, TablePagination, usePagination } from '../components/UIComponents';
+import { LoadingSpinner, TableSkeleton, ErrorAlert, SuccessAlert, TablePagination, usePagination } from '../components/UIComponents';
 
 export const SystemStatus: React.FC = () => {
     const [status, setStatus] = useState<any>(null);
@@ -187,7 +187,13 @@ export const SystemConfig: React.FC = () => {
                 </div>
 
                 {loading ? (
-                    <LoadingSpinner />
+                    <TableSkeleton
+                        cols={5}
+                        rows={7}
+                        headers={['Timestamp', 'Admin', 'Action', 'Target', 'Details']}
+                        hasCheckbox={false}
+                        hasActions={false}
+                    />
                 ) : auditLogs.length === 0 ? (
                     <div className="p-8 text-center text-slate-400">
                         No audit logs recorded for the selected filter.
