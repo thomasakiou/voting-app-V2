@@ -1085,6 +1085,26 @@ export const usersAPI = {
       body: JSON.stringify({ user_ids: userIds }),
     });
   },
+
+  async bulkUnaccredit(userIds?: number[], allAccredited?: boolean): Promise<{
+    unaccredited_count: number;
+    skipped_count: number;
+    skipped_voters: string[];
+    message: string;
+  }> {
+    return apiFetch<{
+      unaccredited_count: number;
+      skipped_count: number;
+      skipped_voters: string[];
+      message: string;
+    }>('/users/bulk-unaccredit', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_ids: userIds || null,
+        all_accredited: Boolean(allAccredited),
+      }),
+    });
+  },
 };
 
 // Offices API

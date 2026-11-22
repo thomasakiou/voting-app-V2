@@ -445,6 +445,7 @@ export const UserList: React.FC = () => {
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [bulkUnaccreditModalOpen, setBulkUnaccreditModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; userId?: number; username?: string }>({
     isOpen: false,
   });
@@ -564,6 +565,22 @@ export const UserList: React.FC = () => {
       loadUsers();
     } catch (err: any) {
       setError(err?.data?.detail || err?.message || 'Failed to bulk delete users');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkUnaccreditUsers = async () => {
+    if (!selectedUserIds.length) return;
+    setBulkLoading(true);
+    try {
+      const res = await usersAPI.bulkUnaccredit(selectedUserIds);
+      setSuccess(res.message || `Unaccredited ${res.unaccredited_count} voter(s). ${res.skipped_count > 0 ? `${res.skipped_count} voter(s) skipped (already voted).` : ''}`);
+      setSelectedUserIds([]);
+      setBulkUnaccreditModalOpen(false);
+      loadUsers();
+    } catch (err: any) {
+      setError(err?.data?.detail || err?.message || 'Failed to bulk unaccredit users');
     } finally {
       setBulkLoading(false);
     }
@@ -868,6 +885,18 @@ export const UserList: React.FC = () => {
                 <span className="material-symbols-outlined text-sm">delete_forever</span>
                 Delete Selected ({selectedUserIds.length})
               </button>
+              {selectedUserIds.some(id => users.find(u => u.id === id)?.is_accredited) && (
+                <button
+                  type="button"
+                  disabled={bulkLoading}
+                  onClick={() => setBulkUnaccreditModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold flex items-center gap-1 shadow-xs transition-colors"
+                  title="Reverse accreditation for selected voters"
+                >
+                  <span className="material-symbols-outlined text-sm">undo</span>
+                  Unaccredit Selected ({selectedUserIds.filter(id => users.find(u => u.id === id)?.is_accredited).length})
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setSelectedUserIds([])}
@@ -1261,6 +1290,15 @@ export const UserList: React.FC = () => {
         message={`Are you sure you want to permanently delete all ${selectedUserIds.length} selected user(s)? This will cascade delete any votes or records associated with them. The currently active administrator account will not be deleted. This action cannot be undone.`}
         confirmText={bulkLoading ? "Deleting..." : "Delete All Selected"}
         isDestructive
+      />
+
+      <ConfirmDialog
+        isOpen={bulkUnaccreditModalOpen}
+        onClose={() => setBulkUnaccreditModalOpen(false)}
+        onConfirm={handleBulkUnaccreditUsers}
+        title="Bulk Reverse Accreditation"
+        message={`Are you sure you want to reverse accreditation for ${selectedUserIds.filter(id => users.find(u => u.id === id)?.is_accredited).length} selected accredited voter(s)? They will need to re-accredit. Voters who have already cast votes will be skipped automatically.`}
+        confirmText={bulkLoading ? "Processing..." : "Unaccredit Selected"}
       />
 
       <ConfirmDialog
